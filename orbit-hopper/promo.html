@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Orbit Hopper – Promo Art</title>
+<style>
+  body{background:#111;display:flex;flex-direction:column;align-items:center;gap:24px;padding:24px;font-family:sans-serif;color:#aaa}
+  canvas{border:1px solid #333;display:block}
+  button{background:#333;color:#fff;border:1px solid #555;padding:6px 14px;cursor:pointer;border-radius:4px}
+</style>
+</head>
+<body>
+<h2>Orbit Hopper – Promo Art</h2>
+<p>512×512 (icon)</p>
+<canvas id="c512" width="512" height="512"></canvas>
+<button onclick="save512()">Save 512×512</button>
+<p>1280×720 (banner)</p>
+<canvas id="c1280" width="1280" height="720"></canvas>
+<button onclick="save1280()">Save 1280×720</button>
+
+<script>
+(function(){
+  // ── Shared drawing helpers ────────────────────────────────────────────
+  function drawPromo(ctx, W, H) {
+    const t = performance.now()/1000;
+
+    // Background gradient
+    const bg = ctx.createRadialGradient(W*.45, H*.4, 0, W*.45, H*.4, Math.hypot(W,H)*.75);
+    bg.addColorStop(0,'#1e2060');
+    bg.addColorStop(.4,'#2B2D6B');
+    bg.addColorStop(1,'#0a0b1e');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    // Stars
+    ctx.save();
+    const rng=mulberry32(42);
+    for(let i=0;i<200;i++){
+      const x=rng()*W, y=rng()*H, r=.4+rng()*1.2, a=.2+rng()*.7;
+      ctx.globalAlpha=a; ctx.fillStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+
+    const cx=W*.5, cy=H*.46;
+    const pR=W*.135;
+
+    // Large planet glow
+    ctx.save();
+    for(let i=3;i>=1;i--){
+      const spread=i*pR*.55;
+      ctx.shadowBlur=0;
+      const g=ctx.createRadialGradient(cx,cy,pR,cx,cy,pR+spread);
+      g.addColorStop(0,`rgba(108,142,239,${.18/i})`);
+      g.addColorStop(1,'rgba(108,142,239,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(cx,cy,pR+spread,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+
+    // Planet body
+    ctx.save();
+    ctx.shadowBlur=40; ctx.shadowColor='#6C8EEF';
+    const pb=ctx.createRadialGradient(cx-pR*.32,cy-pR*.32,pR*.08,cx,cy,pR);
+    pb.addColorStop(0,'#ffffff');
+    pb.addColorStop(.25,'#6C8EEF');
+    pb.addColorStop(.7,'#5b21b6');
+    pb.addColorStop(1,'#1a1a4e');
+    ctx.fillStyle=pb;
+    ctx.beginPath(); ctx.arc(cx,cy,pR,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // Orbit ring
+    ctx.save();
+    ctx.strokeStyle='rgba(168,237,234,.5)'; ctx.lineWidth=W*.005;
+    ctx.shadowBlur=15; ctx.shadowColor='#a8edea';
+    ctx.setLineDash([W*.018, W*.012]);
+    ctx.beginPath(); ctx.arc(cx,cy,pR*2.1,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Ship on orbit
+    const sa=-Math.PI*.2;
+    const sx=cx+Math.cos(sa)*pR*2.1;
+    const sy=cy+Math.sin(sa)*pR*2.1;
+    ctx.save();
+    ctx.translate(sx,sy); ctx.rotate(sa+Math.PI/2);
+    ctx.shadowBlur=22; ctx.shadowColor='#88ccff';
+    ctx.fillStyle='#ffffff';
+    const ss=W*.04;
+    ctx.beginPath();
+    ctx.moveTo(ss,0); ctx.lineTo(-ss*.54,-ss*.54);
+    ctx.lineTo(-ss*.27,0); ctx.lineTo(-ss*.54,ss*.54);
+    ctx.closePath(); ctx.fill();
+    // Trail
+    for(let i=1;i<=8;i++){
+      const ta=sa-i*.085;
+      const tx=cx+Math.cos(ta)*pR*2.1, ty=cy+Math.sin(ta)*pR*2.1;
+      ctx.globalAlpha=(.6-i*.07)*1;
+      ctx.shadowBlur=6; ctx.shadowColor='#88ccff';
+      ctx.fillStyle='#88ccff';
+      ctx.beginPath(); ctx.arc(tx-sx,ty-sy,ss*.22*(1-i*.09),0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+
+    // Small orbiting planets
+    [{ang:Math.PI*.55,d:pR*3.6,r:pR*.32,c1:'#E67E22',c2:'#E74C3C'},
+     {ang:-Math.PI*.65,d:pR*4.0,r:pR*.22,c1:'#1ABC9C',c2:'#3498DB'}].forEach(p=>{
+      const px=cx+Math.cos(p.ang)*p.d, py=cy+Math.sin(p.ang)*p.d;
+      ctx.save();
+      ctx.shadowBlur=20; ctx.shadowColor=p.c1;
+      const pg=ctx.createRadialGradient(px-p.r*.3,py-p.r*.3,p.r*.08,px,py,p.r);
+      pg.addColorStop(0,'#ffffff'); pg.addColorStop(.3,p.c1); pg.addColorStop(1,p.c2);
+      ctx.fillStyle=pg;
+      ctx.beginPath(); ctx.arc(px,py,p.r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    });
+
+    // Gems floating
+    [[cx-pR*2.6,cy-pR*.4],[cx+pR*2.2,cy+pR*.6],[cx-pR*.6,cy+pR*2.8]].forEach(([gx,gy],i)=>{
+      ctx.save(); ctx.translate(gx,gy); ctx.rotate(Math.PI*.12*i);
+      ctx.shadowBlur=14; ctx.shadowColor='#a8edea';
+      const gs=W*.018;
+      const gg=ctx.createLinearGradient(0,-gs*1.3,0,gs);
+      gg.addColorStop(0,'#dff8f8'); gg.addColorStop(1,'#7c83fd');
+      ctx.fillStyle=gg;
+      ctx.beginPath(); ctx.moveTo(0,-gs*1.3); ctx.lineTo(gs,0); ctx.lineTo(0,gs); ctx.lineTo(-gs,0); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    });
+
+    // Title text (graphical, stylised – allowed as it's a logo/wordmark in cover art only)
+    ctx.save();
+    ctx.textAlign='center';
+    ctx.shadowBlur=30; ctx.shadowColor='#a8edea';
+    const fontSize = Math.round(W*.088);
+    ctx.font=`900 ${fontSize}px system-ui,sans-serif`;
+    const tg=ctx.createLinearGradient(cx-W*.3,cy+pR*2.2,cx+W*.3,cy+pR*2.7);
+    tg.addColorStop(0,'#a8edea'); tg.addColorStop(.5,'#ffffff'); tg.addColorStop(1,'#7c83fd');
+    ctx.fillStyle=tg;
+    ctx.fillText('ORBIT HOPPER', cx, cy+pR*2.6 + fontSize*.35);
+    ctx.restore();
+  }
+
+  function mulberry32(seed){
+    return function(){
+      seed|=0; seed=seed+0x6D2B79F5|0;
+      let z=Math.imul(seed^seed>>>15,1|seed);
+      z=z+Math.imul(z^z>>>7,61|z)^z;
+      return ((z^z>>>14)>>>0)/4294967296;
+    };
+  }
+
+  // ── Render both canvases ──────────────────────────────────────────────
+  const c512  = document.getElementById('c512');
+  const c1280 = document.getElementById('c1280');
+  drawPromo(c512.getContext('2d'), 512, 512);
+  drawPromo(c1280.getContext('2d'), 1280, 720);
+
+  window.save512  = () => dl(c512,  'orbit-hopper-512x512.png');
+  window.save1280 = () => dl(c1280, 'orbit-hopper-1280x720.png');
+
+  function dl(cv, name) {
+    const a=document.createElement('a');
+    a.download=name; a.href=cv.toDataURL(); a.click();
+  }
+})();
+</script>
+</body>
+</html>
