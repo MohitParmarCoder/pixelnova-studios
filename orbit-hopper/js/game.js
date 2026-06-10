@@ -989,6 +989,7 @@ const Game = (() => {
     newBestFlash = 0; deathTimer = 0; continueTimer = 0; continueAlpha = 0;
     score = 0; gems = 0; diffLv = 0; streakCount = 0;
     rewardedUsed = false; gemsDoubled = false;
+    cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     particles=[]; popups=[]; hazards=[]; gemsList=[];
 
     makeStars();

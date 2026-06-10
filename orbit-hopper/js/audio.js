@@ -7,13 +7,16 @@ const Audio = (() => {
   const SR = 44100;
 
   function _getCtx() {
-    if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!_ctx) {
+      try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { _ctx = null; }
+    }
     return _ctx;
   }
 
   function resume() {
     const c = _getCtx();
-    if (c.state === 'suspended') c.resume().catch(() => {});
+    if (c && c.state === 'suspended') c.resume().catch(() => {});
   }
 
   function _zzfxG(
@@ -65,6 +68,7 @@ const Audio = (() => {
   function _play(buffer) {
     if (!buffer || !buffer.length) return;
     const c = _getCtx();
+    if (!c) return;
     const buf = c.createBuffer(1, buffer.length, SR);
     buf.getChannelData(0).set(buffer);
     const src = c.createBufferSource();
