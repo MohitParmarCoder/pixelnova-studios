@@ -5,11 +5,11 @@ const Game = (() => {
   const W = 390, H = 844;
 
   // Physics
-  const BASE_ORBIT_SPD  = 2.1;    // rad/s
-  const BASE_LAUNCH_SPD = 370;    // px/s
-  const GRAV_MULT       = 2.7;    // gravity ring = planet.r × this
+  const BASE_ORBIT_SPD  = 1.35;   // rad/s  (was 2.1 — slower, more readable)
+  const BASE_LAUNCH_SPD = 290;    // px/s   (was 370 — more time to aim)
+  const GRAV_MULT       = 3.4;    // gravity ring = planet.r × this (was 2.7 — bigger catch zone)
   const ORBIT_MULT      = 1.85;   // orbit path = planet.r × this
-  const DIFF_STEP       = 5;      // score per difficulty level
+  const DIFF_STEP       = 8;      // score per difficulty level (was 5 — gentler ramp)
 
   // Background palette: deep-space → purple → dusk-orange → dawn-gold
   const BG_STOPS = [
@@ -133,8 +133,8 @@ const Game = (() => {
       for (const p of planets) topY = Math.min(topY, p.y);
 
       const ref = planets[planets.length-1];
-      const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*.9;
-      const d   = 210 + Math.random()*140;
+      const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*.75;
+      const d   = 155 + Math.random()*100;
       const nx  = Math.max(70, Math.min(W-70, ref.x + Math.cos(ang)*d));
       const ny  = topY - 160 - Math.random()*120;
       const np  = makePlanet(nx, ny, false);
@@ -590,11 +590,11 @@ const Game = (() => {
       ctx.translate(p.x, p.y);
       ctx.scale(p.scale, p.scale);
 
-      // Gravity ring (dashed, pulsing)
-      const ringA = .22 + Math.sin(gameTime*2+p.id*7)*.12;
+      // Gravity ring (dashed, pulsing) — kept visible so players see the catch zone
+      const ringA = .42 + Math.sin(gameTime*2+p.id*7)*.18;
       ctx.globalAlpha = p.alpha * ringA;
       ctx.strokeStyle = p.c1;
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.setLineDash([9,7]);
       ctx.beginPath(); ctx.arc(0,0,p.gravR,0,Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
@@ -682,6 +682,38 @@ const Game = (() => {
 
   function drawShip() {
     if (!ship.alive && deathTimer>.25) return;
+
+    // Aim-direction preview (only while orbiting, fades out as speed rises)
+    if (!ship.flying && ship.orbitPlanet) {
+      // Tangent = perpendicular to radius, signed by orbit direction
+      const dir = Math.sign(ship.orbitSpd || 1);
+      const aimX = -Math.sin(ship.orbitAngle) * dir;
+      const aimY =  Math.cos(ship.orbitAngle) * dir;
+      const fadeAlpha = Math.max(0, 0.55 - diffLv * 0.06);
+      if (fadeAlpha > 0.05) {
+        ctx.save();
+        ctx.globalAlpha = fadeAlpha;
+        ctx.strokeStyle = '#a8edea';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 7]);
+        ctx.shadowBlur = 6; ctx.shadowColor = '#a8edea';
+        ctx.beginPath();
+        ctx.moveTo(ship.x, ship.y);
+        ctx.lineTo(ship.x + aimX * 95, ship.y + aimY * 95);
+        ctx.stroke();
+        // Arrowhead
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#a8edea';
+        const ax = ship.x + aimX * 95, ay = ship.y + aimY * 95;
+        const perp = 5;
+        ctx.beginPath();
+        ctx.moveTo(ax + aimX*8, ay + aimY*8);
+        ctx.lineTo(ax - aimY*perp, ay + aimX*perp);
+        ctx.lineTo(ax + aimY*perp, ay - aimX*perp);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
 
     // Trail
     for (let i=0;i<ship.trail.length;i++) {
@@ -850,26 +882,62 @@ const Game = (() => {
 
   function drawTutorial() {
     if (!ship||!ship.orbitPlanet) return;
-    const sx=ship.x-cam.x, sy=ship.y-cam.y+65;
-    const a=.5+Math.sin(tutPhase*3)*.5;
-    const sc=.92+Math.sin(tutPhase*3)*.08;
 
+    // Find nearest non-current planet to point at
+    let target = null, td2 = Infinity;
+    for (const p of planets) {
+      if (p === ship.orbitPlanet) continue;
+      const d = dist2(ship.x, ship.y, p.x, p.y);
+      if (d < td2) { td2 = d; target = p; }
+    }
+
+    // Arrow pointing from ship toward target planet (in screen space)
+    if (target) {
+      const pulse = .55 + Math.sin(tutPhase*3)*.35;
+      const sx2 = ship.x - cam.x, sy2 = ship.y - cam.y;
+      const tx2 = target.x - cam.x, ty2 = target.y - cam.y;
+      const adx = tx2 - sx2, ady = ty2 - sy2;
+      const alen = Math.hypot(adx, ady);
+      const anx = adx/alen, any = ady/alen;
+      const arrowStart = 28, arrowEnd = Math.min(alen - target.r - 10, 100);
+      if (arrowEnd > arrowStart) {
+        ctx.save();
+        ctx.globalAlpha = pulse * .75;
+        ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+        ctx.shadowBlur = 10; ctx.shadowColor = '#FFD700';
+        ctx.beginPath();
+        ctx.moveTo(sx2 + anx*arrowStart, sy2 + any*arrowStart);
+        ctx.lineTo(sx2 + anx*arrowEnd,   sy2 + any*arrowEnd);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#FFD700';
+        const ax = sx2 + anx*arrowEnd, ay = sy2 + any*arrowEnd;
+        const perp = 6;
+        ctx.beginPath();
+        ctx.moveTo(ax + anx*10, ay + any*10);
+        ctx.lineTo(ax - any*perp, ay + anx*perp);
+        ctx.lineTo(ax + any*perp, ay - anx*perp);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Tap-hand indicator below ship
+    const sx=ship.x-cam.x, sy=ship.y-cam.y+68;
+    const a=.45+Math.sin(tutPhase*3)*.45;
+    const sc=.92+Math.sin(tutPhase*3)*.08;
     ctx.save();
     ctx.globalAlpha=a; ctx.translate(sx,sy); ctx.scale(sc,sc);
-
-    // Ripple
     const rp=(tutPhase*2)%1;
     ctx.globalAlpha=a*(1-rp);
     ctx.strokeStyle='#ffffff'; ctx.lineWidth=1.5;
     ctx.shadowBlur=10; ctx.shadowColor='#ffffff';
     ctx.beginPath(); ctx.arc(0,0,18+rp*28,0,Math.PI*2); ctx.stroke();
-
     ctx.globalAlpha=a;
     ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2);
     ctx.fillStyle='rgba(255,255,255,.22)'; ctx.fill();
-    ctx.stroke();
-
-    // Up-arrow tap indicator
+    ctx.strokeStyle='#ffffff'; ctx.stroke();
     ctx.fillStyle='#ffffff'; ctx.shadowBlur=8;
     ctx.beginPath();
     ctx.moveTo(0,-27); ctx.lineTo(7,-12); ctx.lineTo(3,-12);
