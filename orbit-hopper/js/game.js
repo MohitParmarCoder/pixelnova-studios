@@ -114,6 +114,7 @@ const Game = (() => {
       orbitSpd: BASE_ORBIT_SPD,
       orbitR: planet.orbitR,
       flying: false,
+      flightDist: 0,
       alive: true,
       prevPlanet: null,
       trail: [],
@@ -191,6 +192,7 @@ const Game = (() => {
     ship.vx = tx * launchSpd();
     ship.vy = ty * launchSpd();
     ship.flying = true;
+    ship.flightDist = 0;
     ship.prevPlanet = ship.orbitPlanet;
     ship.orbitPlanet = null;
     Audio.play('hop');
@@ -441,12 +443,15 @@ const Game = (() => {
     if (ship.flying) {
       ship.x += ship.vx*dt;
       ship.y += ship.vy*dt;
+      ship.flightDist += Math.hypot(ship.vx, ship.vy)*dt;
       ship.trail.push({x:ship.x, y:ship.y, life:1});
       if (ship.trail.length > 22) ship.trail.shift();
 
-      // Out-of-bounds death
+      // Missed every ring: run ends after ~2 planet-gaps of empty flight
+      // (camera follows the ship, so a viewport-edge check alone never fires)
       const margin = 220;
-      if (ship.y > cam.y+H+margin || ship.x < cam.x-margin || ship.x > cam.x+W+margin) {
+      if (ship.flightDist > 820 ||
+          ship.y > cam.y+H+margin || ship.x < cam.x-margin || ship.x > cam.x+W+margin) {
         die(ship.x, ship.y); return;
       }
 
@@ -1010,5 +1015,9 @@ const Game = (() => {
     render();
   }
 
-  return { init, step };
+  // Read-only hooks for automated testing
+  function getState() { return state; }
+  function getScore() { return score; }
+
+  return { init, step, getState, getScore };
 })();
