@@ -46,8 +46,9 @@ const Game = (() => {
   let tutPhase, showTut;
   let resultsAlpha, resultsSlide;
   let continueAlpha, continueTimer;
-  let newBestFlash;
-  let lastOrbitPlanet;   // for rewarded-continue respawn
+  let newBestFlash, levelUpTimer;
+  let lastOrbitPlanet;
+  let infoPage = 0;   // which how-to-play card is showing   // for rewarded-continue respawn
 
   // ── Colour helpers ─────────────────────────────────────────────────────
   function bgColors() {
@@ -187,8 +188,9 @@ const Game = (() => {
   // ── Core game actions ──────────────────────────────────────────────────
   function launch() {
     if (!ship || !ship.alive || ship.flying || !ship.orbitPlanet) return;
-    const tx = -Math.sin(ship.orbitAngle);
-    const ty =  Math.cos(ship.orbitAngle);
+    const dir = Math.sign(ship.orbitSpd || 1);   // match arrow direction
+    const tx = -Math.sin(ship.orbitAngle) * dir;
+    const ty =  Math.cos(ship.orbitAngle) * dir;
     ship.vx = tx * launchSpd();
     ship.vy = ty * launchSpd();
     ship.flying = true;
@@ -201,7 +203,11 @@ const Game = (() => {
 
   function land(planet) {
     score++;
-    if (score % DIFF_STEP === 0) diffLv++;
+    if (score % DIFF_STEP === 0) {
+      diffLv++;
+      levelUpTimer = 1.2;
+      burst(ship.x, ship.y, '#FFD700', 14, true);
+    }
 
     lastOrbitPlanet = planet;
     ship.orbitPlanet = planet;
@@ -314,7 +320,17 @@ const Game = (() => {
       return;
     }
 
+    if (state === 'INFO') {
+      state = 'MENU';
+      return;
+    }
+
     if (state === 'MENU') {
+      // Info button (bottom-left of menu)
+      if (dist2(pos.x, pos.y, 42, H-52) < 38*38) {
+        state = 'INFO';
+        return;
+      }
       Audio.resume();
       startGame();
       return;
@@ -372,7 +388,7 @@ const Game = (() => {
 
     if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt*2.5);
 
-    if (state === 'MENU')    { updateMenu(dt); return; }
+    if (state === 'MENU' || state === 'INFO') { updateMenu(dt); return; }
     if (state === 'DYING')   { updateDying(dt); return; }
     if (state === 'RESULTS') { updateResults(dt); return; }
     if (state !== 'PLAYING') return;
@@ -406,6 +422,7 @@ const Game = (() => {
     cam.y += (cam.ty - cam.y) * Math.min(1, dt*4.5);
 
     if (newBestFlash > 0) newBestFlash = Math.max(0, newBestFlash - dt*1.5);
+    if (levelUpTimer > 0) levelUpTimer = Math.max(0, levelUpTimer - dt);
   }
 
   function updateMenu(dt) {
@@ -549,9 +566,11 @@ const Game = (() => {
 
     drawHUD();
     if (state==='MENU')    drawMenu();
+    if (state==='INFO')    drawInfo();
     if (state==='PLAYING' && showTut) drawTutorial();
     if (state==='DYING')   drawDying();
     if (state==='RESULTS') drawResults();
+    if (levelUpTimer > 0)  drawLevelUpFlash();
 
     ctx.restore();
   }
@@ -683,33 +702,26 @@ const Game = (() => {
   function drawShip() {
     if (!ship.alive && deathTimer>.25) return;
 
-    // Aim-direction preview (only while orbiting, fades out as speed rises)
+    // Single aim-direction arrow — same direction as launch() so no surprise
     if (!ship.flying && ship.orbitPlanet) {
-      // Tangent = perpendicular to radius, signed by orbit direction
-      const dir = Math.sign(ship.orbitSpd || 1);
+      const dir  = Math.sign(ship.orbitSpd || 1);
       const aimX = -Math.sin(ship.orbitAngle) * dir;
       const aimY =  Math.cos(ship.orbitAngle) * dir;
-      const fadeAlpha = Math.max(0, 0.55 - diffLv * 0.06);
+      const fadeAlpha = Math.max(0, 0.65 - diffLv * 0.05);
       if (fadeAlpha > 0.05) {
+        const len = 85;
+        const ax = ship.x + aimX*len, ay = ship.y + aimY*len;
         ctx.save();
         ctx.globalAlpha = fadeAlpha;
-        ctx.strokeStyle = '#a8edea';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([5, 7]);
-        ctx.shadowBlur = 6; ctx.shadowColor = '#a8edea';
+        ctx.strokeStyle = '#a8edea'; ctx.lineWidth = 2;
+        ctx.setLineDash([5, 6]); ctx.shadowBlur = 8; ctx.shadowColor = '#a8edea';
+        ctx.beginPath(); ctx.moveTo(ship.x, ship.y); ctx.lineTo(ax, ay); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillStyle = '#a8edea'; ctx.shadowBlur = 6;
+        const perp = 5.5;
         ctx.beginPath();
-        ctx.moveTo(ship.x, ship.y);
-        ctx.lineTo(ship.x + aimX * 95, ship.y + aimY * 95);
-        ctx.stroke();
-        // Arrowhead
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#a8edea';
-        const ax = ship.x + aimX * 95, ay = ship.y + aimY * 95;
-        const perp = 5;
-        ctx.beginPath();
-        ctx.moveTo(ax + aimX*8, ay + aimY*8);
-        ctx.lineTo(ax - aimY*perp, ay + aimX*perp);
-        ctx.lineTo(ax + aimY*perp, ay - aimX*perp);
+        ctx.moveTo(ax + aimX*9,        ay + aimY*9);
+        ctx.lineTo(ax - aimY*perp,     ay + aimX*perp);
+        ctx.lineTo(ax + aimY*perp,     ay - aimX*perp);
         ctx.closePath(); ctx.fill();
         ctx.restore();
       }
@@ -813,8 +825,42 @@ const Game = (() => {
       ctx.fillText(highScore,55,53);
     }
 
+    // Level indicator — row of dots bottom-left (filled = reached, open = next)
+    if (state === 'PLAYING' || state === 'DYING') {
+      const dotMax = 5, dotR = 4, dotGap = 14;
+      const startX = 22, dotY = H - 28;
+      for (let i = 0; i < dotMax; i++) {
+        const reached = (diffLv % dotMax) > i || (diffLv > 0 && diffLv % dotMax === 0);
+        ctx.globalAlpha = reached ? .9 : .28;
+        ctx.fillStyle = '#FFD700';
+        ctx.shadowBlur = reached ? 8 : 0; ctx.shadowColor = '#FFD700';
+        ctx.beginPath(); ctx.arc(startX + i*dotGap, dotY, dotR, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      // Level number
+      ctx.fillStyle = 'rgba(255,215,0,.7)';
+      ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(diffLv + 1, startX + dotMax*dotGap + 2, dotY + 4);
+    }
+
     // Mute button
     UI.muteIcon(ctx, W-26, 26, 11, Audio.getMuted(), .55);
+  }
+
+  function drawLevelUpFlash() {
+    const p = levelUpTimer / 1.2;
+    const flashA = p > .5 ? (p - .5) * 2 * .3 : p * 2 * .3;
+    ctx.fillStyle = `rgba(255,215,0,${flashA})`;
+    ctx.fillRect(0, 0, W, H);
+    if (p > .4) {
+      ctx.save();
+      ctx.globalAlpha = (p - .4) / .6;
+      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 36px system-ui';
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#FFD700';
+      ctx.fillText(diffLv, W/2, H/2);
+      ctx.restore();
+    }
   }
 
   function drawMenu() {
@@ -878,71 +924,211 @@ const Game = (() => {
 
     // Mute
     UI.muteIcon(ctx, W-26, 26, 11, Audio.getMuted(), .55);
+
+    // Info button bottom-left
+    const ip = 1 + Math.sin(menuPulse*1.8)*.04;
+    ctx.save();
+    ctx.translate(42, H-52); ctx.scale(ip, ip);
+    ctx.globalAlpha = .65;
+    ctx.strokeStyle = 'rgba(168,237,234,.7)'; ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 10; ctx.shadowColor = '#a8edea';
+    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#a8edea';
+    ctx.font = 'bold 18px serif'; ctx.textAlign = 'center';
+    ctx.fillText('i', 0, 6);
+    ctx.restore();
   }
 
   function drawTutorial() {
-    if (!ship||!ship.orbitPlanet) return;
+    if (!ship || !ship.orbitPlanet) return;
 
-    // Find nearest non-current planet to point at
+    // Pulse the nearest planet's gravity ring (no confusing second arrow)
     let target = null, td2 = Infinity;
     for (const p of planets) {
       if (p === ship.orbitPlanet) continue;
       const d = dist2(ship.x, ship.y, p.x, p.y);
       if (d < td2) { td2 = d; target = p; }
     }
-
-    // Arrow pointing from ship toward target planet (in screen space)
     if (target) {
-      const pulse = .55 + Math.sin(tutPhase*3)*.35;
-      const sx2 = ship.x - cam.x, sy2 = ship.y - cam.y;
-      const tx2 = target.x - cam.x, ty2 = target.y - cam.y;
-      const adx = tx2 - sx2, ady = ty2 - sy2;
-      const alen = Math.hypot(adx, ady);
-      const anx = adx/alen, any = ady/alen;
-      const arrowStart = 28, arrowEnd = Math.min(alen - target.r - 10, 100);
-      if (arrowEnd > arrowStart) {
-        ctx.save();
-        ctx.globalAlpha = pulse * .75;
-        ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2;
-        ctx.setLineDash([6, 5]);
-        ctx.shadowBlur = 10; ctx.shadowColor = '#FFD700';
-        ctx.beginPath();
-        ctx.moveTo(sx2 + anx*arrowStart, sy2 + any*arrowStart);
-        ctx.lineTo(sx2 + anx*arrowEnd,   sy2 + any*arrowEnd);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#FFD700';
-        const ax = sx2 + anx*arrowEnd, ay = sy2 + any*arrowEnd;
-        const perp = 6;
-        ctx.beginPath();
-        ctx.moveTo(ax + anx*10, ay + any*10);
-        ctx.lineTo(ax - any*perp, ay + anx*perp);
-        ctx.lineTo(ax + any*perp, ay - anx*perp);
-        ctx.closePath(); ctx.fill();
-        ctx.restore();
-      }
+      const pulse = .5 + Math.sin(tutPhase * 3) * .4;
+      const sx = target.x - cam.x, sy = target.y - cam.y;
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3;
+      ctx.shadowBlur = 18; ctx.shadowColor = '#FFD700';
+      ctx.setLineDash([10, 6]);
+      ctx.beginPath(); ctx.arc(sx, sy, target.gravR, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
-    // Tap-hand indicator below ship
-    const sx=ship.x-cam.x, sy=ship.y-cam.y+68;
-    const a=.45+Math.sin(tutPhase*3)*.45;
-    const sc=.92+Math.sin(tutPhase*3)*.08;
+    // Tap-hand pulse below ship
+    const sx = ship.x - cam.x, sy = ship.y - cam.y + 65;
+    const a = .45 + Math.sin(tutPhase*3) * .45;
     ctx.save();
-    ctx.globalAlpha=a; ctx.translate(sx,sy); ctx.scale(sc,sc);
-    const rp=(tutPhase*2)%1;
-    ctx.globalAlpha=a*(1-rp);
-    ctx.strokeStyle='#ffffff'; ctx.lineWidth=1.5;
-    ctx.shadowBlur=10; ctx.shadowColor='#ffffff';
-    ctx.beginPath(); ctx.arc(0,0,18+rp*28,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha=a;
-    ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2);
-    ctx.fillStyle='rgba(255,255,255,.22)'; ctx.fill();
-    ctx.strokeStyle='#ffffff'; ctx.stroke();
-    ctx.fillStyle='#ffffff'; ctx.shadowBlur=8;
+    ctx.globalAlpha = a; ctx.translate(sx, sy);
+    const rp = (tutPhase * 2) % 1;
+    ctx.globalAlpha = a * (1 - rp);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ffffff';
+    ctx.beginPath(); ctx.arc(0, 0, 18 + rp*28, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.moveTo(0,-27); ctx.lineTo(7,-12); ctx.lineTo(3,-12);
     ctx.lineTo(3,4); ctx.lineTo(-3,4); ctx.lineTo(-3,-12); ctx.lineTo(-7,-12);
     ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawInfo() {
+    // Fullscreen how-to-play overlay (icon-only, 3 animated steps + sound tip)
+    ctx.fillStyle = 'rgba(5,6,22,.94)';
+    ctx.fillRect(0, 0, W, H);
+
+    const t = gameTime;
+    const cards = [
+      { y: H*.14, draw: drawInfoOrbit },
+      { y: H*.38, draw: drawInfoLaunch },
+      { y: H*.62, draw: drawInfoGem },
+      { y: H*.82, draw: drawInfoSound },
+    ];
+    cards.forEach(c => c.draw(W/2, c.y, t));
+
+    // "tap to close" ripple at bottom
+    const rp = (t * 1.4) % 1;
+    ctx.globalAlpha = .35 * (1 - rp);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(W/2, H*.95, 14 + rp*20, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = .6;
+    ctx.fillStyle = '#ffffff'; ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('▶', W/2, H*.956);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawInfoOrbit(cx, cy, t) {
+    // Step 1: ship orbiting a planet → tap → launches
+    const pr = 22, orR = 48;
+    ctx.save(); ctx.translate(cx, cy);
+
+    // Small planet
+    ctx.shadowBlur = 18; ctx.shadowColor = '#6C8EEF';
+    const pg = ctx.createRadialGradient(-7,-7,3,0,0,pr);
+    pg.addColorStop(0,'#fff'); pg.addColorStop(.3,'#6C8EEF'); pg.addColorStop(1,'#2B2D6B');
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(0,0,pr,0,Math.PI*2); ctx.fill();
+
+    // Orbit ring
+    ctx.shadowBlur = 0; ctx.globalAlpha = .35;
+    ctx.strokeStyle = '#a8edea'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0,0,orR,0,Math.PI*2); ctx.stroke();
+
+    // Ship position + aim arrow
+    const ang = t * 1.35;
+    const sx = Math.cos(ang)*orR, sy = Math.sin(ang)*orR;
+    const aimX = -Math.sin(ang), aimY = Math.cos(ang);
+
+    ctx.globalAlpha = .5;
+    ctx.strokeStyle = '#a8edea'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+aimX*42,sy+aimY*42); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#a8edea';
+    ctx.beginPath();
+    ctx.moveTo(sx+aimX*50,sy+aimY*50);
+    ctx.lineTo(sx+aimX*40-aimY*4,sy+aimY*40+aimX*4);
+    ctx.lineTo(sx+aimX*40+aimY*4,sy+aimY*40-aimX*4);
+    ctx.closePath(); ctx.fill();
+
+    // Ship
+    ctx.globalAlpha = 1; ctx.shadowBlur = 12; ctx.shadowColor = '#88ccff';
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(ang+Math.PI/2);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-5,-4); ctx.lineTo(-2,0); ctx.lineTo(-5,4); ctx.closePath(); ctx.fill();
+    ctx.restore(); ctx.restore();
+  }
+
+  function drawInfoLaunch(cx, cy, t) {
+    // Step 2: ship flying into gravity ring of next planet
+    const prog = (Math.sin(t*1.1)*.5+.5);
+    ctx.save(); ctx.translate(cx, cy);
+
+    // Target planet + big gravity ring
+    const px = 55 - prog*30, py = -10 + prog*5;
+    const pr = 18, grR = 44;
+    ctx.shadowBlur = 15; ctx.shadowColor = '#1ABC9C';
+    const pg2 = ctx.createRadialGradient(px-5,py-5,3,px,py,pr);
+    pg2.addColorStop(0,'#fff'); pg2.addColorStop(.3,'#1ABC9C'); pg2.addColorStop(1,'#0d6e58');
+    ctx.fillStyle=pg2; ctx.beginPath(); ctx.arc(px,py,pr,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0; ctx.globalAlpha=.55+(Math.sin(t*2)*.2);
+    ctx.strokeStyle='#1ABC9C'; ctx.lineWidth=2; ctx.setLineDash([8,5]);
+    ctx.beginPath(); ctx.arc(px,py,grR,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Flying ship
+    const sx = -55 + prog*80, sy = 5 - prog*10;
+    ctx.globalAlpha=1; ctx.shadowBlur=12; ctx.shadowColor='#88ccff';
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(-0.18);
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-5,-4); ctx.lineTo(-2,0); ctx.lineTo(-5,4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // Trail
+    for(let i=1;i<=5;i++){
+      const tx=sx-i*8, ty=sy+i*1.5;
+      ctx.globalAlpha=.3*(1-i/6);
+      ctx.fillStyle='#88ccff';
+      ctx.beginPath(); ctx.arc(tx,ty,2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawInfoGem(cx, cy, t) {
+    // Step 3: collect gems = bonus score
+    ctx.save(); ctx.translate(cx, cy);
+    const pulse = .85 + Math.sin(t*2.5)*.15;
+    ctx.scale(pulse, pulse);
+    const s = 14;
+    ctx.shadowBlur = 16; ctx.shadowColor = '#a8edea';
+    ctx.rotate(t * 1.2);
+    const gg = ctx.createLinearGradient(0,-s*1.3,0,s);
+    gg.addColorStop(0,'#dff8f8'); gg.addColorStop(1,'#7c83fd');
+    ctx.fillStyle=gg;
+    ctx.beginPath(); ctx.moveTo(0,-s*1.3); ctx.lineTo(s,0); ctx.lineTo(0,s); ctx.lineTo(-s,0); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // +5 popup
+    ctx.rotate(-t*1.2);
+    const popA = (.7+Math.sin(t*2)*.3);
+    ctx.globalAlpha = popA;
+    ctx.fillStyle = '#a8edea'; ctx.font = 'bold 18px system-ui';
+    ctx.textAlign = 'center'; ctx.shadowBlur = 8; ctx.shadowColor = '#a8edea';
+    ctx.fillText('+5', 38, -20);
+    ctx.restore();
+  }
+
+  function drawInfoSound(cx, cy, t) {
+    // Step 4: show mute button location (top-right corner highlight)
+    ctx.save(); ctx.translate(cx, cy);
+    const pulse = .6 + Math.sin(t*2.5)*.35;
+
+    // Mini corner mockup
+    ctx.globalAlpha = .55;
+    ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-70, -22, 140, 44);
+
+    // Arrow pointing to top-right
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 1.5;
+    ctx.globalAlpha = pulse;
+    ctx.beginPath(); ctx.moveTo(40, -5); ctx.lineTo(60, -5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(56,-10); ctx.lineTo(60,-5); ctx.lineTo(56,0); ctx.stroke();
+
+    UI.muteIcon(ctx, -30, 0, 14, false, .9);
+    UI.muteIcon(ctx,  20, 0, 14, true,  .5);
+
     ctx.restore();
   }
 
@@ -1060,7 +1246,7 @@ const Game = (() => {
     menuPulse = 0; bgPhase = 0; gameTime = 0;
     resultsAlpha = 0; resultsSlide = 0;
     newBestFlash = 0; deathTimer = 0; continueTimer = 0; continueAlpha = 0;
-    score = 0; gems = 0; diffLv = 0; streakCount = 0;
+    score = 0; gems = 0; diffLv = 0; streakCount = 0; levelUpTimer = 0;
     rewardedUsed = false; gemsDoubled = false;
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     particles=[]; popups=[]; hazards=[]; gemsList=[];
