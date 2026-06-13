@@ -104,9 +104,53 @@ const Audio = (() => {
     if (_bufs[name]) _play(_bufs[name]);
   }
 
+  let _ambientGain = null;
+  let _ambientOscs = [];
+
+  function startAmbient() {
+    if (_muted || _ambientGain) return;
+    const c = _getCtx();
+    if (!c) return;
+    const master = c.createGain();
+    master.gain.value = 0;
+    master.connect(c.destination);
+    // Pentatonic drone: A1 E2 A2 E3 — pure sine overtones
+    const freqs = [55, 82.41, 110, 164.81];
+    _ambientOscs = freqs.map((f, i) => {
+      const o = c.createOscillator();
+      o.type = i === 0 ? 'triangle' : 'sine';
+      o.frequency.value = f;
+      const g = c.createGain();
+      g.gain.value = i === 0 ? 0.5 : 0.22;
+      o.connect(g); g.connect(master);
+      o.start();
+      return o;
+    });
+    master.gain.linearRampToValueAtTime(0.045, c.currentTime + 3.5);
+    _ambientGain = master;
+  }
+
+  function stopAmbient() {
+    if (!_ambientGain) return;
+    const c = _getCtx();
+    const g = _ambientGain, oscs = _ambientOscs;
+    _ambientGain = null; _ambientOscs = [];
+    if (c) {
+      g.gain.setValueAtTime(g.gain.value, c.currentTime);
+      g.gain.linearRampToValueAtTime(0, c.currentTime + 1.4);
+    }
+    setTimeout(() => {
+      oscs.forEach(o => { try { o.stop(); } catch(e) {} });
+      try { g.disconnect(); } catch(e) {}
+    }, 1800);
+  }
+
+  function isAmbientPlaying() { return _ambientGain !== null; }
+
   function setMuted(v) {
     _muted = !!v;
     try { localStorage.setItem('orbit_muted', _muted ? '1' : '0'); } catch(e) {}
+    if (_muted) stopAmbient();
   }
 
   function getMuted() { return _muted; }
@@ -116,5 +160,5 @@ const Audio = (() => {
     _preload();
   }
 
-  return { init, play, setMuted, getMuted, resume };
+  return { init, play, setMuted, getMuted, resume, startAmbient, stopAmbient, isAmbientPlaying };
 })();

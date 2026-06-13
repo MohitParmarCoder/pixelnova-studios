@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="PixelNova Studios — Independent game studio making premium arcade games. Play Beyond Gravity.">
+<title>PixelNova Studios</title>
+<link rel="icon" href="data:,">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#04050e;--bg2:#080916;--surface:rgba(255,255,255,.04);
+  --cyan:#a8edea;--gold:#FFD700;--blue:#6C8EEF;
+  --text:#ffffff;--muted:rgba(255,255,255,.5);
+  --border:rgba(168,237,234,.15);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+  line-height:1.6;overflow-x:hidden;
+}
+
+/* ── Nav ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(4,5,14,.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-brand canvas{width:32px;height:32px}
+.nav-brand span{font-weight:700;font-size:18px;color:var(--text);letter-spacing:.02em}
+.nav-links{display:flex;gap:20px;list-style:none}
+.nav-links a{
+  color:var(--muted);text-decoration:none;font-size:14px;
+  transition:color .2s;
+}
+.nav-links a:hover{color:var(--cyan)}
+@media(max-width:480px){.nav-links{display:none}}
+
+/* ── Hero ── */
+#hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:80px 24px 60px;text-align:center;position:relative;overflow:hidden;
+}
+#heroCanvas{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;opacity:.55;
+}
+.hero-content{position:relative;z-index:1;max-width:520px}
+.logo-wrap{margin-bottom:28px}
+#logoCanvas{width:120px;height:120px;display:block;margin:0 auto}
+h1{
+  font-size:clamp(36px,8vw,64px);font-weight:800;
+  background:linear-gradient(135deg,#ffffff 0%,var(--cyan) 50%,var(--blue) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;letter-spacing:-.02em;line-height:1.1;
+  margin-bottom:10px;
+}
+.studios-tag{
+  font-size:13px;letter-spacing:.25em;color:rgba(168,237,234,.6);
+  margin-bottom:20px;font-weight:500;
+}
+.tagline{
+  font-size:clamp(16px,3vw,22px);color:var(--muted);
+  margin-bottom:36px;font-weight:300;
+}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(168,237,234,.12);color:var(--cyan);
+  border:1.5px solid rgba(168,237,234,.5);border-radius:50px;
+  padding:12px 32px;font-size:16px;font-weight:600;
+  text-decoration:none;transition:all .25s;cursor:pointer;
+}
+.cta-btn:hover{background:rgba(168,237,234,.22);border-color:var(--cyan);transform:translateY(-2px)}
+
+/* ── Sections ── */
+section{padding:80px 24px;max-width:900px;margin:0 auto}
+.section-label{
+  font-size:11px;letter-spacing:.2em;color:var(--cyan);
+  text-transform:uppercase;margin-bottom:12px;font-weight:600;
+}
+.section-title{
+  font-size:clamp(26px,5vw,40px);font-weight:700;
+  margin-bottom:40px;line-height:1.2;
+}
+.section-divider{
+  width:100%;height:1px;background:var(--border);
+  margin-bottom:80px;
+}
+
+/* ── Games ── */
+#games{padding-top:0}
+.games-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:24px;
+}
+.game-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:18px;overflow:hidden;transition:transform .25s,border-color .25s;
+  position:relative;
+}
+.game-card:hover{transform:translateY(-6px);border-color:rgba(168,237,234,.4)}
+.game-card-canvas-wrap{
+  position:relative;padding-bottom:56.25%;background:#060815;
+}
+.game-card-canvas-wrap canvas{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+}
+.game-card-info{padding:18px 20px 20px}
+.game-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.game-desc{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.55}
+.game-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tag{
+  font-size:11px;padding:3px 10px;border-radius:20px;
+  background:rgba(168,237,234,.1);color:var(--cyan);border:1px solid rgba(168,237,234,.25);
+}
+.play-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(168,237,234,.15);color:var(--cyan);
+  border:1px solid rgba(168,237,234,.4);border-radius:30px;
+  padding:8px 20px;font-size:13px;font-weight:600;
+  text-decoration:none;transition:all .2s;
+}
+.play-btn:hover{background:rgba(168,237,234,.28)}
+.badge-new{
+  position:absolute;top:14px;right:14px;
+  background:var(--gold);color:#1a1000;
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;
+  letter-spacing:.05em;
+}
+.coming-soon-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,5,14,.72);font-size:13px;color:var(--muted);
+  letter-spacing:.1em;
+}
+
+/* ── About ── */
+#about{padding-top:0}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+@media(max-width:600px){.about-grid{grid-template-columns:1fr}}
+.about-block h3{font-size:17px;color:var(--cyan);margin-bottom:10px;font-weight:600}
+.about-block p{font-size:14px;color:var(--muted);line-height:1.7}
+.values-list{list-style:none;margin-top:10px}
+.values-list li{
+  font-size:14px;color:var(--muted);padding:6px 0;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;
+}
+.values-list li::before{content:'✦';font-size:9px;color:var(--cyan)}
+
+/* ── Contact ── */
+#contact{padding-top:0;text-align:center}
+.contact-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:22px;padding:48px 36px;max-width:480px;margin:0 auto;
+}
+.contact-card h3{font-size:24px;font-weight:700;margin-bottom:10px}
+.contact-card p{color:var(--muted);font-size:14px;margin-bottom:28px}
+.contact-link{
+  display:inline-flex;align-items:center;gap:8px;
+  color:var(--cyan);font-size:15px;font-weight:600;text-decoration:none;
+  border-bottom:1px solid rgba(168,237,234,.3);padding-bottom:2px;
+  transition:border-color .2s;
+}
+.contact-link:hover{border-color:var(--cyan)}
+
+/* ── Footer ── */
+footer{
+  text-align:center;padding:32px 24px;
+  border-top:1px solid var(--border);
+  color:rgba(255,255,255,.2);font-size:12px;
+}
+footer a{color:rgba(168,237,234,.4);text-decoration:none}
+
+/* ── Stars bg ── */
+.star-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-brand" href="#">
+    <canvas id="navLogoCanvas" width="64" height="64"></canvas>
+    <span>PixelNova</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="hero-content">
+    <div class="logo-wrap">
+      <canvas id="logoCanvas" width="240" height="240"></canvas>
+    </div>
+    <h1>PixelNova</h1>
+    <p class="studios-tag">S T U D I O S</p>
+    <p class="tagline">Play Beyond Gravity</p>
+    <a class="cta-btn" href="#games">
+      <span>▶</span> Explore Our Games
+    </a>
+  </div>
+</section>
+
+<div class="section-divider" style="max-width:900px;margin:0 auto"></div>
+
+<!-- Games -->
+<section id="games">
+  <p class="section-label">Our Games</p>
+  <h2 class="section-title">Built for Arcade Flow</h2>
+  <div class="games-grid">
+
+    <!-- Orbit Hopper card -->
+    <div class="game-card">
+      <div class="game-card-canvas-wrap">
+        <canvas id="ohCanvas"></canvas>
+      </div>
+      <span class="badge-new">LIVE</span>
+      <div class="game-card-info">
+        <div class="game-title">Orbit Hopper</div>
+        <div class="game-desc">One-touch orbital arcade. Tap to launch your ship between planets — time your release perfectly to chain jumps and climb the score board.</div>
+        <div class="game-tags">
+          <span class="tag">Arcade</span>
+          <span class="tag">One-touch</span>
+          <span class="tag">Hyper-casual</span>
+        </div>
+        <a class="play-btn" href="../orbit-hopper/index.html" target="_blank">▶ Play Now</a>
+      </div>
+    </div>
+
+    <!-- Placeholder 2 -->
+    <div class="game-card">
+      <div class="game-card-canvas-wrap">
+        <canvas id="ph2Canvas"></canvas>
+        <div class="coming-soon-overlay">COMING SOON</div>
+      </div>
+      <div class="game-card-info">
+        <div class="game-title">Next Game</div>
+        <div class="game-desc">Something bold is in development. Stay tuned for the next PixelNova drop.</div>
+        <div class="game-tags"><span class="tag">TBA</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="section-divider" style="max-width:900px;margin:0 auto"></div>
+
+<!-- About -->
+<section id="about">
+  <p class="section-label">About Us</p>
+  <h2 class="section-title">Indie studio,<br>premium craft</h2>
+  <div class="about-grid">
+    <div class="about-block">
+      <h3>Who We Are</h3>
+      <p>PixelNova Studios is an independent game development studio focused on crafting premium arcade experiences for web and mobile. We believe great games need only one thing: great feel.</p>
+    </div>
+    <div class="about-block">
+      <h3>Our Values</h3>
+      <ul class="values-list">
+        <li>Zero friction — instant play, no install</li>
+        <li>Premium visuals at minimal file size</li>
+        <li>Honest monetisation via ads</li>
+        <li>Language-free, globally playable UI</li>
+        <li>60 fps or we ship nothing</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider" style="max-width:900px;margin:0 auto"></div>
+
+<!-- Contact -->
+<section id="contact">
+  <p class="section-label">Get In Touch</p>
+  <h2 class="section-title">Let's build together</h2>
+  <div class="contact-card">
+    <h3>Say Hello</h3>
+    <p>Questions, collaborations, ad partnerships, or just want to chat about game dev — our inbox is open.</p>
+    <a class="contact-link" href="mailto:mohitparmar9868@gmail.com">
+      ✉ mohitparmar9868@gmail.com
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 PixelNova Studios · <a href="#">pixelnova.games</a></p>
+</footer>
+
+<script>
+'use strict';
+// ── Shared nova-star drawing ───────────────────────────────────────────────
+function drawNova(ctx, cx, cy, r, rot, t) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Outer glow
+  const hg = ctx.createRadialGradient(0,0,0,0,0,r*1.7);
+  hg.addColorStop(0,'rgba(168,237,234,.22)'); hg.addColorStop(1,'rgba(168,237,234,0)');
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(0,0,r*1.7,0,Math.PI*2); ctx.fill();
+  // 8-point star
+  ctx.shadowBlur=r*.5; ctx.shadowColor='#a8edea';
+  const sg=ctx.createRadialGradient(0,0,0,0,0,r);
+  sg.addColorStop(0,'#ffffff'); sg.addColorStop(0.38,'#a8edea');
+  sg.addColorStop(0.72,'#6C8EEF'); sg.addColorStop(1,'rgba(20,20,80,0)');
+  ctx.fillStyle=sg;
+  ctx.beginPath();
+  for(let i=0;i<16;i++){
+    const a=(i*Math.PI/8)+rot;
+    const rr=i%2===0?r:r*.36;
+    i===0?ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);
+  }
+  ctx.closePath(); ctx.fill();
+  // Centre dot
+  ctx.shadowBlur=r*.25; ctx.shadowColor='#fff';
+  ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.beginPath(); ctx.arc(0,0,r*.13,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ── Stars ─────────────────────────────────────────────────────────────────
+function makeStars(n, w, h) {
+  const s=[];
+  for(let i=0;i<n;i++) s.push({x:Math.random()*w,y:Math.random()*h,r:.5+Math.random()*1.5,a:.2+Math.random()*.7});
+  return s;
+}
+
+// ── Hero background canvas ─────────────────────────────────────────────────
+const heroCanvas = document.getElementById('heroCanvas');
+const heroCtx = heroCanvas.getContext('2d');
+let heroStars = [];
+
+function resizeHero() {
+  heroCanvas.width = window.innerWidth;
+  heroCanvas.height = document.getElementById('hero').offsetHeight;
+  heroStars = makeStars(180, heroCanvas.width, heroCanvas.height);
+}
+
+function animHero(t) {
+  const W=heroCanvas.width, H=heroCanvas.height;
+  heroCtx.fillStyle='#04050e'; heroCtx.fillRect(0,0,W,H);
+  // Animated gradient
+  const a=t*.0004, cx=W/2+Math.sin(a)*W*.15, cy=H/2+Math.cos(a*.7)*H*.1;
+  const grd=heroCtx.createRadialGradient(cx,cy,0,cx,cy,Math.hypot(W,H)*.6);
+  grd.addColorStop(0,'rgba(20,30,80,.6)');
+  grd.addColorStop(0.5,'rgba(10,15,50,.4)');
+  grd.addColorStop(1,'rgba(4,5,14,0)');
+  heroCtx.fillStyle=grd; heroCtx.fillRect(0,0,W,H);
+  // Stars
+  heroCtx.fillStyle='#fff';
+  for(const s of heroStars){
+    heroCtx.globalAlpha=s.a*(.6+Math.sin(t*.002+s.x*.05)*.4);
+    heroCtx.beginPath(); heroCtx.arc(s.x,s.y,s.r,0,Math.PI*2); heroCtx.fill();
+  }
+  heroCtx.globalAlpha=1;
+}
+
+// ── Main logo ─────────────────────────────────────────────────────────────
+const logoCanvas = document.getElementById('logoCanvas');
+const logoCtx = logoCanvas.getContext('2d');
+
+function animLogo(t) {
+  const W=logoCanvas.width, H=logoCanvas.height;
+  logoCtx.clearRect(0,0,W,H);
+  const rot=t*.0005;
+  // Pulse size
+  const pulse=1+Math.sin(t*.002)*.04;
+  drawNova(logoCtx,W/2,H/2,W*.4*pulse,rot,t);
+}
+
+// ── Nav logo ──────────────────────────────────────────────────────────────
+const navLogoCanvas = document.getElementById('navLogoCanvas');
+const navLogoCtx = navLogoCanvas.getContext('2d');
+
+function animNavLogo(t) {
+  navLogoCtx.clearRect(0,0,64,64);
+  drawNova(navLogoCtx,32,32,22,t*.0005,t);
+}
+
+// ── Orbit Hopper card preview ──────────────────────────────────────────────
+const ohCanvas = document.getElementById('ohCanvas');
+const ohCtx = ohCanvas.getContext('2d');
+let ohStars = [];
+
+function resizeOH() {
+  const wrap = ohCanvas.parentElement;
+  ohCanvas.width = wrap.offsetWidth;
+  ohCanvas.height = wrap.offsetHeight;
+  ohStars = makeStars(60, ohCanvas.width, ohCanvas.height);
+}
+
+function animOH(t) {
+  const W=ohCanvas.width, H=ohCanvas.height;
+  if(!W||!H) return;
+  // Deep space bg
+  const grd=ohCtx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,'#080926'); grd.addColorStop(1,'#0d0a1e');
+  ohCtx.fillStyle=grd; ohCtx.fillRect(0,0,W,H);
+  // Stars
+  ohCtx.fillStyle='#fff';
+  for(const s of ohStars){
+    ohCtx.globalAlpha=s.a*(.6+Math.sin(t*.002+s.x)*.4);
+    ohCtx.beginPath(); ohCtx.arc(s.x,s.y,s.r,0,Math.PI*2); ohCtx.fill();
+  }
+  ohCtx.globalAlpha=1;
+  // Planet
+  const cx=W*.5, cy=H*.4, pr=Math.min(W,H)*.18;
+  ohCtx.save();
+  ohCtx.shadowBlur=20; ohCtx.shadowColor='#6C8EEF';
+  const pg=ohCtx.createRadialGradient(cx-pr*.3,cy-pr*.3,pr*.08,cx,cy,pr);
+  pg.addColorStop(0,'#fff'); pg.addColorStop(.28,'#6C8EEF'); pg.addColorStop(1,'#1a1a4e');
+  ohCtx.fillStyle=pg; ohCtx.beginPath(); ohCtx.arc(cx,cy,pr,0,Math.PI*2); ohCtx.fill();
+  // Gravity ring
+  ohCtx.globalAlpha=.5+Math.sin(t*.003)*.2;
+  ohCtx.strokeStyle='#a8edea'; ohCtx.lineWidth=1.5; ohCtx.setLineDash([6,5]);
+  ohCtx.beginPath(); ohCtx.arc(cx,cy,pr*3,0,Math.PI*2); ohCtx.stroke();
+  ohCtx.setLineDash([]);
+  // Orbit ring
+  ohCtx.globalAlpha=.25;
+  ohCtx.strokeStyle='#a8edea'; ohCtx.lineWidth=1;
+  ohCtx.beginPath(); ohCtx.arc(cx,cy,pr*2,0,Math.PI*2); ohCtx.stroke();
+  ohCtx.globalAlpha=1;
+  // Ship orbiting
+  const sa=t*.0018;
+  const sx=cx+Math.cos(sa)*pr*2, sy=cy+Math.sin(sa)*pr*2;
+  ohCtx.save(); ohCtx.translate(sx,sy); ohCtx.rotate(sa+Math.PI/2);
+  ohCtx.shadowBlur=12; ohCtx.shadowColor='#88ccff';
+  ohCtx.fillStyle='#fff';
+  ohCtx.beginPath(); ohCtx.moveTo(8,0); ohCtx.lineTo(-5,-4); ohCtx.lineTo(-2,0); ohCtx.lineTo(-5,4); ohCtx.closePath();
+  ohCtx.fill();
+  ohCtx.restore(); ohCtx.restore();
+}
+
+// ── Placeholder card 2 ────────────────────────────────────────────────────
+const ph2Canvas = document.getElementById('ph2Canvas');
+const ph2Ctx = ph2Canvas.getContext('2d');
+
+function resizePH2() {
+  const wrap = ph2Canvas.parentElement;
+  ph2Canvas.width = wrap.offsetWidth;
+  ph2Canvas.height = wrap.offsetHeight;
+}
+
+function animPH2(t) {
+  const W=ph2Canvas.width, H=ph2Canvas.height;
+  if(!W||!H) return;
+  ph2Ctx.fillStyle='#060812'; ph2Ctx.fillRect(0,0,W,H);
+  // Question mark logo
+  ph2Ctx.globalAlpha=.15+Math.sin(t*.0015)*.05;
+  ph2Ctx.fillStyle=ph2Ctx.strokeStyle='#6C8EEF';
+  ph2Ctx.font=`bold ${Math.min(W,H)*.45}px system-ui`;
+  ph2Ctx.textAlign='center'; ph2Ctx.textBaseline='middle';
+  ph2Ctx.fillText('?',W/2,H/2);
+  ph2Ctx.globalAlpha=1;
+}
+
+// ── RAF loop ──────────────────────────────────────────────────────────────
+function loop(t) {
+  animHero(t); animLogo(t); animNavLogo(t); animOH(t); animPH2(t);
+  requestAnimationFrame(loop);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { resizeHero(); resizeOH(); resizePH2(); });
+resizeHero(); resizeOH(); resizePH2();
+requestAnimationFrame(loop);
+
+// ── Smooth nav links ──────────────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) { e.preventDefault(); el.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+</body>
+</html>

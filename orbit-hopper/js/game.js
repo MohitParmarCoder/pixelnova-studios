@@ -10,6 +10,8 @@ const Game = (() => {
   const GRAV_MULT       = 3.4;    // gravity ring = planet.r × this (was 2.7 — bigger catch zone)
   const ORBIT_MULT      = 1.85;   // orbit path = planet.r × this
   const DIFF_STEP       = 8;      // score per difficulty level (was 5 — gentler ramp)
+  const COMPANY         = 'PixelNova';
+  const TAGLINE         = 'Play Beyond Gravity';
 
   // Background palette: deep-space → purple → dusk-orange → dawn-gold
   const BG_STOPS = [
@@ -30,7 +32,7 @@ const Game = (() => {
 
   // State
   let canvas, ctx;
-  let state = 'MENU';  // MENU PLAYING DYING RESULTS
+  let state = 'SPLASH';  // SPLASH MENU INFO SETTINGS PLAYING DYING RESULTS
   let score, gems, highScore, runsPlayed;
   let diffLv, gameTime, deathTimer;
   let rewardedUsed, gemsDoubled, streakCount;
@@ -48,7 +50,10 @@ const Game = (() => {
   let continueAlpha, continueTimer;
   let newBestFlash, levelUpTimer;
   let lastOrbitPlanet;
-  let infoPage = 0;   // which how-to-play card is showing   // for rewarded-continue respawn
+  let infoPage = 0;
+  let splashTimer;    // SPLASH state countdown
+  let maxLevel;       // highest diffLv ever reached (persisted)
+  let settingsOpen;   // settings overlay on top of MENU
 
   // ── Colour helpers ─────────────────────────────────────────────────────
   function bgColors() {
@@ -123,8 +128,9 @@ const Game = (() => {
   }
 
   // ── Difficulty helpers ─────────────────────────────────────────────────
-  function launchSpd()  { return BASE_LAUNCH_SPD  + diffLv * 14; }
-  function orbitSpd()   { return BASE_ORBIT_SPD   + diffLv * 0.14; }
+  function launchSpd()  { return BASE_LAUNCH_SPD  + diffLv * 20; }
+  function orbitSpd()   { return BASE_ORBIT_SPD   + diffLv * 0.20; }
+  function dynGravR(p)  { return p.r * Math.max(2.3, GRAV_MULT - Math.min(diffLv * 0.07, 0.9)); }
 
   // ── World maintenance ──────────────────────────────────────────────────
   function fillPlanets() {
@@ -144,7 +150,7 @@ const Game = (() => {
     }
 
     if (diffLv >= 2) {
-      const maxH = Math.min(diffLv, 5);
+      const maxH = Math.min(diffLv + 2, 12);
       while (hazards.length < maxH) spawnHazard();
     }
   }
@@ -152,10 +158,11 @@ const Game = (() => {
   function spawnHazard() {
     let topY = Infinity;
     for (const p of planets) topY = Math.min(topY, p.y);
+    const speedMult = 1 + Math.min(diffLv * 0.14, 1.8);
     hazards.push({
       x: Math.random()*W, y: topY - 80 - Math.random()*200,
-      vx: (Math.random()-.5)*130, vy: 25+Math.random()*55,
-      r: 7+Math.random()*7, spin: (Math.random()-.5)*5,
+      vx: (Math.random()-.5)*130*speedMult, vy: (25+Math.random()*55)*speedMult,
+      r: 7+Math.random()*(diffLv>=5?10:7), spin: (Math.random()-.5)*5,
       angle: 0, alpha: 0, id: Math.random(),
       _nm: false,
     });
@@ -207,6 +214,10 @@ const Game = (() => {
       diffLv++;
       levelUpTimer = 1.2;
       burst(ship.x, ship.y, '#FFD700', 14, true);
+      if (diffLv > maxLevel) {
+        maxLevel = diffLv;
+        try { localStorage.setItem('orbit_maxlevel', maxLevel); } catch(e) {}
+      }
     }
 
     lastOrbitPlanet = planet;
@@ -276,6 +287,7 @@ const Game = (() => {
   }
 
   function startGame() {
+    Audio.stopAmbient();
     try {
       highScore   = parseInt(localStorage.getItem('orbit_best')||'0');
       runsPlayed  = parseInt(localStorage.getItem('orbit_runs')||'0');
@@ -288,6 +300,7 @@ const Game = (() => {
   }
 
   function restartGame() {
+    Audio.stopAmbient();
     AdManager.showInterstitial(() => {
       resetGame();
       showTut = false;
@@ -320,18 +333,46 @@ const Game = (() => {
       return;
     }
 
+    // Skip splash
+    if (state === 'SPLASH') {
+      if (splashTimer > 0.25) {
+        splashTimer = 999;
+        Audio.resume();
+        Audio.startAmbient();
+      }
+      return;
+    }
+
+    // Close settings overlay (tap anywhere)
+    if (settingsOpen) {
+      // Mute icon in settings center
+      if (dist2(pos.x, pos.y, W/2, H*0.56) < 32*32) {
+        Audio.setMuted(!Audio.getMuted());
+        Audio.resume();
+        return;
+      }
+      settingsOpen = false;
+      return;
+    }
+
     if (state === 'INFO') {
       state = 'MENU';
       return;
     }
 
     if (state === 'MENU') {
+      // Settings button (bottom-right)
+      if (dist2(pos.x, pos.y, W-42, H-52) < 38*38) {
+        settingsOpen = true;
+        return;
+      }
       // Info button (bottom-left of menu)
       if (dist2(pos.x, pos.y, 42, H-52) < 38*38) {
         state = 'INFO';
         return;
       }
       Audio.resume();
+      if (!Audio.isAmbientPlaying()) Audio.startAmbient();
       startGame();
       return;
     }
@@ -388,7 +429,8 @@ const Game = (() => {
 
     if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt*2.5);
 
-    if (state === 'MENU' || state === 'INFO') { updateMenu(dt); return; }
+    if (state === 'SPLASH') { updateSplash(dt); return; }
+    if (state === 'MENU' || state === 'INFO' || settingsOpen) { updateMenu(dt); return; }
     if (state === 'DYING')   { updateDying(dt); return; }
     if (state === 'RESULTS') { updateResults(dt); return; }
     if (state !== 'PLAYING') return;
@@ -487,10 +529,11 @@ const Game = (() => {
         }
       }
 
-      // Gravity capture
+      // Gravity capture (ring shrinks at high difficulty)
       for (const p of planets) {
         if (p === ship.prevPlanet) continue;
-        if (dist2(ship.x,ship.y,p.x,p.y) < p.gravR*p.gravR) {
+        const gr = dynGravR(p);
+        if (dist2(ship.x,ship.y,p.x,p.y) < gr*gr) {
           land(p); return;
         }
       }
@@ -544,6 +587,8 @@ const Game = (() => {
 
   // ── Render ─────────────────────────────────────────────────────────────
   function render() {
+    if (state === 'SPLASH') { drawSplash(); return; }
+
     const sx = cam.shake>0 ? (Math.random()-.5)*cam.shake*18 : 0;
     const sy = cam.shake>0 ? (Math.random()-.5)*cam.shake*18 : 0;
 
@@ -571,6 +616,7 @@ const Game = (() => {
     if (state==='DYING')   drawDying();
     if (state==='RESULTS') drawResults();
     if (levelUpTimer > 0)  drawLevelUpFlash();
+    if (settingsOpen)      drawSettings();
 
     ctx.restore();
   }
@@ -609,13 +655,14 @@ const Game = (() => {
       ctx.translate(p.x, p.y);
       ctx.scale(p.scale, p.scale);
 
-      // Gravity ring (dashed, pulsing) — kept visible so players see the catch zone
+      // Gravity ring (dashed, pulsing) — shrinks at higher difficulty
+      const gr = dynGravR(p);
       const ringA = .42 + Math.sin(gameTime*2+p.id*7)*.18;
       ctx.globalAlpha = p.alpha * ringA;
       ctx.strokeStyle = p.c1;
       ctx.lineWidth = 2;
       ctx.setLineDash([9,7]);
-      ctx.beginPath(); ctx.arc(0,0,p.gravR,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,gr,0,Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
 
       // Orbit path
@@ -702,8 +749,8 @@ const Game = (() => {
   function drawShip() {
     if (!ship.alive && deathTimer>.25) return;
 
-    // Single aim-direction arrow — same direction as launch() so no surprise
-    if (!ship.flying && ship.orbitPlanet) {
+    // Single aim-direction arrow — only in PLAYING state
+    if (state === 'PLAYING' && !ship.flying && ship.orbitPlanet) {
       const dir  = Math.sign(ship.orbitSpd || 1);
       const aimX = -Math.sin(ship.orbitAngle) * dir;
       const aimY =  Math.cos(ship.orbitAngle) * dir;
@@ -858,7 +905,7 @@ const Game = (() => {
       ctx.fillStyle = '#FFD700'; ctx.font = 'bold 36px system-ui';
       ctx.textAlign = 'center';
       ctx.shadowBlur = 20; ctx.shadowColor = '#FFD700';
-      ctx.fillText(diffLv, W/2, H/2);
+      ctx.fillText(diffLv + 1, W/2, H/2);
       ctx.restore();
     }
   }
@@ -909,16 +956,27 @@ const Game = (() => {
     UI.playIcon(ctx,5,0,26);
     ctx.restore();
 
-    // Best score
-    if (highScore>0) {
+    // Best score + max level
+    if (highScore>0 || maxLevel>0) {
       ctx.save();
       ctx.translate(W/2, H*.84);
-      UI.starIcon(ctx,-28,0,14,.9);
-      ctx.fillStyle='rgba(255,215,0,.9)';
-      ctx.font='bold 26px system-ui,sans-serif';
-      ctx.textAlign='left';
-      ctx.shadowBlur=10; ctx.shadowColor='#FFD700';
-      ctx.fillText(highScore,-6,9);
+      if (highScore>0) {
+        UI.starIcon(ctx,-46,0,14,.9);
+        ctx.fillStyle='rgba(255,215,0,.9)';
+        ctx.font='bold 26px system-ui,sans-serif';
+        ctx.textAlign='left';
+        ctx.shadowBlur=10; ctx.shadowColor='#FFD700';
+        ctx.fillText(highScore,-24,9);
+        ctx.shadowBlur=0;
+      }
+      if (maxLevel>0) {
+        ctx.fillStyle='rgba(168,237,234,.75)';
+        ctx.font='bold 14px system-ui,sans-serif';
+        ctx.textAlign='center';
+        ctx.shadowBlur=6; ctx.shadowColor='#a8edea';
+        ctx.fillText('Lv.'+(maxLevel+1), highScore>0?60:0, 9);
+        ctx.shadowBlur=0;
+      }
       ctx.restore();
     }
 
@@ -936,6 +994,31 @@ const Game = (() => {
     ctx.fillStyle = '#a8edea';
     ctx.font = 'bold 18px serif'; ctx.textAlign = 'center';
     ctx.fillText('i', 0, 6);
+    ctx.restore();
+
+    // Settings gear icon bottom-right
+    ctx.save();
+    ctx.translate(W-42, H-52);
+    ctx.rotate(menuPulse * 0.22);
+    ctx.globalAlpha = .6;
+    ctx.strokeStyle='rgba(168,237,234,.8)'; ctx.lineWidth=2;
+    ctx.shadowBlur=8; ctx.shadowColor='#a8edea';
+    const gN=8, gO=19, gI=14, gH=7, gT=0.24;
+    ctx.beginPath();
+    for(let gi=0;gi<gN;gi++){
+      const ga=gi/gN*Math.PI*2;
+      const ga0=ga-gT/2, ga1=ga+gT/2;
+      gi===0?ctx.moveTo(Math.cos(ga0)*gI,Math.sin(ga0)*gI):ctx.lineTo(Math.cos(ga0)*gI,Math.sin(ga0)*gI);
+      ctx.lineTo(Math.cos(ga0)*gO,Math.sin(ga0)*gO);
+      ctx.lineTo(Math.cos(ga1)*gO,Math.sin(ga1)*gO);
+      ctx.lineTo(Math.cos(ga1)*gI,Math.sin(ga1)*gI);
+    }
+    ctx.closePath();
+    ctx.moveTo(gH,0); ctx.arc(0,0,gH,0,Math.PI*2,true);
+    ctx.fillStyle='rgba(168,237,234,.15)';
+    ctx.fill('evenodd');
+    ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
     ctx.restore();
   }
 
@@ -957,7 +1040,7 @@ const Game = (() => {
       ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 3;
       ctx.shadowBlur = 18; ctx.shadowColor = '#FFD700';
       ctx.setLineDash([10, 6]);
-      ctx.beginPath(); ctx.arc(sx, sy, target.gravR, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(sx, sy, dynGravR(target), 0, Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
       ctx.restore();
     }
@@ -1110,6 +1193,156 @@ const Game = (() => {
     ctx.restore();
   }
 
+  // ── Nova logo (shared between splash + settings) ──────────────────────
+  function drawNovaLogo(cx, cy, r, rot) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    // Outer glow halo
+    const hg = ctx.createRadialGradient(0,0,0,0,0,r*1.7);
+    hg.addColorStop(0,'rgba(168,237,234,.22)');
+    hg.addColorStop(1,'rgba(168,237,234,0)');
+    ctx.fillStyle=hg;
+    ctx.beginPath(); ctx.arc(0,0,r*1.7,0,Math.PI*2); ctx.fill();
+    // 8-point star
+    ctx.shadowBlur=24; ctx.shadowColor='#a8edea';
+    const sg=ctx.createRadialGradient(0,0,0,0,0,r);
+    sg.addColorStop(0,'#ffffff');
+    sg.addColorStop(0.38,'#a8edea');
+    sg.addColorStop(0.72,'#6C8EEF');
+    sg.addColorStop(1,'rgba(20,20,80,0)');
+    ctx.fillStyle=sg;
+    ctx.beginPath();
+    for(let i=0;i<16;i++){
+      const a=(i*Math.PI/8)+(rot||0);
+      const rr=i%2===0?r:r*.36;
+      i===0?ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr):ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);
+    }
+    ctx.closePath(); ctx.fill();
+    // Centre dot
+    ctx.shadowBlur=12; ctx.shadowColor='#fff';
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    ctx.beginPath(); ctx.arc(0,0,r*.13,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Splash screen (company branding) ──────────────────────────────────
+  function updateSplash(dt) {
+    splashTimer += dt;
+    if (splashTimer > 2.6) {
+      state = 'MENU';
+      // startAmbient: only works after user gesture (auto fails silently before that)
+      Audio.startAmbient();
+    }
+  }
+
+  function drawSplash() {
+    ctx.fillStyle='#04050e';
+    ctx.fillRect(0,0,W,H);
+    drawStarsLayer();
+
+    const t=splashTimer;
+    const fadeIn  = Math.min(1, t/0.65);
+    const fadeOut = t>2.0 ? 1-Math.min(1,(t-2.0)/0.5) : 1;
+    const alpha   = eOut(fadeIn)*fadeOut;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    const rot = t*0.38;
+    drawNovaLogo(W/2, H*.40, 54, rot);
+
+    ctx.textAlign='center';
+    ctx.shadowBlur=22; ctx.shadowColor='#a8edea';
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 40px system-ui,sans-serif';
+    ctx.fillText(COMPANY, W/2, H*.605);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(168,237,234,.65)';
+    ctx.font='12px system-ui,sans-serif';
+    ctx.fillText('S T U D I O S', W/2, H*.645);
+    ctx.fillStyle='rgba(255,255,255,.28)';
+    ctx.font='11px system-ui,sans-serif';
+    ctx.fillText(TAGLINE, W/2, H*.685);
+
+    // Tap-to-skip hint (only after 0.5s)
+    if (t>0.5) {
+      const hintA = Math.min(1, (t-0.5)/0.4) * 0.35;
+      ctx.globalAlpha = alpha * hintA;
+      ctx.fillStyle='#ffffff'; ctx.font='11px system-ui';
+      ctx.fillText('▶', W/2, H*.95);
+    }
+
+    ctx.restore();
+  }
+
+  // ── Settings overlay ───────────────────────────────────────────────────
+  function drawSettings() {
+    ctx.fillStyle='rgba(4,5,16,.97)';
+    ctx.fillRect(0,0,W,H);
+
+    const rot=gameTime*0.40;
+    drawNovaLogo(W/2, H*.20, 42, rot);
+
+    ctx.textAlign='center';
+    ctx.shadowBlur=14; ctx.shadowColor='#a8edea';
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 27px system-ui,sans-serif';
+    ctx.fillText(COMPANY, W/2, H*.36);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(168,237,234,.58)';
+    ctx.font='12px system-ui,sans-serif';
+    ctx.fillText('S T U D I O S', W/2, H*.40);
+    ctx.fillStyle='rgba(255,255,255,.3)';
+    ctx.font='11px system-ui,sans-serif';
+    ctx.fillText(TAGLINE, W/2, H*.44);
+
+    // Divider
+    ctx.globalAlpha=.18;
+    ctx.strokeStyle='#a8edea'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(W/2-90,H*.476); ctx.lineTo(W/2+90,H*.476); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // Sound toggle (tap to toggle)
+    const muted=Audio.getMuted();
+    ctx.globalAlpha = muted ? .55 : 1;
+    UI.muteIcon(ctx, W/2, H*.545, 18, muted, 1);
+    ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(255,255,255,.38)';
+    ctx.font='11px system-ui,sans-serif'; ctx.textAlign='center';
+    ctx.fillText(muted?'MUTED':'SOUND ON', W/2, H*.598);
+
+    // Divider
+    ctx.globalAlpha=.12;
+    ctx.beginPath(); ctx.moveTo(W/2-90,H*.63); ctx.lineTo(W/2+90,H*.63); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // Contact / envelope icon
+    const ey=H*.685;
+    ctx.globalAlpha=.48;
+    ctx.strokeStyle='#a8edea'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.rect(W/2-22,ey-9,44,26); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W/2-22,ey-9); ctx.lineTo(W/2,ey+4); ctx.lineTo(W/2+22,ey-9); ctx.stroke();
+    ctx.globalAlpha=.38;
+    ctx.fillStyle='#a8edea'; ctx.font='10px system-ui';
+    ctx.fillText('pixelnova.games', W/2, H*.748);
+
+    ctx.globalAlpha=.22;
+    ctx.fillStyle='#fff';
+    ctx.fillText('Orbit Hopper  v1.0', W/2, H*.80);
+    ctx.globalAlpha=1;
+
+    // Close X — top-right
+    ctx.globalAlpha=.6;
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=2;
+    ctx.shadowBlur=8; ctx.shadowColor='#fff';
+    ctx.beginPath(); ctx.arc(W-32,32,15,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W-39,25); ctx.lineTo(W-25,39);
+    ctx.moveTo(W-25,25); ctx.lineTo(W-39,39);
+    ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+  }
+
   function drawInfoSound(cx, cy, t) {
     // Step 4: show mute button location (top-right corner highlight)
     ctx.save(); ctx.translate(cx, cy);
@@ -1192,11 +1425,21 @@ const Game = (() => {
     ctx.shadowBlur=0;
 
     // Gems row
-    UI.gemIcon(ctx, W/2-22, py+190, 12);
+    UI.gemIcon(ctx, W/2-22, py+185, 12);
     ctx.fillStyle = '#a8edea';
     ctx.font='20px system-ui,sans-serif';
     ctx.textAlign='left';
-    ctx.fillText(gems + (gemsDoubled?' ×2':''), W/2-2, py+198);
+    ctx.fillText(gems + (gemsDoubled?' ×2':''), W/2-2, py+193);
+
+    // Level row
+    const lvDisplay = diffLv + 1;
+    const isMaxLv   = diffLv > 0 && diffLv >= maxLevel;
+    ctx.textAlign='center';
+    ctx.fillStyle = isMaxLv ? '#FFD700' : 'rgba(255,215,0,.6)';
+    ctx.font=(isMaxLv?'bold ':'')+`16px system-ui,sans-serif`;
+    if (isMaxLv) { ctx.shadowBlur=10; ctx.shadowColor='#FFD700'; }
+    ctx.fillText('Lv. '+lvDisplay + (isMaxLv?' ★':''), W/2, py+222);
+    ctx.shadowBlur=0;
 
     // Buttons
     const rb = resultsBtnPos();
@@ -1241,13 +1484,16 @@ const Game = (() => {
     try {
       highScore  = parseInt(localStorage.getItem('orbit_best')||'0');
       runsPlayed = parseInt(localStorage.getItem('orbit_runs')||'0');
-    } catch(e) {}
+      maxLevel   = parseInt(localStorage.getItem('orbit_maxlevel')||'0');
+    } catch(e) { maxLevel = 0; }
 
     menuPulse = 0; bgPhase = 0; gameTime = 0;
     resultsAlpha = 0; resultsSlide = 0;
     newBestFlash = 0; deathTimer = 0; continueTimer = 0; continueAlpha = 0;
     score = 0; gems = 0; diffLv = 0; streakCount = 0; levelUpTimer = 0;
     rewardedUsed = false; gemsDoubled = false;
+    splashTimer = 0; settingsOpen = false;
+    state = 'SPLASH';
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     particles=[]; popups=[]; hazards=[]; gemsList=[];
 
