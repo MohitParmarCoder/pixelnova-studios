@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-Two unrelated projects live side by side:
+Three unrelated projects live side by side:
 
 1. **DailyNews** (repo root) — a Create React App project from a Udemy fullstack course, in early scaffolding stage.
-2. **Orbit Hopper** (`orbit-hopper/`) — a standalone, complete HTML5 canvas game with no build step and no dependency on the React app.
+2. **Orbit Hopper** (`orbit-hopper/`) — a standalone, complete HTML5 canvas game with no build step.
+3. **PixelNova Studios website** (`company-website/`) — standalone company landing page, no build step.
 
 ## DailyNews (React app)
 
@@ -32,21 +33,76 @@ npm run build      # production build to build/
 
 Vanilla JS + Canvas2D one-touch arcade game. Zero build step, zero npm dependencies — never add a framework or bundler to it.
 
-### Run
+### Run & test
 
 ```bash
-python3 -m http.server 8080 --directory orbit-hopper   # then open http://localhost:8080
-node --check orbit-hopper/js/game.js                   # syntax check (no test suite)
+python3 -m http.server 8080 --directory orbit-hopper   # serve at http://localhost:8080
+node --check orbit-hopper/js/game.js                   # syntax check (run after every edit)
+node orbit-hopper/smoke-test.js                        # headless smoke test (no browser needed)
+
+# E2E (requires a running server on :8080 and playwright installed globally):
+NODE_PATH=$(npm root -g) node orbit-hopper/test/e2e.js
+# E2E with video recording:
+RECORD_DIR=/tmp node orbit-hopper/test/e2e.js
 ```
 
 ### Architecture
 
-Script load order in `index.html` matters — each file is an IIFE exposing one global, consumed by later scripts: `audio.js` (Audio) → `ads.js` (AdManager) → `input.js` (Input) → `ui.js` (UI) → `game.js` (Game) → `main.js` (bootstrap + rAF loop).
+Script load order in `index.html` is the dependency graph — each file is an IIFE exposing one global:
 
-- **game.js** is the core: a state machine (`MENU → PLAYING → DYING → RESULTS`) on a fixed virtual canvas of 390×844, letterboxed by `main.js`. All coordinates are in virtual-canvas space; `input.js` converts pointer events into it.
-- **ads.js**: `config.adapter` at the top switches between `'null'` (default, fully playable), `'crazygames'`, and `'gamedistribution'` — the latter two are stubs with TODO comments at real SDK call sites. Interstitial frequency caps (1 per 3 runs, 60 s minimum gap) are enforced in `AdManager.showInterstitial`, not in adapters.
-- **audio.js** embeds ZzFX (MIT) and pre-renders all SFX buffers at init; sounds are referenced by name (`Audio.play('hop')`).
-- Hard constraints (portal acceptance): no text/words in gameplay UI (icons + numerals only), no image files (all art is drawn in code), no splash/preloader, 60 fps / <3 MB budgets.
-- localStorage keys: `orbit_best`, `orbit_muted`, `orbit_runs`.
+```
+audio.js (Audio) → ads.js (AdManager) → input.js (Input) → ui.js (UI) → game.js (Game) → main.js
+```
 
-`promo.html` is a standalone page that renders 512×512 and 1280×720 cover art on canvas for portal submissions. See `orbit-hopper/README.md` for ad-SDK swap instructions and portal submission checklists.
+- **main.js** — bootstraps all modules, runs the rAF loop (`dt = min((ts−prev)/1000, 0.05)`), pauses on `visibilitychange`. Letterboxes the virtual 390×844 canvas via CSS `width`/`height` scaling.
+- **game.js** — the entire game: state machine, physics, rendering (~1400 lines). All coordinates in virtual-canvas space.
+- **audio.js** — embeds ZzFX (MIT) inline. Sounds pre-rendered at init into `_bufs`. Also provides an oscillator-based ambient drone (`startAmbient()` / `stopAmbient()`) for the menu. AudioContext is lazy + try/catch-guarded for mobile policy.
+- **ads.js** — `config.adapter` at the top switches between `'null'` (default), `'crazygames'`, `'gamedistribution'`. Interstitial frequency cap (1 per 3 runs, 60 s gap) is enforced in `AdManager.showInterstitial`, not in adapters.
+- **input.js** — unified pointer/keyboard → virtual-canvas coords. Exposes `consumePress()`, `isDown()`, `lastPos()`.
+- **ui.js** — icon drawing primitives (all icons are canvas-drawn paths, no images).
+
+### State machine
+
+```
+SPLASH → MENU ⇄ INFO
+              ⇄ SETTINGS (overlay, settingsOpen flag, not a true state)
+              → PLAYING → DYING → RESULTS → (retry → PLAYING, via restartGame)
+```
+
+`SPLASH` shows the PixelNova Studios branding for ~2.6 s (tap to skip). `INFO` is the how-to-play screen (4 animated cards). `SETTINGS` is a full-screen overlay drawn on top of `MENU` controlled by `settingsOpen` boolean rather than `state`.
+
+### Key game.js internals
+
+- `dynGravR(p)` — gravity ring radius that shrinks from level 4+: `p.r * max(2.3, GRAV_MULT − diffLv*0.07)`. Used in both hit-detection and the ring draw; pass it through `dynGravR` whenever checking gravity capture or drawing the ring.
+- `launchSpd()` / `orbitSpd()` — scale with `diffLv`. Difficulty level increments every `DIFF_STEP` (8) score points.
+- `maxLevel` — highest `diffLv` ever reached, persisted to `orbit_maxlevel`. Updated in `land()` when `diffLv > maxLevel`.
+- `drawNovaLogo(cx, cy, r, rot)` — shared 8-point star drawing helper, used in both `drawSplash()` and `drawSettings()`.
+- Public API (test hooks): `Game.getState()`, `Game.getScore()`.
+
+### localStorage keys
+
+| Key | Content |
+|-----|---------|
+| `orbit_best` | highest score |
+| `orbit_runs` | total runs played |
+| `orbit_muted` | `'1'` = muted |
+| `orbit_maxlevel` | highest `diffLv` reached |
+
+### Hard constraints (portal acceptance)
+
+- No image files — all art drawn in canvas code.
+- Icons + numerals only in gameplay UI (no words during PLAYING/DYING/RESULTS).
+- 60 fps / < 3 MB budget.
+- **The `SPLASH` state violates CrazyGames/GD "no preloader" policy.** Before portal submission, remove or skip the SPLASH state (set `state = 'MENU'` in `init()` and delete `updateSplash`/`drawSplash`).
+
+### Promo & portal submission
+
+`orbit-hopper/promo.html` renders 512×512 and 1280×720 cover art for store listings. See `orbit-hopper/README.md` for ad-SDK swap instructions and portal submission checklists.
+
+## PixelNova Studios website (`company-website/`)
+
+Standalone single-file HTML page — no build step, no dependencies. Serves via any static file server or rawcdn.githack.com. The animated canvas logo uses the same `drawNova()` drawing logic as `orbit-hopper/js/game.js`'s `drawNovaLogo()` — keep them in sync if the logo design changes.
+
+```bash
+python3 -m http.server 9000 --directory company-website   # serve at http://localhost:9000
+```
