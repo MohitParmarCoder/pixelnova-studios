@@ -8,11 +8,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>Orbit Hopper</title>
 <link rel="icon" href="data:,">
-<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/style.css">
+<!-- CrazyGames SDK v3 — injected by portal, listed here for local testing only -->
+<!-- <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script> -->
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<!-- Set portal flag before any game script loads -->
+<script>window.ORBIT_PORTAL = 'crazygames';</script>
 <script src="js/audio.js"></script>
 <script src="js/ads.js"></script>
 <script src="js/input.js"></script>

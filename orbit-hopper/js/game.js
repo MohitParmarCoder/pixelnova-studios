@@ -1594,7 +1594,7 @@ const Game = (() => {
     score = 0; gems = 0; diffLv = 0; streakCount = 0; levelUpTimer = 0;
     rewardedUsed = false; gemsDoubled = false; tierUpFlash = false;
     splashTimer = 0; settingsOpen = false;
-    state = 'SPLASH';
+    state = (typeof window !== 'undefined' && window.ORBIT_PORTAL) ? 'MENU' : 'SPLASH';
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     particles=[]; popups=[]; hazards=[]; gemsList=[];
 
