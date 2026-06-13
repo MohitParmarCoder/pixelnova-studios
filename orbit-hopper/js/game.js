@@ -9,9 +9,12 @@ const Game = (() => {
   const BASE_LAUNCH_SPD = 290;    // px/s   (was 370 — more time to aim)
   const GRAV_MULT       = 3.4;    // gravity ring = planet.r × this (was 2.7 — bigger catch zone)
   const ORBIT_MULT      = 1.85;   // orbit path = planet.r × this
-  const DIFF_STEP       = 8;      // score per difficulty level (was 5 — gentler ramp)
+  const DIFF_STEP       = 8;
   const COMPANY         = 'PixelNova';
   const TAGLINE         = 'Play Beyond Gravity';
+  const TIER_SIZE       = 5;   // difficulty levels per tier
+  const TIER_NAMES      = ['Rookie','Explorer','Veteran','Elite','Legend'];
+  const TIER_COLORS     = ['#a8edea','#9B59B6','#E74C3C','#FFD700','#FF61A6'];
 
   // Background palette: deep-space → purple → dusk-orange → dawn-gold
   const BG_STOPS = [
@@ -54,6 +57,7 @@ const Game = (() => {
   let splashTimer;    // SPLASH state countdown
   let maxLevel;       // highest diffLv ever reached (persisted)
   let settingsOpen;   // settings overlay on top of MENU
+  let tierUpFlash;    // true when this level-up also crossed a tier boundary
 
   // ── Colour helpers ─────────────────────────────────────────────────────
   function bgColors() {
@@ -131,19 +135,21 @@ const Game = (() => {
   function launchSpd()  { return BASE_LAUNCH_SPD  + diffLv * 20; }
   function orbitSpd()   { return BASE_ORBIT_SPD   + diffLv * 0.20; }
   function dynGravR(p)  { return p.r * Math.max(2.3, GRAV_MULT - Math.min(diffLv * 0.07, 0.9)); }
+  function getCurTier() { return Math.min(Math.floor(diffLv / TIER_SIZE), TIER_NAMES.length-1); }
+  function getCurTierColor() { return TIER_COLORS[getCurTier()]; }
 
   // ── World maintenance ──────────────────────────────────────────────────
   function fillPlanets() {
-    const target = 4 + Math.min(diffLv, 2);
+    const target = 4 + Math.min(Math.floor(diffLv / 2), 4);  // up to 8 planets
     while (planets.length < target) {
       let topY = Infinity;
       for (const p of planets) topY = Math.min(topY, p.y);
 
       const ref = planets[planets.length-1];
       const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*.75;
-      const d   = 155 + Math.random()*100;
+      const d   = 155 + Math.random()*100 + Math.min(diffLv * 10, 130);  // widens at high levels
       const nx  = Math.max(70, Math.min(W-70, ref.x + Math.cos(ang)*d));
-      const ny  = topY - 160 - Math.random()*120;
+      const ny  = topY - 160 - Math.random()*120 - Math.min(diffLv * 4, 80);
       const np  = makePlanet(nx, ny, false);
       planets.push(np);
       spawnGems(np);
@@ -158,13 +164,32 @@ const Game = (() => {
   function spawnHazard() {
     let topY = Infinity;
     for (const p of planets) topY = Math.min(topY, p.y);
+
+    // Level 8+: 40% chance of hazard that orbits a planet
+    if (diffLv >= 8 && Math.random() < 0.42 && planets.length > 1) {
+      const refP = planets[Math.floor(Math.random() * planets.length)];
+      hazards.push({
+        x: refP.x, y: refP.y,
+        vx: 0, vy: 0,
+        orbitPlanet: refP,
+        orbitAngle: Math.random() * Math.PI * 2,
+        orbitR: refP.r * (2.4 + Math.random() * 1.2),
+        orbitSpd: (0.9 + Math.random() * 0.9) * (Math.random() > .5 ? 1 : -1),
+        r: 8 + Math.random() * (diffLv >= 12 ? 12 : 7),
+        spin: (Math.random()-.5)*5,
+        angle: 0, alpha: 0, id: Math.random(),
+        _nm: false, _orbiting: true,
+      });
+      return;
+    }
+
     const speedMult = 1 + Math.min(diffLv * 0.14, 1.8);
     hazards.push({
       x: Math.random()*W, y: topY - 80 - Math.random()*200,
       vx: (Math.random()-.5)*130*speedMult, vy: (25+Math.random()*55)*speedMult,
       r: 7+Math.random()*(diffLv>=5?10:7), spin: (Math.random()-.5)*5,
       angle: 0, alpha: 0, id: Math.random(),
-      _nm: false,
+      _nm: false, _orbiting: false,
     });
   }
 
@@ -172,7 +197,10 @@ const Game = (() => {
     const cutY = cam.y + H + 250;
     planets  = planets.filter(p => p.y < cutY);
     gemsList = gemsList.filter(g => planets.includes(g.planet));
-    hazards  = hazards.filter(h => h.y < cutY + 200);
+    hazards  = hazards.filter(h => {
+      if (h._orbiting) return planets.includes(h.orbitPlanet);
+      return h.y < cutY + 200;
+    });
   }
 
   // ── Particles ──────────────────────────────────────────────────────────
@@ -211,9 +239,14 @@ const Game = (() => {
   function land(planet) {
     score++;
     if (score % DIFF_STEP === 0) {
+      const oldTier = Math.min(Math.floor(diffLv / TIER_SIZE), TIER_NAMES.length-1);
       diffLv++;
-      levelUpTimer = 1.2;
-      burst(ship.x, ship.y, '#FFD700', 14, true);
+      const newTier = Math.min(Math.floor(diffLv / TIER_SIZE), TIER_NAMES.length-1);
+      tierUpFlash = newTier > oldTier;
+      levelUpTimer = 1.5;
+      const tc = TIER_COLORS[newTier];
+      burst(ship.x, ship.y, tc, tierUpFlash ? 22 : 14, true);
+      if (tierUpFlash) burst(ship.x, ship.y, '#ffffff', 12, true);
       if (diffLv > maxLevel) {
         maxLevel = diffLv;
         try { localStorage.setItem('orbit_maxlevel', maxLevel); } catch(e) {}
@@ -267,7 +300,7 @@ const Game = (() => {
     score = gems = diffLv = 0;
     gameTime = deathTimer = 0;
     rewardedUsed = gemsDoubled = false;
-    streakCount = 0;
+    streakCount = 0; tierUpFlash = false;
     bgPhase = 0;
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     planets=[]; gemsList=[]; hazards=[]; particles=[]; popups=[];
@@ -414,10 +447,10 @@ const Game = (() => {
   }
 
   function resultsBtnPos() {
-    const py = H*0.16 + (1-eOut(Math.min(resultsAlpha,1)))*H*0.3;
+    const py = H*0.14 + (1-eOut(Math.min(resultsAlpha,1)))*H*0.3;
     return {
-      retry:     { x: W*0.62, y: py+260 },
-      doubleGem: { x: W*0.38, y: py+260 },
+      retry:     { x: W*0.62, y: py+294 },
+      doubleGem: { x: W*0.38, y: py+294 },
     };
   }
 
@@ -444,10 +477,17 @@ const Game = (() => {
       p.scale = Math.min(1, p.scale + (1-p.scale)*dt*5);
     }
     for (const h of hazards) {
-      h.x += h.vx*dt; h.y += h.vy*dt; h.angle += h.spin*dt;
+      if (h._orbiting && h.orbitPlanet) {
+        h.orbitAngle += h.orbitSpd * dt;
+        h.x = h.orbitPlanet.x + Math.cos(h.orbitAngle) * h.orbitR;
+        h.y = h.orbitPlanet.y + Math.sin(h.orbitAngle) * h.orbitR;
+      } else {
+        h.x += h.vx*dt; h.y += h.vy*dt;
+        if (h.x < -25) h.x = W+25;
+        if (h.x > W+25) h.x = -25;
+      }
+      h.angle += h.spin*dt;
       h.alpha = Math.min(1, h.alpha + dt*2);
-      if (h.x < -25) h.x = W+25;
-      if (h.x > W+25) h.x = -25;
     }
 
     if (ship && ship.alive) updateShip(dt);
@@ -872,22 +912,28 @@ const Game = (() => {
       ctx.fillText(highScore,55,53);
     }
 
-    // Level indicator — row of dots bottom-left (filled = reached, open = next)
+    // Level indicator — tier progress dots + tier name bottom-left
     if (state === 'PLAYING' || state === 'DYING') {
-      const dotMax = 5, dotR = 4, dotGap = 14;
-      const startX = 22, dotY = H - 28;
-      for (let i = 0; i < dotMax; i++) {
-        const reached = (diffLv % dotMax) > i || (diffLv > 0 && diffLv % dotMax === 0);
-        ctx.globalAlpha = reached ? .9 : .28;
-        ctx.fillStyle = '#FFD700';
-        ctx.shadowBlur = reached ? 8 : 0; ctx.shadowColor = '#FFD700';
+      const tier = getCurTier();
+      const tc   = TIER_COLORS[tier];
+      const filled = diffLv % TIER_SIZE;          // 0–4 within current tier
+      const dotR = 4, dotGap = 14;
+      const startX = 18, dotY = H - 32;
+      for (let i = 0; i < TIER_SIZE; i++) {
+        ctx.globalAlpha = i < filled ? .92 : .22;
+        ctx.fillStyle = tc;
+        ctx.shadowBlur = i < filled ? 8 : 0; ctx.shadowColor = tc;
         ctx.beginPath(); ctx.arc(startX + i*dotGap, dotY, dotR, 0, Math.PI*2); ctx.fill();
       }
       ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-      // Level number
-      ctx.fillStyle = 'rgba(255,215,0,.7)';
-      ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText(diffLv + 1, startX + dotMax*dotGap + 2, dotY + 4);
+      // Level number + tier label
+      ctx.globalAlpha = .75; ctx.fillStyle = tc;
+      ctx.font = 'bold 11px system-ui,sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('Lv.' + (diffLv+1), startX + TIER_SIZE*dotGap + 4, dotY + 4);
+      ctx.globalAlpha = .45; ctx.fillStyle = '#ffffff';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText(TIER_NAMES[tier], startX, dotY + 18);
+      ctx.globalAlpha = 1;
     }
 
     // Mute button
@@ -895,17 +941,27 @@ const Game = (() => {
   }
 
   function drawLevelUpFlash() {
-    const p = levelUpTimer / 1.2;
-    const flashA = p > .5 ? (p - .5) * 2 * .3 : p * 2 * .3;
+    const p  = levelUpTimer / 1.5;
+    const tc = getCurTierColor();
+    const flashA = p > .5 ? (p-.5)*2*.32 : p*2*.32;
     ctx.fillStyle = `rgba(255,215,0,${flashA})`;
-    ctx.fillRect(0, 0, W, H);
-    if (p > .4) {
+    ctx.fillRect(0,0,W,H);
+    if (p > .35) {
       ctx.save();
-      ctx.globalAlpha = (p - .4) / .6;
-      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 36px system-ui';
+      const a = (p-.35)/.65;
+      ctx.globalAlpha = a;
       ctx.textAlign = 'center';
-      ctx.shadowBlur = 20; ctx.shadowColor = '#FFD700';
-      ctx.fillText(diffLv + 1, W/2, H/2);
+      // Big level number
+      ctx.fillStyle = tierUpFlash ? tc : '#FFD700';
+      ctx.font = 'bold 58px system-ui';
+      ctx.shadowBlur = 28; ctx.shadowColor = tierUpFlash ? tc : '#FFD700';
+      ctx.fillText(diffLv+1, W/2, tierUpFlash ? H/2-14 : H/2+18);
+      // Tier name on tier change
+      if (tierUpFlash) {
+        ctx.fillStyle = tc; ctx.font = 'bold 22px system-ui';
+        ctx.shadowBlur = 18; ctx.shadowColor = tc;
+        ctx.fillText(TIER_NAMES[getCurTier()].toUpperCase(), W/2, H/2+28);
+      }
       ctx.restore();
     }
   }
@@ -1316,19 +1372,50 @@ const Game = (() => {
     ctx.beginPath(); ctx.moveTo(W/2-90,H*.63); ctx.lineTo(W/2+90,H*.63); ctx.stroke();
     ctx.globalAlpha=1;
 
-    // Contact / envelope icon
-    const ey=H*.685;
-    ctx.globalAlpha=.48;
-    ctx.strokeStyle='#a8edea'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.rect(W/2-22,ey-9,44,26); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(W/2-22,ey-9); ctx.lineTo(W/2,ey+4); ctx.lineTo(W/2+22,ey-9); ctx.stroke();
-    ctx.globalAlpha=.38;
-    ctx.fillStyle='#a8edea'; ctx.font='10px system-ui';
-    ctx.fillText('pixelnova.games', W/2, H*.748);
+    // Stats: runs | best | max level
+    const statsData = [
+      { v: runsPlayed, label: '↺' },
+      { v: highScore,  label: '★' },
+      { v: 'Lv.'+(maxLevel+1), label: '◆' },
+    ];
+    const statY = H*.69;
+    statsData.forEach((s, i) => {
+      const sx = W/2 + (i-1) * 88;
+      ctx.globalAlpha = .5;
+      ctx.fillStyle = '#a8edea'; ctx.font = '12px system-ui';
+      ctx.textAlign = 'center'; ctx.fillText(s.label, sx, statY);
+      ctx.globalAlpha = .85;
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px system-ui';
+      ctx.fillText(s.v, sx, statY + 20);
+    });
+    ctx.globalAlpha=1;
+
+    // Tier progress badges
+    const tierY = H*.79;
+    const bW=46, bH=22, bGap=5;
+    const bTotalW = TIER_NAMES.length*(bW+bGap)-bGap;
+    const bStartX = W/2-bTotalW/2;
+    const playerTier = Math.min(Math.floor(maxLevel / TIER_SIZE), TIER_NAMES.length-1);
+    TIER_NAMES.forEach((name, t) => {
+      const bx = bStartX + t*(bW+bGap);
+      const reached = maxLevel > 0 ? t <= playerTier : false;
+      ctx.globalAlpha = reached ? .85 : .2;
+      ctx.fillStyle = TIER_COLORS[t];
+      UI.roundRect(ctx, bx, tierY, bW, bH, 6);
+      ctx.fill();
+      ctx.globalAlpha = reached ? .5 : .1;
+      ctx.strokeStyle = TIER_COLORS[t]; ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = reached ? .9 : .35;
+      ctx.fillStyle = reached ? '#000' : TIER_COLORS[t];
+      ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText(name.toUpperCase().slice(0,4), bx+bW/2, tierY+bH/2+3);
+    });
+    ctx.globalAlpha=1;
 
     ctx.globalAlpha=.22;
-    ctx.fillStyle='#fff';
-    ctx.fillText('Orbit Hopper  v1.0', W/2, H*.80);
+    ctx.fillStyle='#fff'; ctx.font='9px system-ui'; ctx.textAlign='center';
+    ctx.fillText('Orbit Hopper  v1.0 · pixelnova.games', W/2, H*.865);
     ctx.globalAlpha=1;
 
     // Close X — top-right
@@ -1393,7 +1480,7 @@ const Game = (() => {
   function drawResults() {
     if (resultsAlpha<=0) return;
     const py = resultsSlide;
-    const pw=280, ph=310, px=(W-pw)/2;
+    const pw=290, ph=350, px=(W-pw)/2;
 
     ctx.save();
     ctx.globalAlpha = eOut(resultsAlpha);
@@ -1425,20 +1512,34 @@ const Game = (() => {
     ctx.shadowBlur=0;
 
     // Gems row
-    UI.gemIcon(ctx, W/2-22, py+185, 12);
+    UI.gemIcon(ctx, W/2-22, py+188, 12);
     ctx.fillStyle = '#a8edea';
     ctx.font='20px system-ui,sans-serif';
     ctx.textAlign='left';
-    ctx.fillText(gems + (gemsDoubled?' ×2':''), W/2-2, py+193);
+    ctx.fillText(gems + (gemsDoubled?' ×2':''), W/2-2, py+196);
 
-    // Level row
+    // Divider
+    ctx.globalAlpha=.14;
+    ctx.strokeStyle='#a8edea'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px+18, py+214); ctx.lineTo(px+pw-18, py+214); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // Level + tier row
     const lvDisplay = diffLv + 1;
     const isMaxLv   = diffLv > 0 && diffLv >= maxLevel;
+    const tier      = Math.min(Math.floor(diffLv / TIER_SIZE), TIER_NAMES.length-1);
+    const tc        = TIER_COLORS[tier];
     ctx.textAlign='center';
-    ctx.fillStyle = isMaxLv ? '#FFD700' : 'rgba(255,215,0,.6)';
-    ctx.font=(isMaxLv?'bold ':'')+`16px system-ui,sans-serif`;
-    if (isMaxLv) { ctx.shadowBlur=10; ctx.shadowColor='#FFD700'; }
-    ctx.fillText('Lv. '+lvDisplay + (isMaxLv?' ★':''), W/2, py+222);
+    // Tier name
+    ctx.fillStyle = tc; ctx.font = 'bold 13px system-ui';
+    ctx.shadowBlur=8; ctx.shadowColor=tc;
+    ctx.fillText(TIER_NAMES[tier].toUpperCase(), W/2-30, py+234);
+    ctx.shadowBlur=0;
+    // Level number
+    ctx.fillStyle = isMaxLv ? '#FFD700' : 'rgba(255,215,0,.65)';
+    ctx.font=(isMaxLv?'bold ':'')+`13px system-ui`;
+    if (isMaxLv) { ctx.shadowBlur=8; ctx.shadowColor='#FFD700'; }
+    ctx.fillText('Lv.'+lvDisplay+(isMaxLv?' ✦':''), W/2+42, py+234);
     ctx.shadowBlur=0;
 
     // Buttons
@@ -1491,7 +1592,7 @@ const Game = (() => {
     resultsAlpha = 0; resultsSlide = 0;
     newBestFlash = 0; deathTimer = 0; continueTimer = 0; continueAlpha = 0;
     score = 0; gems = 0; diffLv = 0; streakCount = 0; levelUpTimer = 0;
-    rewardedUsed = false; gemsDoubled = false;
+    rewardedUsed = false; gemsDoubled = false; tierUpFlash = false;
     splashTimer = 0; settingsOpen = false;
     state = 'SPLASH';
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
