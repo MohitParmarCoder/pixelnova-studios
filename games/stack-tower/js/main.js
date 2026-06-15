@@ -20,6 +20,8 @@
   // ── Module init ─────────────────────────────────────────────────────────────
   Audio.init();
   AdManager.init();
+  let _best = 0;
+  try { _best = parseInt(localStorage.getItem('stacktower_best'), 10) || 0; } catch(e) {}
   StackTower.init(canvas);
 
   // ── Input — tap / click / touch ─────────────────────────────────────────────
@@ -46,6 +48,8 @@
     prev = ts;
     StackTower.update(dt);
     StackTower.draw();
+    const b = StackTower.getBest ? StackTower.getBest() : 0;
+    if (b > _best) { _best = b; try { localStorage.setItem('stacktower_best', String(_best)); } catch(e) {} }
     requestAnimationFrame(loop);
   }
 

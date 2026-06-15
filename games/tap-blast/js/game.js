@@ -315,6 +315,7 @@ const TapBlast = (() => {
     AdManager.onRunEnd();
     AdManager.gameplayStop();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'tapblast_best'); } catch(e) {}
   }
 
   // ── Draw: MENU ─────────────────────────────────────────────────────────────
@@ -568,5 +569,8 @@ const TapBlast = (() => {
     ctx.closePath();
   }
 
-  return { init, update, draw, tap };
+  function getScore() { return score; }
+  function getState() { return state; }
+  function getBest()  { return best; }
+  return { init, update, draw, tap, getScore, getState, getBest };
 })();

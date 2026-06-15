@@ -212,6 +212,7 @@ const DodgeRush = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'dodgerush_best'); } catch(e) {}
   }
 
   // ── Drawing ───────────────────────────────────────────────────────────────────

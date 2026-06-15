@@ -193,6 +193,7 @@ const NeonSnake = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'nsnake_best'); } catch(e) {}
   }
 
   // ── Swipe / direction input ────────────────────────────────────────────────
@@ -530,5 +531,8 @@ const NeonSnake = (() => {
     update(dt);
   }
 
-  return { init, update: updatePublic, draw, swipe };
+  function getScore() { return score; }
+  function getState() { return state; }
+  function getBest()  { return best; }
+  return { init, update: updatePublic, draw, swipe, getScore, getState, getBest };
 })();

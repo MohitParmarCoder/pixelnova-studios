@@ -32,6 +32,7 @@ const StackTower = (() => {
   // ── Game state ──────────────────────────────────────────────────────────────
   let state;         // 'MENU' | 'PLAYING' | 'DEAD'
   let score;
+  let best = 0;
   let level;
   let camY;          // camera offset: subtract from virtual y to get screen y
   let flashTimer;    // countdown for perfect flash
@@ -180,6 +181,7 @@ const StackTower = (() => {
 
   function _triggerDead() {
     deadScore = score;
+    if (score > best) best = score;
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
     AdManager.onRunEnd();
@@ -187,6 +189,7 @@ const StackTower = (() => {
     // show interstitial automatically with callback that just leaves us on DEAD
     // (tap to restart will be the user's next action)
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'stacktower_best'); } catch(e) {}
   }
 
   function _updateCamera() {
@@ -439,5 +442,9 @@ const StackTower = (() => {
     ctx.closePath();
   }
 
-  return { init, update, draw, tap };
+  function getScore() { return score; }
+  function getState() { return state; }
+  function getBest()  { return best; }
+
+  return { init, update, draw, tap, getScore, getState, getBest };
 })();

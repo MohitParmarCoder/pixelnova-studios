@@ -158,6 +158,7 @@ var MemoryFlip = (function () {
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
     try { AdManager.showInterstitial(function () {}); } catch (e) {}
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'memflip_best'); } catch(e) {}
   }
 
   function gameOver() {

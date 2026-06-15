@@ -203,6 +203,7 @@ const SkyHopper = (() => {
         AdManager.gameplayStop();
         AdManager.onRunEnd();
         AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'skyhopper_best'); } catch(e) {}
       }
     } catch (e) {}
   }

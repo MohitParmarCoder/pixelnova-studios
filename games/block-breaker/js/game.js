@@ -251,6 +251,7 @@ const BlockBreaker = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'blockbreaker_best'); } catch(e) {}
   }
 
   // ── Drawing ───────────────────────────────────────────────────────────────────

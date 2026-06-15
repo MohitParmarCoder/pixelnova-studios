@@ -74,9 +74,11 @@ const GravityFlip = (() => {
     }
     if (s === 'PLAYING') {
       _resetGame();
+      AdManager.gameplayStart();
     }
     if (s === 'DEAD') {
       _deadTimer = 0;
+      AdManager.gameplayStop();
     }
   }
 
@@ -241,6 +243,7 @@ const GravityFlip = (() => {
     try {
       AdManager.onRunEnd();
       AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'gravflip_best'); } catch(e) {}
     } catch(e) {}
   }
 

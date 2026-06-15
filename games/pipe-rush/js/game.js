@@ -163,6 +163,7 @@ const PipeRush = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'piperush_best'); } catch(e) {}
   }
 
   // ── Drawing ───────────────────────────────────────────────────────────────────

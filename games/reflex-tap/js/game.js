@@ -169,6 +169,7 @@ const ReflexTap = (() => {
         AdManager.gameplayStop();
         AdManager.onRunEnd();
         AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'reflextap_best'); } catch(e) {}
       }
     }
   }

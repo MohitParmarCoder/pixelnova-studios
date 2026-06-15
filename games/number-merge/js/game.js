@@ -238,6 +238,7 @@ const NumberMerge = (() => {
       try { AdManager.onRunEnd(); } catch(e) {}
       try {
         AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'nummerge_best'); } catch(e) {}
       } catch(e) {}
     }
 

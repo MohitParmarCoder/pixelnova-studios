@@ -351,9 +351,11 @@ const ColorSwitch = (() => {
   function die() {
     saveBest();
     state = 'DEAD';
-    Audio.play('lose');
+    try { Audio.play('lose'); } catch(e) {}
+    AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'colorswitch_best'); } catch(e) {}
   }
 
   // ── Public: tap ──────────────────────────────────────────────────────────────
@@ -692,5 +694,8 @@ const ColorSwitch = (() => {
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
-  return { init, update, draw, tap };
+  function getScore() { return score; }
+  function getState() { return state; }
+  function getBest()  { return bestScore; }
+  return { init, update, draw, tap, getScore, getState, getBest };
 })();
