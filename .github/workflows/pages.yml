@@ -28,8 +28,11 @@ jobs:
           mkdir -p _site/game
           # Company website at root
           cp -r company-website/. _site/
-          # Game at /game/
+          # Orbit Hopper at /game/
           cp -r orbit-hopper/. _site/game/
+          # Arcade (10 games) at /games/
+          mkdir -p _site/games
+          cp -r games/. _site/games/
           # TWA asset links at root well-known
           mkdir -p _site/.well-known
           cp orbit-hopper/.well-known/assetlinks.json _site/.well-known/assetlinks.json 2>/dev/null || true
