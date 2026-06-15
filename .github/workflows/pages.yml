@@ -17,6 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate app icons
+        run: node scripts/gen-icons.js
+
       - name: Build site
         run: |
           mkdir -p _site/game
