@@ -84,6 +84,11 @@ const GAMES = [
   { dir: 'number-merge',  global: 'NumberMerge', tap: (g) => g.swipe(1, 0) },
   { dir: 'reflex-tap',    global: 'ReflexTap',   tap: (g) => g.tap() },
   { dir: 'pipe-rush',     global: 'PipeRush',    tap: (g) => g.tap() },
+  { dir: 'tile-tap',      global: 'TileTap',     tap: (g) => g.tap(48 + (Math.random()*4|0)*97, 700) },
+  { dir: 'sky-hopper',    global: 'SkyHopper',   tap: (g) => { g.tap(); if (g.setTiltX) g.setTiltX(180); } },
+  { dir: 'bubble-pop',    global: 'BubblePop',   tap: (g) => { g.tap(195, 422); if (g.aim) g.aim(195, 300); if (g.shoot) g.shoot(195, 300); } },
+  { dir: 'star-blaster',  global: 'StarBlaster', tap: (g) => { g.tap(); if (g.setShipX) g.setShipX(195); } },
+  { dir: 'memory-flip',   global: 'MemoryFlip',  tap: (g) => g.tap(120 + (Math.random()*150|0), 350 + (Math.random()*200|0)) },
 ];
 
 let failures = 0;
