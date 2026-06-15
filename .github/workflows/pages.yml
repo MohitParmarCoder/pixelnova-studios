@@ -8,46 +8,31 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-  administration: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+  contents: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare site
+      - name: Build site
         run: |
           mkdir -p _site/game
-          # Company website → root
+          # Company website at root
           cp -r company-website/. _site/
-          # Game → /game/
+          # Game at /game/
           cp -r orbit-hopper/. _site/game/
-          # Well-known for TWA asset links
+          # TWA asset links at root well-known
           mkdir -p _site/.well-known
           cp orbit-hopper/.well-known/assetlinks.json _site/.well-known/assetlinks.json 2>/dev/null || true
+          # Disable Jekyll so files starting with _ are served
+          touch _site/.nojekyll
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          force_orphan: true
