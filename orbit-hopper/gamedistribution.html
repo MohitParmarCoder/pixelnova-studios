@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Orbit Hopper</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<!-- Set portal flag + GD game ID before any game script loads -->
+<script>
+  window.ORBIT_PORTAL = 'gamedistribution';
+  window.GD_GAME_ID   = 'REPLACE_WITH_YOUR_GD_GAME_ID'; // from GameDistribution dashboard
+</script>
+<!-- GD SDK must load AFTER GD_OPTIONS is defined (done inside AdManager.init()) -->
+<script src="js/audio.js"></script>
+<script src="js/ads.js"></script>
+<script src="js/input.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+<!-- GD SDK loads after game init so GD_OPTIONS is already set -->
+<script async src="https://html5.api.gamedistribution.com/main.min.js"></script>
+</body>
+</html>

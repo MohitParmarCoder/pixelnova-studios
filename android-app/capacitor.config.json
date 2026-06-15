@@ -1,0 +1,13 @@
+{
+  "appId":   "com.pixelnova.orbithopper",
+  "appName": "Orbit Hopper",
+  "webDir":  "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "AdMob": {
+      "appId": "ca-app-pub-REPLACE_WITH_YOUR_ADMOB_APP_ID~REPLACE_WITH_YOUR_APP_ID"
+    }
+  }
+}
