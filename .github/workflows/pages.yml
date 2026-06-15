@@ -20,6 +20,9 @@ jobs:
       - name: Generate app icons
         run: node scripts/gen-icons.js
 
+      - name: Generate marketing assets
+        run: node scripts/gen-marketing.js
+
       - name: Build site
         run: |
           mkdir -p _site/game

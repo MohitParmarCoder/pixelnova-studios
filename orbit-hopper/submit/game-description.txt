@@ -1,0 +1,96 @@
+============================================================
+ORBIT HOPPER — SUBMISSION COPY (copy-paste ready)
+============================================================
+
+GAME NAME:
+  Orbit Hopper
+
+SHORT DESCRIPTION (80 chars):
+  Tap to launch. Land on planets. Beat gravity. How far can you go?
+
+LONG DESCRIPTION (up to 500 words):
+  Orbit Hopper is a one-touch arcade game where skill meets gravity.
+
+  Launch your ship between planets, time your hops perfectly, and
+  survive a universe that gets more hostile with every successful
+  landing. Dodge asteroid fields, master orbiting hazards, and
+  climb through five distinct tiers — from Rookie to Legend.
+
+  FEATURES
+  • Pure one-touch controls — tap to launch, nothing else
+  • 25+ difficulty levels across 5 named tiers (Rookie → Legend)
+  • Orbiting asteroid hazards from level 8+
+  • Gem collection + rewarded ad double-up system
+  • Offline play — no internet needed
+  • < 1 MB — instant load on any connection
+  • 60 FPS smooth canvas rendering
+
+  HOW FAR CAN YOU GO?
+
+DEVELOPER / PUBLISHER:
+  PixelNova Studios
+
+CATEGORY:
+  Games > Arcade
+
+TAGS / KEYWORDS:
+  arcade, one-touch, gravity, space, planets, orbit, minimalist,
+  skill game, casual, hypercasual, endless, highscore
+
+CONTENT RATING:
+  Everyone (PEGI 3 / ESRB Everyone) — no violence, no adult content
+
+PRICE:
+  Free (ad-supported)
+
+WEBSITE:
+  https://mohitparmarcoder.github.io/udemy-react-fullstack-dailynews-project/
+
+SUPPORT EMAIL:
+  mohitparmar9868@gmail.com
+
+PRIVACY POLICY URL (needed for Play Store — you can use this free generator):
+  https://app.privacypolicygenerator.info/
+
+============================================================
+CRAZYGAMES SPECIFIC
+============================================================
+
+Game URL to submit:
+  https://mohitparmarcoder.github.io/udemy-react-fullstack-dailynews-project/game/crazygames.html
+
+Thumbnail image:
+  Use orbit-hopper/icons/icon-512.png (already generated)
+
+Feature image:
+  Use orbit-hopper/submit/feature-graphic-1024x500.png (already generated)
+
+SDK integrated:
+  Yes — CrazyGames SDK v3 (adapter auto-detects portal)
+
+============================================================
+GAMEDISTRIBUTION SPECIFIC
+============================================================
+
+Game URL to submit:
+  https://mohitparmarcoder.github.io/udemy-react-fullstack-dailynews-project/game/gamedistribution.html
+
+IMPORTANT: After you get your Game ID from GameDistribution dashboard,
+  edit orbit-hopper/gamedistribution.html line 14:
+    window.GD_GAME_ID = 'YOUR_ACTUAL_ID_HERE';
+  Then commit + push — CI will redeploy automatically.
+
+============================================================
+PLAY STORE SPECIFIC
+============================================================
+
+Package name:     com.pixelnova.orbithopper
+App name:         Orbit Hopper
+Category:         Games > Arcade
+Content rating:   IARC questionnaire → Everyone
+In-app purchases: No
+Ads:              Yes (AdMob interstitial + rewarded)
+
+Icon (512×512):   orbit-hopper/icons/icon-512.png
+Feature graphic:  orbit-hopper/submit/feature-graphic-1024x500.png
+Screenshots:      Take on a real Android device or emulator
