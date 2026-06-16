@@ -18,7 +18,7 @@ body {
 
 /* ── Game chrome wrapper ─────────────────────────────────── */
 #gameChrome {
-  display: flex; flex-direction: column; align-items: center;
+  display: flex; flex-direction: column; align-items: stretch;
   width: 100%;
   height: 100vh;
 }
@@ -63,7 +63,18 @@ body {
 }
 
 /* ── Canvas ──────────────────────────────────────────────── */
-#gameCanvas { display: block; touch-action: none; align-self: center; flex-shrink: 0; margin: 0 auto; }
+#gameCanvas { display: block; touch-action: none; }
+
+
+/* ── Canvas wrap: centers canvas horizontally ──────────────────────── */
+#canvasWrap {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* ── Bottom bar ──────────────────────────────────────────── */
 #bottomBar {
