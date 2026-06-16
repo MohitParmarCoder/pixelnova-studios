@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Color Flood</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="gameChrome">
+  <div id="topBar">
+    <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
+    <span id="gameTitle">Color Flood</span>
+    <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
+  </div>
+  <div id="canvasWrap"><canvas id="gameCanvas"></canvas></div>
+  <div id="bottomBar">
+    <span class="brand">&#9733; PixelNova Studios &#9733;</span>
+    <a class="url" href="https://mohitparmarcoder.github.io/pixelnova-studios/" target="_blank" rel="noopener">mohitparmarcoder.github.io/pixelnova-studios/</a>
+  </div>
+</div>
+<div id="settingsOverlay" class="hidden">
+  <div id="settingsPanel">
+    <canvas id="logoCanvas" width="110" height="110"></canvas>
+    <div class="pn-name">PixelNova</div>
+    <div class="pn-sub">S T U D I O S</div>
+    <div class="pn-tag">Games crafted with passion</div>
+    <div class="divider"></div>
+    <button id="btnMuteInSettings" class="settings-btn settings-mute-btn">&#128266;&nbsp; SOUND ON</button>
+    <div class="divider"></div>
+    <button id="btnResume" class="settings-btn settings-resume-btn">&#9654;&nbsp; RESUME</button>
+    <div class="contact-block">
+      <div class="contact-url"><a href="https://mohitparmarcoder.github.io/pixelnova-studios/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">mohitparmarcoder.github.io/pixelnova-studios/</a></div>
+      <div class="contact-email">contact@pixelnovastudios.com</div>
+      <div class="copyright">&copy; 2025 PixelNova Studios. All rights reserved.</div>
+    </div>
+  </div>
+</div>
+<script src="js/audio.js"></script>
+<script src="js/ads.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
