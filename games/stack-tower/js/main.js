@@ -19,10 +19,22 @@
 
   // ── Module init ─────────────────────────────────────────────────────────────
   Audio.init();
+  // ── Mute button — capture phase intercept ──────────────────────────────────
+  canvas.addEventListener('pointerdown', function(ev) {
+    var rect = canvas.getBoundingClientRect();
+    var vx = (ev.clientX - rect.left) * (VW / rect.width);
+    var vy = (ev.clientY - rect.top)  * (VH / rect.height);
+    if (Math.hypot(vx - 355, vy - 38) <= 30) {
+      ev.stopImmediatePropagation();
+      if (Audio.toggle) Audio.toggle();
+      else if (Audio.setMuted && Audio.isMuted) Audio.setMuted(!Audio.isMuted());
+    }
+  }, true);
+
   AdManager.init();
   let _best = 0;
   try { _best = parseInt(localStorage.getItem('stacktower_best'), 10) || 0; } catch(e) {}
-  StackTower.init(canvas);
+  StackTower.init(canvas, _best);
 
   // ── Input — tap / click / touch ─────────────────────────────────────────────
   function onTap(e) {
@@ -48,6 +60,34 @@
     prev = ts;
     StackTower.update(dt);
     StackTower.draw();
+    // ── Mute button overlay ────────────────────────────────────────────────────
+    (function() {
+      var ctx2 = canvas.getContext('2d');
+      var mx = 355, my = 38, mr = 22;
+      ctx2.save();
+      ctx2.globalAlpha = 0.88;
+      ctx2.fillStyle = '#111827';
+      ctx2.beginPath(); ctx2.arc(mx, my, mr, 0, Math.PI * 2); ctx2.fill();
+      ctx2.strokeStyle = '#374151'; ctx2.lineWidth = 1.5; ctx2.stroke();
+      var muted = Audio.isMuted ? Audio.isMuted() : false;
+      ctx2.lineWidth = 2.5;
+      if (muted) {
+        ctx2.strokeStyle = '#f87171';
+        ctx2.beginPath(); ctx2.moveTo(mx-8,my-8); ctx2.lineTo(mx+8,my+8); ctx2.stroke();
+        ctx2.beginPath(); ctx2.moveTo(mx+8,my-8); ctx2.lineTo(mx-8,my+8); ctx2.stroke();
+      } else {
+        ctx2.fillStyle = ctx2.strokeStyle = '#86efac';
+        ctx2.beginPath();
+        ctx2.moveTo(mx-10,my-4); ctx2.lineTo(mx-4,my-4);
+        ctx2.lineTo(mx+4,my-10); ctx2.lineTo(mx+4,my+10);
+        ctx2.lineTo(mx-4,my+4); ctx2.lineTo(mx-10,my+4); ctx2.closePath();
+        ctx2.fill();
+        ctx2.beginPath(); ctx2.arc(mx+4,my,5,-0.7,0.7); ctx2.stroke();
+        ctx2.beginPath(); ctx2.arc(mx+4,my,10,-0.7,0.7); ctx2.stroke();
+      }
+      ctx2.restore();
+    })();
+
     const b = StackTower.getBest ? StackTower.getBest() : 0;
     if (b > _best) { _best = b; try { localStorage.setItem('stacktower_best', String(_best)); } catch(e) {} }
     requestAnimationFrame(loop);
