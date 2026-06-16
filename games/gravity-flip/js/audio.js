@@ -27,8 +27,8 @@ const Audio = (() => {
     attack = attack * sampleRate + 9;
     sustain = sustain * sampleRate;
     release = release * sampleRate;
-    if (!length) length = attack + sustain + release;
-    length2 = length = length * sampleRate | 0;
+    if (!length) length = attack + sustain + release; else length *= sampleRate;
+    length2 = length = length | 0;
     for (; i < length2; b[i++] = s * volume) {
       if (!(++c % (bitCrush * 100 | 0))) { s = shape ? shape > 1 ? shape > 2 ? shape > 3 ?
         Math.sign(Math.sin((t % 1) ** 3)) :
