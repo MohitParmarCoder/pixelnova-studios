@@ -660,71 +660,6 @@ const navCvs  = document.getElementById('navLogoCanvas');
 const nCtx    = navCvs.getContext('2d');
 function drawNavLogo(t){ nCtx.clearRect(0,0,68,68); drawNova(nCtx,34,34,24,t*.0004); }
 
-// ── Orbit Hopper preview ───────────────────────────────────────────────────
-const ohCvs = document.getElementById('ohCanvas');
-const oCtx  = ohCvs.getContext('2d');
-let ohStars=[];
-function resizeOH(){
-  const wr=ohCvs.parentElement;
-  ohCvs.width=wr.offsetWidth||300; ohCvs.height=wr.offsetHeight||180;
-  ohStars=makeStars(70,ohCvs.width,ohCvs.height);
-}
-function drawOH(t){
-  const W=ohCvs.width,H=ohCvs.height;
-  if(!W||!H)return;
-  const g=oCtx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#080926'); g.addColorStop(1,'#0d0a1e');
-  oCtx.fillStyle=g; oCtx.fillRect(0,0,W,H);
-  oCtx.fillStyle='#fff';
-  for(const s of ohStars){
-    oCtx.globalAlpha=s.a*(.6+Math.sin(t*.0018+s.x)*.4);
-    oCtx.beginPath(); oCtx.arc(s.x,s.y,s.r,0,Math.PI*2); oCtx.fill();
-  }
-  oCtx.globalAlpha=1;
-  const pr=Math.min(W,H)*.17,cx=W*.5,cy=H*.42;
-  oCtx.save(); oCtx.shadowBlur=22; oCtx.shadowColor='#6C8EEF';
-  const pg=oCtx.createRadialGradient(cx-pr*.3,cy-pr*.3,pr*.08,cx,cy,pr);
-  pg.addColorStop(0,'#fff'); pg.addColorStop(.28,'#6C8EEF'); pg.addColorStop(1,'#1a1a4e');
-  oCtx.fillStyle=pg; oCtx.beginPath(); oCtx.arc(cx,cy,pr,0,Math.PI*2); oCtx.fill();
-  // Gravity ring
-  oCtx.globalAlpha=.45+Math.sin(t*.003)*.2; oCtx.strokeStyle='#a8edea'; oCtx.lineWidth=1.5; oCtx.setLineDash([7,5]);
-  oCtx.beginPath(); oCtx.arc(cx,cy,pr*3.2,0,Math.PI*2); oCtx.stroke(); oCtx.setLineDash([]);
-  // Orbit ring
-  oCtx.globalAlpha=.2; oCtx.strokeStyle='#a8edea'; oCtx.lineWidth=1;
-  oCtx.beginPath(); oCtx.arc(cx,cy,pr*2,0,Math.PI*2); oCtx.stroke(); oCtx.globalAlpha=1;
-  // Ship
-  const sa=t*.0018;
-  const sx=cx+Math.cos(sa)*pr*2,sy=cy+Math.sin(sa)*pr*2;
-  oCtx.save(); oCtx.translate(sx,sy); oCtx.rotate(sa+Math.PI/2);
-  oCtx.shadowBlur=14; oCtx.shadowColor='#88ccff'; oCtx.fillStyle='#fff';
-  oCtx.beginPath(); oCtx.moveTo(9,0); oCtx.lineTo(-6,-5); oCtx.lineTo(-3,0); oCtx.lineTo(-6,5); oCtx.closePath(); oCtx.fill();
-  oCtx.restore(); oCtx.restore();
-  // Second orbiting planet (smaller)
-  const p2x=W*.25,p2y=H*.68,p2r=pr*.6;
-  oCtx.save(); oCtx.shadowBlur=12; oCtx.shadowColor='#1ABC9C';
-  const pg2=oCtx.createRadialGradient(p2x-p2r*.3,p2y-p2r*.3,p2r*.08,p2x,p2y,p2r);
-  pg2.addColorStop(0,'#fff'); pg2.addColorStop(.28,'#1ABC9C'); pg2.addColorStop(1,'#074040');
-  oCtx.fillStyle=pg2; oCtx.beginPath(); oCtx.arc(p2x,p2y,p2r,0,Math.PI*2); oCtx.fill(); oCtx.restore();
-}
-
-// ── Placeholder card 2 ─────────────────────────────────────────────────────
-const ph2Cvs=document.getElementById('ph2Canvas');
-const p2Ctx=ph2Cvs.getContext('2d');
-function resizePH2(){
-  const wr=ph2Cvs.parentElement;
-  ph2Cvs.width=wr.offsetWidth||300; ph2Cvs.height=wr.offsetHeight||180;
-}
-function drawPH2(t){
-  const W=ph2Cvs.width,H=ph2Cvs.height;
-  if(!W||!H)return;
-  p2Ctx.fillStyle='#060812'; p2Ctx.fillRect(0,0,W,H);
-  p2Ctx.globalAlpha=.12+Math.sin(t*.0012)*.04;
-  p2Ctx.fillStyle='#6C8EEF'; p2Ctx.font=`bold ${Math.min(W,H)*.4}px system-ui`;
-  p2Ctx.textAlign='center'; p2Ctx.textBaseline='middle';
-  p2Ctx.fillText('?',W/2,H/2);
-  p2Ctx.globalAlpha=1;
-}
-
 // ── Feature icons ──────────────────────────────────────────────────────────
 const featureDefs = [
   // 1: controller/tap circle
@@ -857,14 +792,13 @@ const statsObs=new IntersectionObserver(entries=>{
 statsObs.observe(statsSection);
 
 // ── Resize ─────────────────────────────────────────────────────────────────
-function onResize(){ resizeHero(); resizeOH(); resizePH2(); }
+function onResize(){ resizeHero(); }
 window.addEventListener('resize',onResize);
 onResize();
 
 // ── RAF loop ───────────────────────────────────────────────────────────────
 function loop(t){
   drawHeroBg(t); drawLogo(t); drawNavLogo(t);
-  drawOH(t); drawPH2(t);
   for(let i=0;i<6;i++) drawFeatureIcon('feat'+(i+1),i,t);
   requestAnimationFrame(loop);
 }

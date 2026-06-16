@@ -227,7 +227,7 @@ const NumberMerge = (() => {
       outer:
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (_grid[r][c] >= 2048) { _state = 'WIN'; _winShown = true; break outer; }
+          if (_grid[r][c] >= 2048) { _state = 'WIN'; _winShown = true; try { AdManager.gameplayStop(); } catch(e) {} break outer; }
         }
       }
     }
@@ -235,7 +235,7 @@ const NumberMerge = (() => {
     // Check loss (no empty cells and no possible merges)
     if (_state !== 'WIN' && !_emptyCells().length && !_hasMoves()) {
       _state = 'DEAD';
-      try { AdManager.onRunEnd(); } catch(e) {}
+      try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
       try {
         AdManager.showInterstitial(() => {});
         try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'nummerge_best'); } catch(e) {}
@@ -260,13 +260,17 @@ const NumberMerge = (() => {
   function swipe(dx, dy) {
     if (_state === 'MENU') {
       _state = 'PLAYING';
+      try { AdManager.gameplayStart(); } catch(e) {}
       try { Audio.play('button'); } catch(e) {}
       return;
     }
     if (_state === 'DEAD' || _state === 'WIN') {
-      _resetGame();
-      _state = 'PLAYING';
-      try { Audio.play('button'); } catch(e) {}
+      AdManager.showInterstitial(() => {
+        _resetGame();
+        _state = 'PLAYING';
+        try { AdManager.gameplayStart(); } catch(e) {}
+        try { Audio.play('button'); } catch(e) {}
+      });
       return;
     }
     if (_state !== 'PLAYING') return;
