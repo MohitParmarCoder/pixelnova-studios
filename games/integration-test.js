@@ -198,8 +198,8 @@ for (const meta of GAMES) {
     const env = makeSandbox();
     vm.createContext(env);
     const files = [
-      path.join(__dirname, '_shared', 'js', 'audio.js'),
-      path.join(__dirname, '_shared', 'js', 'ads.js'),
+      path.join(__dirname, 'shared', 'js', 'audio.js'),
+      path.join(__dirname, 'shared', 'js', 'ads.js'),
       path.join(__dirname, meta.dir, 'js', 'game.js'),
       path.join(__dirname, meta.dir, 'js', 'main.js'),
     ];
