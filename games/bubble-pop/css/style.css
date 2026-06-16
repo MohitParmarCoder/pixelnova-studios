@@ -25,6 +25,7 @@ body {
 
 /* ── Top bar ─────────────────────────────────────────────── */
 #topBar {
+  position: relative; z-index: 1;
   width: 100%;
   display: flex; align-items: center; justify-content: space-between;
   padding: 6px 10px;
@@ -62,7 +63,7 @@ body {
 }
 
 /* ── Canvas ──────────────────────────────────────────────── */
-#gameCanvas { display: block; touch-action: none; }
+#gameCanvas { display: block; touch-action: none; align-self: center; flex-shrink: 0; margin: 0 auto; }
 
 /* ── Bottom bar ──────────────────────────────────────────── */
 #bottomBar {
