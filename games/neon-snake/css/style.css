@@ -1,37 +1,40 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  margin: 0; padding: 0;
-  width: 100%; height: 100%;
-  background: #04050e;
+html {
+  height: 100%; height: 100dvh;
   overflow: hidden;
+}
+
+body {
+  height: 100%; height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #04050e;
   font-family: system-ui, -apple-system, sans-serif;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
-body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-/* ── Game chrome wrapper ─────────────────────────────────── */
+/* ── Game chrome: fills viewport, column layout ─────────── */
 #gameChrome {
-  display: flex; flex-direction: column; align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  height: 100vh;
 }
 
 /* ── Top bar ─────────────────────────────────────────────── */
 #topBar {
-  position: relative; z-index: 1;
+  flex: 0 0 auto;
   width: 100%;
   display: flex; align-items: center; justify-content: space-between;
   padding: 6px 10px;
+  min-height: 52px;
   background: #0d0d1a;
-  border-bottom: 1px solid rgba(168,237,234,0.12);
-  flex-shrink: 0;
+  border-bottom: 1px solid rgba(168,237,234,0.18);
 }
 
 #btnSettings, #btnMute {
@@ -62,29 +65,29 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ── Canvas ──────────────────────────────────────────────── */
-#gameCanvas { display: block; touch-action: none; }
-
-
-/* ── Canvas wrap: centers canvas horizontally ──────────────────────── */
+/* ── Canvas wrap: fills remaining height, centres canvas ─── */
 #canvasWrap {
   flex: 1 1 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 0;
   overflow: hidden;
+  background: #04050e;
 }
+
+#gameCanvas { display: block; touch-action: none; }
 
 /* ── Bottom bar ──────────────────────────────────────────── */
 #bottomBar {
+  flex: 0 0 auto;
   width: 100%;
   display: flex; flex-direction: column; align-items: center;
   padding: 5px 10px 6px;
+  min-height: 38px;
   background: #0d0d1a;
-  border-top: 1px solid rgba(168,237,234,0.12);
+  border-top: 1px solid rgba(168,237,234,0.18);
   gap: 2px;
-  flex-shrink: 0;
 }
 #bottomBar .brand {
   color: #a8edea;
