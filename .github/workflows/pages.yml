@@ -1,11 +1,14 @@
 name: Deploy to GitHub Pages
 
 on:
+  # Deploy only from the default branch. The github-pages environment only
+  # permits the default branch, so triggering on feature branches would
+  # always fail the deploy job. Merge to master => automatic free deploy.
   push:
     branches:
-      - claude/orbit-hopper-game-pfaqe6
-      - main
       - master
+      - main
+  # Allow manual runs from the Actions tab at any time.
   workflow_dispatch:
 
 # Permissions required for the official GitHub Pages deployment
