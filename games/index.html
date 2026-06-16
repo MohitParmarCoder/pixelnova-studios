@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PixelNova Arcade</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: radial-gradient(120% 90% at 50% 0%, #1a1140 0%, #0a0818 55%, #05040d 100%);
+    color: #eaeaff; min-height: 100vh; padding: 32px 16px 64px;
+  }
+  header { text-align: center; margin-bottom: 36px; }
+  h1 {
+    font-size: clamp(30px, 7vw, 54px); letter-spacing: 2px; font-weight: 800;
+    background: linear-gradient(90deg, #00eaff, #b06bff, #ff5599);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { margin-top: 8px; color: #9aa0c8; font-size: 15px; }
+  .grid {
+    max-width: 1000px; margin: 0 auto; display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  a.card {
+    position: relative; display: block; text-decoration: none; color: inherit;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 22px 20px; overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  a.card:hover { transform: translateY(-4px); border-color: var(--c); box-shadow: 0 10px 30px -10px var(--c); }
+  .chip { width: 46px; height: 46px; border-radius: 12px; margin-bottom: 14px;
+    background: var(--c); box-shadow: 0 0 22px -2px var(--c); }
+  .name { font-size: 19px; font-weight: 700; }
+  .tag { margin-top: 4px; font-size: 13px; color: #9aa0c8; }
+  footer { text-align: center; margin-top: 48px; color: #6b7099; font-size: 13px; }
+  footer a { color: #8a90c8; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>PixelNova Arcade</h1>
+    <div class="sub">16 one-touch games · no download · play instantly</div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    Built by PixelNova Studios ·
+    <a href="../">Company site</a> ·
+    <a href="../game/">Orbit Hopper</a>
+  </footer>
+
+  <script>
+    const GAMES = [
+      { dir: 'orbit-hopper-feature', href: '../game/', name: 'Orbit Hopper', tag: 'Hop between planets', c: '#a06bff' },
+      { dir: 'stack-tower',   name: 'Stack Tower',   tag: 'Drop & stack blocks',   c: '#ff7755' },
+      { dir: 'color-switch',  name: 'Color Switch',  tag: 'Match the gate color',  c: '#00ccff' },
+      { dir: 'gravity-flip',  name: 'Gravity Flip',  tag: 'Flip through the gaps',  c: '#00ff88' },
+      { dir: 'neon-snake',    name: 'Neon Snake',    tag: 'Classic snake, neon',    c: '#00ff66' },
+      { dir: 'tap-blast',     name: 'Tap Blast',     tag: 'Pop before they vanish', c: '#ff3388' },
+      { dir: 'dodge-rush',    name: 'Dodge Rush',    tag: 'Survive the shapes',     c: '#00eeff' },
+      { dir: 'block-breaker', name: 'Block Breaker', tag: 'Neon breakout',          c: '#ffdd00' },
+      { dir: 'number-merge',  name: 'Number Merge',  tag: 'Reach 2048',             c: '#edc22e' },
+      { dir: 'reflex-tap',    name: 'Reflex Tap',    tag: 'Hit the green zone',     c: '#00ff66' },
+      { dir: 'pipe-rush',     name: 'Pipe Rush',     tag: 'Flap & match colors',    c: '#ff3355' },
+      { dir: 'tile-tap',      name: 'Tile Tap',      tag: 'Tap the falling tiles',  c: '#b06bff' },
+      { dir: 'sky-hopper',    name: 'Sky Hopper',    tag: 'Bounce ever higher',     c: '#00ff88' },
+      { dir: 'bubble-pop',    name: 'Bubble Pop',    tag: 'Match 3+ to pop',        c: '#00ccff' },
+      { dir: 'star-blaster',  name: 'Star Blaster',  tag: 'Dodge & blast',          c: '#ff3388' },
+      { dir: 'memory-flip',   name: 'Memory Flip',   tag: 'Find all the pairs',     c: '#ffdd00' },
+    ];
+    const grid = document.getElementById('grid');
+    for (const g of GAMES) {
+      const a = document.createElement('a');
+      a.className = 'card';
+      a.style.setProperty('--c', g.c);
+      a.href = g.href || (g.dir + '/');
+      a.innerHTML =
+        '<div class="chip"></div>' +
+        '<div class="name">' + g.name + '</div>' +
+        '<div class="tag">' + g.tag + '</div>';
+      grid.appendChild(a);
+    }
+  </script>
+</body>
+</html>
