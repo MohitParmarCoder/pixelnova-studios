@@ -5,6 +5,7 @@ on:
     branches:
       - claude/orbit-hopper-game-pfaqe6
       - main
+      - master
   workflow_dispatch:
 
 permissions:
