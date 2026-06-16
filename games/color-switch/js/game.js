@@ -371,7 +371,7 @@ const ColorSwitch = (() => {
     // PLAYING
     ballVY       = TAP_IMPULSE;
     ballColorIdx = (ballColorIdx + 1) % 4;
-    Audio.play('tap');
+    try { Audio.play('tap'); } catch(e) {}
   }
 
   // ── Public: update ───────────────────────────────────────────────────────────
@@ -422,7 +422,7 @@ const ColorSwitch = (() => {
       if (!ring.passed && checkScoring(ring)) {
         score++;
         scoreFlashTimer = 0.25;
-        Audio.play('score');
+        try { Audio.play('score'); } catch(e) {}
         spawnParticles(VW / 2, ringScreenY, ballColorIdx);
       }
 

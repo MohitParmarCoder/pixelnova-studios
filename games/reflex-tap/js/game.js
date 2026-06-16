@@ -140,7 +140,7 @@ const ReflexTap = (() => {
       _score += _combo;
       _flashTimer = FLASH_DUR;
       _flashColor = '#00FF66';
-      Audio.play('score');
+      try { Audio.play('score'); } catch(e) {}
 
       // Speed up
       _speed = Math.min(_speed + SPEED_INC, SPEED_MAX);
@@ -159,7 +159,7 @@ const ReflexTap = (() => {
       _lives--;
       _flashTimer = FLASH_DUR;
       _flashColor = '#FF3333';
-      Audio.play('crash');
+      try { Audio.play('crash'); } catch(e) {}
 
       // New zone position
       _zoneStart = _randZoneStart();

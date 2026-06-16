@@ -99,11 +99,12 @@ const StackTower = (() => {
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
-  function init(canvas) {
+  function init(canvas, bestScore) {
     _canvas = canvas;
     _ctx    = canvas.getContext('2d');
     state   = 'MENU';
     score   = 0;
+    best    = bestScore || 0;
     deadScore = 0;
     camY    = 0;
     flashTimer = 0;

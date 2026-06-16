@@ -155,7 +155,7 @@ const NeonSnake = (() => {
       score += 1;
       foodsEaten += 1;
       if (score > best) { best = score; saveBest(); }
-      Audio.play('gem');
+      try { Audio.play('gem'); } catch(e) {}
 
       // Speed up every SPEED_EVERY foods
       if (foodsEaten % SPEED_EVERY === 0) {
@@ -177,7 +177,7 @@ const NeonSnake = (() => {
       // Grow (don't pop tail)
       score += 5;
       if (score > best) { best = score; saveBest(); }
-      Audio.play('power');
+      try { Audio.play('power'); } catch(e) {}
       powerFood  = null;
       powerTimer = 0;
     } else {
@@ -189,7 +189,7 @@ const NeonSnake = (() => {
   function die() {
     state = 'DEAD';
     if (score > best) { best = score; saveBest(); }
-    Audio.play('lose');
+    try { Audio.play('lose'); } catch(e) {}
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
