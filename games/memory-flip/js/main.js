@@ -11,7 +11,9 @@
   function resize() {
     var topH = (document.getElementById('topBar') || {offsetHeight:0}).offsetHeight || 0;
     var botH = (document.getElementById('bottomBar') || {offsetHeight:0}).offsetHeight || 0;
-    var s = Math.min(window.innerWidth / VW, (window.innerHeight - topH - botH) / VH);
+    var chrome = document.getElementById('gameChrome');
+    var availW = chrome ? chrome.offsetWidth : window.innerWidth;
+    var s = Math.min(availW / VW, (window.innerHeight - topH - botH) / VH);
     canvas.width  = VW;
     canvas.height = VH;
     canvas.style.width  = Math.floor(VW * s) + 'px';
