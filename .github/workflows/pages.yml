@@ -8,11 +8,19 @@ on:
       - master
   workflow_dispatch:
 
+# Permissions required for the official GitHub Pages deployment
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,7 +39,7 @@ jobs:
           cp -r company-website/. _site/
           # Orbit Hopper at /game/
           cp -r orbit-hopper/. _site/game/
-          # Arcade (10 games) at /games/
+          # Arcade games at /games/
           mkdir -p _site/games
           cp -r games/. _site/games/
           # TWA asset links at root well-known
@@ -40,9 +48,25 @@ jobs:
           # Disable Jekyll so files starting with _ are served
           touch _site/.nojekyll
 
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Setup Pages
+        # enablement:true auto-enables GitHub Pages and sets the source to
+        # "GitHub Actions" — no manual Settings step required.
+        uses: actions/configure-pages@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_site
-          force_orphan: true
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
