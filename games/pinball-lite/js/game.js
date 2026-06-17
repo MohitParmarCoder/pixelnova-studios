@@ -487,6 +487,13 @@ var PinballLite = (function () {
         }
     }
 
+    function hexToRgba(hex, alpha) {
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    }
+
     function drawBumper(bumper) {
         var lit = bumper.lit;
 
@@ -498,9 +505,7 @@ var PinballLite = (function () {
                 bumper.x, bumper.y, BUMPER_RADIUS - 5,
                 bumper.x, bumper.y, BUMPER_RADIUS + 14
             );
-            grad.addColorStop(0, bumper.color.replace(')', ', ' + lit + ')').replace('rgb', 'rgba').replace('#', 'rgba(').replace(/(..)(..)(..)/, function (m, r, g, b) {
-                return parseInt(r, 16) + ',' + parseInt(g, 16) + ',' + parseInt(b, 16) + ',';
-            }));
+            grad.addColorStop(0, hexToRgba(bumper.color, lit));
             grad.addColorStop(1, 'rgba(0,0,0,0)');
             // Simpler: just use shadow
             ctx.shadowColor = bumper.color;
