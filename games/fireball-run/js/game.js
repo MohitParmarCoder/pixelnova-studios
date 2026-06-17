@@ -1,344 +1,412 @@
 'use strict';
+
+/* Castle Defense — FireballRun namespace
+   Castle wall on left. Enemies march from right toward castle.
+   Tap to fire arrow at that position (arc trajectory).
+   Enemy within 20px of arrow = eliminated.
+   Castle has 3 HP. Enemy reaches left edge = -1 HP.
+   Waves escalate. Score = enemies killed. */
 var FireballRun = (function () {
-    var VW = 390, VH = 844;
-    var canvas, ctx;
-    var state = 'MENU';
-    var best = 0;
-    var score;
-    var playerX, playerY, playerVY;
-    var fireballs;
-    var spawnTimer, spawnInterval;
-    var onGround;
-    var tick;
-    var scrollOffset;
-    var GROUND_Y = VH - 100;
-    var PLAYER_W = 28, PLAYER_H = 40;
-    var PLAYER_FIXED_X = 80;
-    var JUMP_V = -580;
-    var GRAVITY = 1500;
-    var clouds;
+  var VW = 390, VH = 844;
+  var canvas, ctx;
+  var state = 'MENU';
+  var score = 0, _best = 0;
+  var t = 0;
+  var lives = 3; // castle HP
 
-    function makeClouds() {
-        clouds = [];
-        for (var i = 0; i < 6; i++) {
-            clouds.push({
-                x: Math.random() * VW,
-                y: 60 + Math.random() * 200,
-                r: 30 + Math.random() * 30,
-                spd: 20 + Math.random() * 20
-            });
+  // Castle geometry
+  var CASTLE_X = 0, CASTLE_W = 55;
+  var CASTLE_TOP = 180, CASTLE_BOT = VH - 80;
+  var ARROW_ORIGIN_X = CASTLE_W + 5;
+  var ARROW_ORIGIN_Y = CASTLE_TOP + 30;
+
+  // Ground
+  var GROUND_Y = VH - 80;
+
+  // Enemies array: {x, y, vx, type, hp, maxHp, w, h, hit, hitTimer}
+  var enemies = [];
+  // Arrows array: {x, y, vx, vy, age}
+  var arrows = [];
+
+  // Wave state
+  var wave        = 1;
+  var waveTimer   = 0;   // countdown between waves
+  var enemiesThisWave = 0;
+  var spawnCount  = 0;
+  var spawnTimer  = 0;
+  var REST_TIME   = 3.0;
+
+  // Enemy types
+  var TYPES = {
+    soldier: { hp: 1, spd: 55, w: 22, h: 38, col: '#cc8833', pts: 1 },
+    knight:  { hp: 2, spd: 40, w: 26, h: 44, col: '#8888cc', pts: 2 },
+    giant:   { hp: 3, spd: 28, w: 38, h: 60, col: '#cc3344', pts: 4 }
+  };
+
+  // Arrow physics
+  var ARROW_GRAVITY = 400;
+  var ARROW_SPEED   = 620;
+
+  // Hit flash
+  var HIT_FLASH = 0.12;
+
+  function snd(name) { try { Audio.play(name); } catch (e) {} }
+
+  function pickType(wv) {
+    var r = Math.random();
+    if (wv >= 4 && r < 0.18) return 'giant';
+    if (wv >= 2 && r < 0.45) return 'knight';
+    return 'soldier';
+  }
+
+  function spawnEnemy() {
+    var tn = pickType(wave);
+    var td = TYPES[tn];
+    enemies.push({
+      x: VW + 10,
+      y: GROUND_Y - td.h,
+      vx: -(td.spd + wave * 4),
+      type: tn,
+      hp: td.hp, maxHp: td.hp,
+      w: td.w, h: td.h,
+      pts: td.pts,
+      hit: false, hitTimer: 0,
+      wobble: Math.random() * Math.PI * 2
+    });
+  }
+
+  function resetGame() {
+    score = 0; lives = 3;
+    enemies = []; arrows = [];
+    wave = 1;
+    enemiesThisWave = 5;
+    spawnCount = 0;
+    spawnTimer = 0.6;
+    waveTimer = 0;
+    t = 0;
+  }
+
+  function startGame() {
+    resetGame();
+    state = 'PLAYING';
+    try { AdManager.gameplayStart(); } catch (e) {}
+  }
+
+  function runEnded() {
+    if (score > _best) _best = score;
+    try { AdManager.gameplayStop(); } catch (e) {}
+    try { AdManager.onRunEnd(); } catch (e) {}
+  }
+
+  function fireArrow(tx, ty) {
+    // Compute launch velocity for arc to reach (tx, ty)
+    var dx = tx - ARROW_ORIGIN_X;
+    var dy = ty - ARROW_ORIGIN_Y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return;
+    // Use fixed speed, compute time to reach, derive vy from parabola
+    var vx = (dx / dist) * ARROW_SPEED;
+    var time = dx / vx;
+    var vy;
+    if (Math.abs(time) < 0.01) {
+      vy = -ARROW_SPEED;
+    } else {
+      vy = (dy - 0.5 * ARROW_GRAVITY * time * time) / time;
+    }
+    arrows.push({ x: ARROW_ORIGIN_X, y: ARROW_ORIGIN_Y, vx: vx, vy: vy, age: 0 });
+    snd('tap');
+  }
+
+  function checkHits() {
+    var i, j, ax, ay, ex, ey, dx, dy, dist, en, td;
+    for (i = arrows.length - 1; i >= 0; i--) {
+      var ar = arrows[i];
+      ax = ar.x; ay = ar.y;
+      var hit = false;
+      for (j = enemies.length - 1; j >= 0; j--) {
+        en = enemies[j];
+        // Circle vs rect center
+        ex = en.x + en.w / 2; ey = en.y + en.h / 2;
+        dx = ax - ex; dy = ay - ey;
+        dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 20 + en.w / 2) {
+          en.hp--;
+          en.hit = true; en.hitTimer = HIT_FLASH;
+          if (en.hp <= 0) {
+            score += en.pts;
+            enemies.splice(j, 1);
+            snd('gem');
+          } else {
+            snd('tap');
+          }
+          hit = true;
+          break;
         }
+      }
+      if (hit) { arrows.splice(i, 1); }
+    }
+  }
+
+  // ---- Public API ----
+
+  function init(c, best) {
+    canvas = c; ctx = canvas.getContext('2d');
+    _best = best || 0; state = 'MENU';
+    score = 0; lives = 3; t = 0;
+    enemies = []; arrows = [];
+    wave = 1; spawnCount = 0; spawnTimer = 0; waveTimer = 0;
+  }
+
+  function update(dt) {
+    t += dt;
+    if (state !== 'PLAYING') return;
+
+    var i, en;
+
+    // Spawning logic
+    if (waveTimer > 0) {
+      waveTimer -= dt;
+      if (waveTimer <= 0) {
+        wave++;
+        enemiesThisWave = 5 + (wave - 1) * 2;
+        spawnCount = 0;
+        spawnTimer = 0.5;
+        waveTimer = 0;
+      }
+    } else {
+      // spawning enemies
+      if (spawnCount < enemiesThisWave) {
+        spawnTimer -= dt;
+        if (spawnTimer <= 0) {
+          spawnEnemy();
+          spawnCount++;
+          spawnTimer = 0.8 - wave * 0.04;
+          if (spawnTimer < 0.25) spawnTimer = 0.25;
+        }
+      } else if (enemies.length === 0 && spawnCount >= enemiesThisWave) {
+        // wave cleared
+        waveTimer = REST_TIME;
+      }
     }
 
-    function startGame() {
-        score = 0;
-        tick = 0;
-        scrollOffset = 0;
-        playerX = PLAYER_FIXED_X;
-        playerY = GROUND_Y - PLAYER_H;
-        playerVY = 0;
-        onGround = true;
-        fireballs = [];
-        spawnTimer = 0;
-        spawnInterval = 1.2;
-        makeClouds();
-        state = 'PLAYING';
-        try { AdManager.gameplayStart(); } catch (e) {}
+    // Move enemies
+    for (i = enemies.length - 1; i >= 0; i--) {
+      en = enemies[i];
+      en.x += en.vx * dt;
+      if (en.hitTimer > 0) en.hitTimer -= dt;
+      // Reached castle
+      if (en.x + en.w < CASTLE_W + 5) {
+        lives--;
+        snd('crash');
+        enemies.splice(i, 1);
+        if (lives <= 0) {
+          state = 'DEAD';
+          snd('lose');
+          runEnded();
+          return;
+        }
+      }
     }
 
-    function spawnFireball() {
-        var x = VW + 30 + Math.random() * 80;
-        var fallY = -40 - Math.random() * 100;
-        var spd = 180 + tick * 8 + Math.random() * 60;
-        fireballs.push({
-            x: x, y: fallY,
-            vx: -(spd * 0.6),
-            vy: 120 + Math.random() * 60,
-            r: 18 + Math.random() * 10,
-            rot: 0,
-            landed: false,
-            landY: GROUND_Y - 10,
-            explodeTimer: 0,
-            exploding: false
-        });
+    // Move arrows
+    for (i = arrows.length - 1; i >= 0; i--) {
+      var ar = arrows[i];
+      ar.vy += ARROW_GRAVITY * dt;
+      ar.x += ar.vx * dt;
+      ar.y += ar.vy * dt;
+      ar.age += dt;
+      // Remove if off screen or hits ground
+      if (ar.x > VW + 20 || ar.y > GROUND_Y || ar.x < 0 || ar.age > 3.0) {
+        arrows.splice(i, 1);
+      }
     }
 
-    function update(dt) {
-        if (state !== 'PLAYING') return;
-        tick += dt;
-        score = Math.floor(tick * 12 * (1 + tick * 0.015));
-        if (score > best) best = score;
+    checkHits();
+  }
 
-        spawnInterval = Math.max(0.45, 1.2 - tick * 0.03);
-        var scrollSpd = 180 + tick * 10;
-        scrollOffset = (scrollOffset + scrollSpd * dt) % 120;
-
-        // clouds
-        for (var ci = 0; ci < clouds.length; ci++) {
-            clouds[ci].x -= clouds[ci].spd * dt;
-            if (clouds[ci].x < -clouds[ci].r * 2) {
-                clouds[ci].x = VW + clouds[ci].r;
-                clouds[ci].y = 60 + Math.random() * 180;
-            }
-        }
-
-        // player
-        if (!onGround) playerVY += GRAVITY * dt;
-        playerY += playerVY * dt;
-        if (playerY >= GROUND_Y - PLAYER_H) {
-            playerY = GROUND_Y - PLAYER_H;
-            playerVY = 0;
-            onGround = true;
-        }
-
-        // spawn fireballs
-        spawnTimer += dt;
-        if (spawnTimer >= spawnInterval) {
-            spawnTimer = 0;
-            spawnFireball();
-        }
-
-        // update fireballs
-        for (var i = fireballs.length - 1; i >= 0; i--) {
-            var fb = fireballs[i];
-            if (fb.exploding) {
-                fb.explodeTimer += dt;
-                if (fb.explodeTimer > 0.5) fireballs.splice(i, 1);
-                continue;
-            }
-            fb.x += fb.vx * dt;
-            fb.y += fb.vy * dt;
-            fb.rot += dt * 3;
-
-            if (fb.y >= fb.landY) {
-                fb.y = fb.landY;
-                fb.vy = 0;
-                fb.vx = 0;
-                fb.exploding = true;
-            }
-
-            // check if off screen
-            if (fb.x < -60) {
-                fireballs.splice(i, 1);
-                continue;
-            }
-
-            // collision with player
-            var px = PLAYER_FIXED_X, py = playerY;
-            var fx = fb.x, fy = fb.y;
-            var dx = px - fx, dy = (py + PLAYER_H / 2) - fy;
-            if (Math.abs(dx) < fb.r + PLAYER_W / 2 && Math.abs(dy) < fb.r + PLAYER_H / 2) {
-                state = 'DEAD';
-                try { Audio.play('lose'); } catch (e) {}
-                try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
-            }
-        }
+  function tap(vx, vy) {
+    if (state === 'MENU') { startGame(); snd('tap'); return; }
+    if (state === 'DEAD') {
+      try { AdManager.showInterstitial(function () { startGame(); }); } catch (e) { startGame(); }
+      snd('tap'); return;
     }
+    if (state !== 'PLAYING') return;
+    fireArrow(vx, vy);
+  }
 
-    function drawFireball(fb) {
-        ctx.save();
-        ctx.translate(fb.x, fb.y);
-        if (fb.exploding) {
-            var p = fb.explodeTimer / 0.5;
-            ctx.globalAlpha = 1 - p;
-            ctx.shadowColor = '#ff4400';
-            ctx.shadowBlur = 30;
-            ctx.beginPath();
-            ctx.arc(0, 0, fb.r * (1 + p * 3), 0, Math.PI * 2);
-            ctx.fillStyle = '#ff8800';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, 0, fb.r * (0.5 + p), 0, Math.PI * 2);
-            ctx.fillStyle = '#ffff00';
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        } else {
-            ctx.rotate(fb.rot);
-            ctx.shadowColor = '#ff4400';
-            ctx.shadowBlur = 20;
-            // outer
-            ctx.beginPath();
-            ctx.arc(0, 0, fb.r, 0, Math.PI * 2);
-            ctx.fillStyle = '#ff2200';
-            ctx.fill();
-            // mid
-            ctx.beginPath();
-            ctx.arc(0, 0, fb.r * 0.7, 0, Math.PI * 2);
-            ctx.fillStyle = '#ff8800';
-            ctx.fill();
-            // core
-            ctx.beginPath();
-            ctx.arc(0, 0, fb.r * 0.4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffff88';
-            ctx.fill();
-            // flame spikes
-            ctx.fillStyle = '#ff6600';
-            for (var s = 0; s < 5; s++) {
-                var ang = (s / 5) * Math.PI * 2;
-                ctx.beginPath();
-                ctx.moveTo(Math.cos(ang) * fb.r * 0.8, Math.sin(ang) * fb.r * 0.8);
-                ctx.lineTo(Math.cos(ang + 0.3) * fb.r * 1.4, Math.sin(ang + 0.3) * fb.r * 1.4);
-                ctx.lineTo(Math.cos(ang + 0.6) * fb.r * 0.8, Math.sin(ang + 0.6) * fb.r * 0.8);
-                ctx.fill();
-            }
-        }
-        ctx.shadowBlur = 0;
-        ctx.restore();
+  function getBest()  { return _best; }
+  function getScore() { return score; }
+  function getState() { return state; }
+
+  // ---- Drawing ----
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBg() {
+    var g = ctx.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, '#1a0a0a'); g.addColorStop(1, '#2a1010');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+    // ground
+    ctx.fillStyle = '#3a2010';
+    ctx.fillRect(0, GROUND_Y, VW, VH - GROUND_Y);
+    ctx.strokeStyle = '#5a3020'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(VW, GROUND_Y); ctx.stroke();
+  }
+
+  function drawCastle() {
+    // Castle body
+    ctx.fillStyle = '#4a4a5a';
+    ctx.fillRect(CASTLE_X, CASTLE_TOP, CASTLE_W, CASTLE_BOT - CASTLE_TOP);
+    // Battlements
+    ctx.fillStyle = '#5a5a6a';
+    var i;
+    for (i = 0; i < 3; i++) {
+      ctx.fillRect(CASTLE_X + i * 20, CASTLE_TOP - 18, 14, 18);
     }
-
-    function drawPlayer() {
-        ctx.save();
-        ctx.translate(PLAYER_FIXED_X, playerY);
-        ctx.shadowColor = '#ffaa00';
-        ctx.shadowBlur = 10;
-        // legs animated
-        var legSwing = onGround ? Math.sin(tick * 12) * 8 : 0;
-        ctx.fillStyle = '#cc4400';
-        ctx.fillRect(-14, PLAYER_H - 20, 10, 20 + legSwing);
-        ctx.fillRect(4, PLAYER_H - 20, 10, 20 - legSwing);
-        // body
-        ctx.fillStyle = '#ff6622';
-        ctx.fillRect(-12, 0, 24, PLAYER_H - 14);
-        // head
-        ctx.beginPath();
-        ctx.arc(0, -6, 14, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffaa44';
-        ctx.fill();
-        // eye
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(4, -10, 7, 7);
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(6, -9, 4, 5);
-        ctx.shadowBlur = 0;
-        ctx.restore();
+    // Castle door
+    ctx.fillStyle = '#2a1a0a';
+    roundRect(CASTLE_X + 12, CASTLE_BOT - 55, 28, 55, 14);
+    ctx.fill();
+    // HP hearts on castle
+    for (i = 0; i < 3; i++) {
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = i < lives ? '#ff4444' : 'rgba(255,255,255,0.2)';
+      ctx.fillText(i < lives ? '♥' : '♡', CASTLE_X + 10 + i * 16, CASTLE_TOP - 36);
     }
+    // Window
+    ctx.fillStyle = '#ffd070';
+    ctx.shadowColor = '#ffd070'; ctx.shadowBlur = 8;
+    roundRect(CASTLE_X + 14, CASTLE_TOP + 40, 24, 28, 4);
+    ctx.fill(); ctx.shadowBlur = 0;
+  }
 
-    function draw() {
-        if (!ctx) return;
-        // hellscape sky gradient
-        var grad = ctx.createLinearGradient(0, 0, 0, VH);
-        grad.addColorStop(0, '#1a0000');
-        grad.addColorStop(0.3, '#440800');
-        grad.addColorStop(0.65, '#882200');
-        grad.addColorStop(1, '#cc4400');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, VW, VH);
-
-        // smoke clouds
-        for (var ci = 0; ci < clouds.length; ci++) {
-            var c = clouds[ci];
-            ctx.globalAlpha = 0.25;
-            ctx.fillStyle = '#cc6600';
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-            ctx.arc(c.x + c.r * 0.7, c.y - c.r * 0.2, c.r * 0.7, 0, Math.PI * 2);
-            ctx.arc(c.x - c.r * 0.6, c.y - c.r * 0.1, c.r * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-
-        // dark ground
-        ctx.fillStyle = '#1a0a00';
-        ctx.fillRect(0, GROUND_Y, VW, VH - GROUND_Y);
-
-        // scrolling ground cracks
-        ctx.strokeStyle = '#ff4400';
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.3;
-        for (var gx = (-scrollOffset % 120); gx < VW + 120; gx += 120) {
-            ctx.beginPath();
-            ctx.moveTo(gx, GROUND_Y);
-            ctx.lineTo(gx + 40, VH);
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-
-        // ground edge glow
-        ctx.shadowColor = '#ff4400';
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = '#ff6600';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(0, GROUND_Y);
-        ctx.lineTo(VW, GROUND_Y);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        if (state === 'MENU') {
-            ctx.fillStyle = '#ff4400';
-            ctx.shadowColor = '#ff2200';
-            ctx.shadowBlur = 22;
-            ctx.font = 'bold 52px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('FIREBALL RUN', VW / 2, VH / 2 - 80);
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 26px sans-serif';
-            ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 10);
-            if (best > 0) {
-                ctx.fillStyle = '#ffcc00';
-                ctx.font = '22px sans-serif';
-                ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 60);
-            }
-            ctx.fillStyle = '#ffaa88';
-            ctx.font = '18px sans-serif';
-            ctx.fillText('TAP to jump over fireballs!', VW / 2, VH / 2 + 110);
-            return;
-        }
-
-        for (var j = 0; j < fireballs.length; j++) drawFireball(fireballs[j]);
-        drawPlayer();
-
-        ctx.fillStyle = '#ffcc00';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(score, VW - 20, 44);
-        ctx.textAlign = 'left';
-
-        if (state === 'DEAD') {
-            ctx.fillStyle = 'rgba(0,0,0,0.65)';
-            ctx.fillRect(0, 0, VW, VH);
-            ctx.fillStyle = '#ff4400';
-            ctx.font = 'bold 52px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = '#ff2200';
-            ctx.shadowBlur = 24;
-            ctx.fillText('BURNED!', VW / 2, VH / 2 - 80);
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 30px sans-serif';
-            ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 - 14);
-            ctx.fillStyle = '#ffcc00';
-            ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 36);
-            ctx.fillStyle = '#ffaaaa';
-            ctx.font = 'bold 26px sans-serif';
-            ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 100);
-        }
+  function drawEnemy(en) {
+    ctx.save();
+    if (en.hitTimer > 0) {
+      ctx.fillStyle = '#ffffff';
+    } else {
+      ctx.fillStyle = TYPES[en.type].col;
     }
+    var wobble = Math.sin(t * 8 + en.wobble) * 1.5;
+    ctx.translate(en.x + en.w / 2, en.y + en.h);
+    ctx.rotate(wobble * Math.PI / 180);
+    ctx.translate(-(en.x + en.w / 2), -(en.y + en.h));
 
-    function tap(x, y) {
-        if (state === 'MENU') {
-            startGame();
-        } else if (state === 'DEAD') {
-            startGame();
-        } else if (state === 'PLAYING') {
-            if (onGround) {
-                playerVY = JUMP_V;
-                onGround = false;
-                try { Audio.play('tap'); } catch (e) {}
-            }
-        }
+    // Body
+    ctx.shadowColor = TYPES[en.type].col; ctx.shadowBlur = 8;
+    ctx.fillRect(en.x, en.y, en.w, en.h);
+    ctx.shadowBlur = 0;
+
+    // Head
+    ctx.beginPath();
+    ctx.arc(en.x + en.w / 2, en.y - en.w * 0.3, en.w * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+
+    // HP bar
+    if (en.hp < en.maxHp) {
+      var bw = en.w, bx = en.x, by = en.y - en.h * 0.18;
+      ctx.fillStyle = '#333'; ctx.fillRect(bx, by, bw, 5);
+      ctx.fillStyle = '#f44'; ctx.fillRect(bx, by, bw * en.hp / en.maxHp, 5);
     }
+    ctx.restore();
+  }
 
-    function getBest() { return best; }
+  function drawArrow(ar) {
+    var angle = Math.atan2(ar.vy, ar.vx);
+    ctx.save();
+    ctx.translate(ar.x, ar.y); ctx.rotate(angle);
+    ctx.strokeStyle = '#d4a020'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#ffd070'; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(12, 0); ctx.stroke();
+    // Arrowhead
+    ctx.fillStyle = '#d4a020';
+    ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(6, -4); ctx.lineTo(6, 4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
 
-    function init(c, b) {
-        canvas = c;
-        ctx = canvas.getContext('2d');
-        best = b || 0;
-        state = 'MENU';
-        makeClouds();
+  function drawHUD() {
+    ctx.fillStyle = '#ff8833'; ctx.font = 'bold 22px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('CASTLE DEFENSE', VW / 2, 14);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Arial';
+    ctx.fillText(String(score), VW / 2, 40);
+    ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.textAlign = 'right'; ctx.fillText('Best: ' + _best, VW - 14, 78);
+    // Wave
+    ctx.textAlign = 'left'; ctx.fillStyle = '#ffcc55';
+    ctx.fillText('Wave ' + wave, CASTLE_W + 10, 78);
+    if (waveTimer > 0) {
+      ctx.fillStyle = '#aaffaa'; ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center'; ctx.fillText('WAVE CLEAR!', VW / 2, 106);
     }
+  }
 
-    return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
+  function drawMenu() {
+    drawBg();
+    var float = Math.sin(t * 1.4) * 6;
+    ctx.save();
+    ctx.shadowColor = '#ff8833'; ctx.shadowBlur = 26;
+    ctx.fillStyle = '#ff8833'; ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('CASTLE', VW / 2, 310 + float);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText('DEFENSE', VW / 2, 368 + float);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = '19px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Tap to shoot arrows at enemies', VW / 2, 458);
+    ctx.fillText('Protect the castle!', VW / 2, 486);
+    var pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 2.2));
+    ctx.save(); ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial';
+    ctx.fillText('TAP TO PLAY', VW / 2, 622);
+    ctx.restore();
+    if (_best > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.52)'; ctx.font = '17px Arial';
+      ctx.fillText('BEST ' + _best, VW / 2, 676);
+    }
+  }
+
+  function drawDead() {
+    ctx.save(); ctx.fillStyle = 'rgba(10,0,0,0.74)'; ctx.fillRect(0, 0, VW, VH);
+    var pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 2.2));
+    ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 22;
+    ctx.fillStyle = '#ff4444'; ctx.font = 'bold 46px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('CASTLE FALLEN!', VW / 2, 296);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 28px Arial';
+    ctx.fillText('Score: ' + score, VW / 2, 368);
+    ctx.font = '20px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    ctx.fillText('Best: ' + _best, VW / 2, 412);
+    ctx.globalAlpha = pulse; ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial';
+    ctx.fillText('TAP TO RETRY', VW / 2, 528);
+    ctx.restore();
+  }
+
+  function draw() {
+    drawBg();
+    if (state === 'MENU') { drawMenu(); return; }
+
+    drawCastle();
+    var i;
+    for (i = 0; i < enemies.length; i++) drawEnemy(enemies[i]);
+    for (i = 0; i < arrows.length; i++) drawArrow(arrows[i]);
+    drawHUD();
+
+    if (state === 'DEAD') drawDead();
+  }
+
+  return { init: init, update: update, draw: draw, tap: tap,
+           getScore: getScore, getState: getState, getBest: getBest };
 })();
+
+if (typeof module !== 'undefined' && module.exports) { module.exports = FireballRun; }
