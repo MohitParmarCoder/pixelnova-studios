@@ -15,6 +15,7 @@
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
     <span id="gameTitle">REFLEX TAP</span>
+    <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
   <div id="canvasWrap"><canvas id="gameCanvas"></canvas></div>
@@ -42,6 +43,19 @@
   </div>
 </div>
 
+<div id="infoOverlay" class="hidden">
+  <div id="infoPanel">
+    <div class="info-title">HOW TO PLAY</div>
+    <div class="info-game">REFLEX TAP</div>
+    <ul class="info-list">
+      <li>A needle rotates around a circle</li>
+      <li>The circle has a green scoring zone</li>
+      <li>Tap to stop the needle in the green zone</li>
+      <li>Perfect taps earn combo bonuses!</li>
+    </ul>
+    <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
+  </div>
+</div>
 <script src="js/audio.js"></script>
 <script src="js/ads.js"></script>
 <script src="js/game.js"></script>

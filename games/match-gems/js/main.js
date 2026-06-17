@@ -52,6 +52,14 @@
     _paused = true;
     document.getElementById('settingsOverlay').classList.remove('hidden');
     _updateMuteUI();
+  (function () {
+    var elI = document.getElementById('btnInfo');
+    var elIO = document.getElementById('infoOverlay');
+    var elIC = document.getElementById('btnInfoClose');
+    if (elI) elI.addEventListener('click', function () { if (elIO) elIO.classList.remove('hidden'); });
+    if (elIC) elIC.addEventListener('click', function () { if (elIO) elIO.classList.add('hidden'); });
+    if (elIO) elIO.addEventListener('click', function (e) { if (e.target === this) elIO.classList.add('hidden'); });
+  })();
     if (_logoRaf) cancelAnimationFrame(_logoRaf);
     _drawLogo();
   }
@@ -87,11 +95,20 @@
     var rect = canvas.getBoundingClientRect();
     return { x: (e.clientX - rect.left) * (VW / rect.width), y: (e.clientY - rect.top) * (VH / rect.height) };
   }
+  var _pDown = false;
   canvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault(); _pDown = true;
+    var p = toVirtual(e);
+    MatchGems.tap(p.x, p.y);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!_pDown) return;
     e.preventDefault();
     var p = toVirtual(e);
     MatchGems.tap(p.x, p.y);
   });
+  canvas.addEventListener('pointerup', function () { _pDown = false; });
+  canvas.addEventListener('pointercancel', function () { _pDown = false; });
   document.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); MatchGems.tap(VW / 2, VH / 2); }
   });

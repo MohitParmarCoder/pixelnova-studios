@@ -15,6 +15,7 @@
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
     <span id="gameTitle">Tetro Drop</span>
+    <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
   <div id="canvasWrap"><canvas id="gameCanvas"></canvas></div>
@@ -38,6 +39,19 @@
       <div class="contact-email">contact@pixelnovastudios.com</div>
       <div class="copyright">&copy; 2025 PixelNova Studios. All rights reserved.</div>
     </div>
+  </div>
+</div>
+<div id="infoOverlay" class="hidden">
+  <div id="infoPanel">
+    <div class="info-title">HOW TO PLAY</div>
+    <div class="info-game">Tetro Drop</div>
+    <ul class="info-list">
+      <li>A ball falls from the top</li>
+      <li>Tap to toggle the deflectors</li>
+      <li>Guide the ball to the correct target hole</li>
+      <li>Land in the right bucket to score!</li>
+    </ul>
+    <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>
 </div>
 <script src="js/audio.js"></script>
