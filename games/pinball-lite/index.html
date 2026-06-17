@@ -15,6 +15,7 @@
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
     <span id="gameTitle">Pinball Lite</span>
+    <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
   <div id="canvasWrap"><canvas id="gameCanvas"></canvas></div>
@@ -38,6 +39,19 @@
       <div class="contact-email">contact@pixelnovastudios.com</div>
       <div class="copyright">&copy; 2025 PixelNova Studios. All rights reserved.</div>
     </div>
+  </div>
+</div>
+<div id="infoOverlay" class="hidden">
+  <div id="infoPanel">
+    <div class="info-title">HOW TO PLAY</div>
+    <div class="info-game">Pinball Lite</div>
+    <ul class="info-list">
+      <li>Tap the left side for the left flipper</li>
+      <li>Tap the right side for the right flipper</li>
+      <li>Keep the ball in play to score</li>
+      <li>Hit bumpers and targets for big points!</li>
+    </ul>
+    <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>
 </div>
 <script src="js/audio.js"></script>
