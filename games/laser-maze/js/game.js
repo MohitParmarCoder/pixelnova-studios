@@ -25,6 +25,7 @@ var LaserMaze = (function () {
     var winFlash = 0;
     var deathFlash = 0;
     var puzzlesSolved = 0;
+    var pendingNextPuzzle = false;
 
     // Pre-designed puzzles: each has mirrors [{col,row,type}] and walls [{col,row}]
     // Laser source at (0,0) going RIGHT, target at (5,8)
@@ -148,6 +149,7 @@ var LaserMaze = (function () {
         puzzlesSolved = 0;
         deathFlash = 0;
         winFlash = 0;
+        pendingNextPuzzle = false;
         loadPuzzle();
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
@@ -157,6 +159,10 @@ var LaserMaze = (function () {
         if (state !== 'PLAYING') return;
         if (winFlash > 0) {
             winFlash -= dt;
+            if (winFlash <= 0 && pendingNextPuzzle) {
+                pendingNextPuzzle = false;
+                loadPuzzle();
+            }
             return;
         }
         if (deathFlash > 0) {
@@ -439,16 +445,7 @@ var LaserMaze = (function () {
                     try { Audio.play('gem'); } catch (e) {}
                     winFlash = 0.5;
                     puzzleIndex++;
-                    // Schedule next puzzle after win flash
-                    var self = this;
-                    (function scheduleNext() {
-                        var check = function () {
-                            if (winFlash <= 0 && state === 'PLAYING') {
-                                loadPuzzle();
-                            }
-                        };
-                        // handled in update()
-                    })();
+                    pendingNextPuzzle = true;
                 }
             }
         }

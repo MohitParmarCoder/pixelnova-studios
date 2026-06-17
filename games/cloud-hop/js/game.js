@@ -30,6 +30,7 @@ var CloudHop = (function () {
   var kiteY, kiteVy;
   var worldX;
   var isHolding;
+  var holdTimer;
   var score;
   var lives;
   var scoreTimer;
@@ -53,6 +54,7 @@ var CloudHop = (function () {
     kiteVy     = 0;
     worldX     = 0;
     isHolding  = false;
+    holdTimer  = 0;
     score      = 0;
     lives      = MAX_LIVES;
     scoreTimer = 0;
@@ -109,6 +111,9 @@ var CloudHop = (function () {
   function update(dt) {
     if (state !== 'PLAYING') { return; }
     dt = clamp(dt, 0, 0.05);
+
+    holdTimer = Math.max(0, holdTimer - dt);
+    isHolding = holdTimer > 0;
 
     if (isHolding) {
       kiteVy -= CLIMB_ACC * dt;
@@ -236,7 +241,7 @@ var CloudHop = (function () {
       return;
     }
     if (state !== 'PLAYING') { return; }
-    isHolding = !isHolding;
+    holdTimer = 0.12;
     try { Audio.play('tap'); } catch (e) {}
   }
 
