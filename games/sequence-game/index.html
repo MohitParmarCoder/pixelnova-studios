@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Sequence Game</title>
+<title>Code Breaker</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Sequence Game</span>
+    <span id="gameTitle">Code Breaker</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -44,12 +44,12 @@
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Sequence Game</div>
+    <div class="info-game">Code Breaker</div>
     <ul class="info-list">
-      <li>Numbers flash on screen in sequence</li>
-      <li>Memorize the order carefully</li>
-      <li>Then tap numbers in the same order</li>
-      <li>Longer sequences = higher scores!</li>
+      <li>The computer picks a secret sequence of 4 colors</li>
+      <li>Tap each slot to cycle through the 6 colors for your guess</li>
+      <li>Tap SUBMIT — black peg = right color and place; white peg = right color wrong place</li>
+      <li>You have 8 guesses to crack the code!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

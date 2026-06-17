@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Laser Maze</title>
+<title>Mirror Maze</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Laser Maze</span>
+    <span id="gameTitle">Mirror Maze</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -44,12 +44,12 @@
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Laser Maze</div>
+    <div class="info-game">Mirror Maze</div>
     <ul class="info-list">
-      <li>Laser beams block the path</li>
-      <li>Tap to time your moves through the gaps</li>
-      <li>Touching a laser costs a life</li>
-      <li>Navigate as far as you can!</li>
+      <li>A laser enters from the left side of the grid</li>
+      <li>Tap a mirror cell to rotate it 90 degrees</li>
+      <li>Mirrors reflect the laser: / reflects up or down, \ reflects diagonally</li>
+      <li>Guide the laser beam to hit the target gem to win!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>
