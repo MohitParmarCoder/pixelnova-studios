@@ -1,541 +1,383 @@
 'use strict';
-
+/* ============================================================
+   Color Flood -> Slide Puzzle  (15-puzzle)
+   Virtual canvas: 390 x 844
+   Namespace: ColorFlood
+   ============================================================ */
 var ColorFlood = (function () {
 
-  /* ── Constants ─────────────────────────────────────────────── */
-  var VW = 390;
-  var VH = 844;
-  var COLS = 12;
-  var ROWS = 12;
-  var MAX_MOVES = 25;
-  var NUM_COLORS = 6;
-  var COLORS = ['#E74C3C', '#3498DB', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C'];
+  var VW = 390, VH = 844;
 
-  /* Layout */
-  var GRID_MARGIN_X = 20;
-  var GRID_TOP = 120;
-  var CELL_SIZE = Math.floor((VW - GRID_MARGIN_X * 2) / COLS);  /* ≈29 */
-  var GRID_W = CELL_SIZE * COLS;
-  var GRID_H = CELL_SIZE * ROWS;
-  var GRID_X = Math.floor((VW - GRID_W) / 2);
+  /* ── Grid constants ─────────────────────────────────────────── */
+  var GRID_SIZE  = 4;          /* 4x4 = 16 cells, tile 1-15 + blank */
+  var TILE_SIZE  = 80;
+  var TILE_GAP   = 6;
+  var GRID_W     = GRID_SIZE * TILE_SIZE + (GRID_SIZE - 1) * TILE_GAP;
+  var GRID_X     = Math.floor((VW - GRID_W) / 2);
+  var GRID_Y     = 180;
+  var CORNER_R   = 10;
+  var MAX_MOVES  = 200;
 
-  var BTN_AREA_Y = GRID_TOP + GRID_H + 28;
-  var BTN_R = 26;
-  var BTN_SPACING = Math.floor((VW - 2 * GRID_MARGIN_X) / NUM_COLORS);
+  /* ── State ──────────────────────────────────────────────────── */
+  var _canvas, _ctx;
+  var _state;   /* 'MENU' | 'PLAYING' | 'DEAD' */
+  var _best;
+  var _score, _lives, _moves, _round;
+  var _pulseT;
 
-  /* ── State ─────────────────────────────────────────────────── */
-  var _canvas = null;
-  var _ctx = null;
-  var _state = 'MENU';
-  var _best = 0;
+  /* tiles[i] = value 0..15, where 0 = blank */
+  /* index 0 = top-left, index 15 = bottom-right */
+  var _tiles;
 
-  /* Grid: flat array [row*COLS+col] = color index 0-5 */
-  var _grid = [];
-  /* Territory: same indexing, boolean */
-  var _terr = [];
+  /* win animation */
+  var _winTimer;
+  var _winAnim;   /* 0..1 */
 
-  var _movesLeft = 0;
-  var _score = 0;
+  /* ── Helpers ─────────────────────────────────────────────────── */
+  function _snd(name) {
+    try { Audio.play(name); } catch (e) {}
+  }
 
-  /* animation pulse for territory border */
-  var _pulse = 0;
-
-  /* ── Internal helpers ──────────────────────────────────────── */
   function _randInt(n) {
     return Math.floor(Math.random() * n);
   }
 
-  function _idx(r, c) {
-    return r * COLS + c;
+  /* Returns index of blank tile (value 0) */
+  function _blankIdx() {
+    var i;
+    for (i = 0; i < 16; i++) {
+      if (_tiles[i] === 0) return i;
+    }
+    return -1;
   }
 
-  function _newGrid() {
-    var g = [];
+  /* Check whether puzzle is solved: tiles[i] === i+1 for 0..14, tiles[15]===0 */
+  function _isSolved() {
     var i;
-    for (i = 0; i < ROWS * COLS; i++) {
-      g.push(_randInt(NUM_COLORS));
+    for (i = 0; i < 15; i++) {
+      if (_tiles[i] !== i + 1) return false;
     }
-    return g;
+    return _tiles[15] === 0;
   }
 
-  /* Build initial territory: BFS from (0,0) collecting same-color cells */
-  function _initTerritory() {
-    var t = [];
-    var i;
-    for (i = 0; i < ROWS * COLS; i++) {
-      t.push(false);
-    }
-    var startColor = _grid[_idx(0, 0)];
-    var queue = [_idx(0, 0)];
-    t[_idx(0, 0)] = true;
-    var qi = 0;
-    while (qi < queue.length) {
-      var cur = queue[qi];
-      qi++;
-      var r = Math.floor(cur / COLS);
-      var c = cur % COLS;
-      var neighbors = [
-        [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
-      ];
-      var n;
-      for (n = 0; n < neighbors.length; n++) {
-        var nr = neighbors[n][0];
-        var nc = neighbors[n][1];
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-          var ni = _idx(nr, nc);
-          if (!t[ni] && _grid[ni] === startColor) {
-            t[ni] = true;
-            queue.push(ni);
-          }
-        }
+  /* Generate a solvable shuffle by doing 200 random valid slides from solved */
+  function _makeSolvable() {
+    var t = [], i, tmp;
+    for (i = 0; i < 15; i++) t.push(i + 1);
+    t.push(0);
+
+    var lastMoved = -1;
+    var n = 200;
+    while (n > 0) {
+      var blank = -1;
+      for (i = 0; i < 16; i++) {
+        if (t[i] === 0) { blank = i; break; }
       }
+      var br = Math.floor(blank / GRID_SIZE);
+      var bc = blank % GRID_SIZE;
+      var nbrs = [];
+      if (br > 0) nbrs.push(blank - GRID_SIZE);
+      if (br < GRID_SIZE - 1) nbrs.push(blank + GRID_SIZE);
+      if (bc > 0) nbrs.push(blank - 1);
+      if (bc < GRID_SIZE - 1) nbrs.push(blank + 1);
+      var candidates = [];
+      var j;
+      for (j = 0; j < nbrs.length; j++) {
+        if (nbrs[j] !== lastMoved) candidates.push(nbrs[j]);
+      }
+      if (candidates.length === 0) candidates = nbrs;
+      var pick = candidates[_randInt(candidates.length)];
+      lastMoved = blank;
+      tmp = t[blank];
+      t[blank] = t[pick];
+      t[pick] = tmp;
+      n--;
     }
     return t;
   }
 
-  /* Flood-fill: change territory to newColor, expand into adjacent matching cells */
-  function _floodFill(newColorIdx) {
-    var i;
-    /* Change all territory cells to new color */
-    for (i = 0; i < ROWS * COLS; i++) {
-      if (_terr[i]) {
-        _grid[i] = newColorIdx;
-      }
-    }
-    /* BFS expansion: any neighbor of territory that matches newColor */
-    var changed = true;
-    while (changed) {
-      changed = false;
-      for (i = 0; i < ROWS * COLS; i++) {
-        if (_terr[i]) {
-          continue;
-        }
-        if (_grid[i] !== newColorIdx) {
-          continue;
-        }
-        /* check if any neighbor is territory */
-        var r = Math.floor(i / COLS);
-        var c = i % COLS;
-        var neighbors = [
-          [r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]
-        ];
-        var n;
-        var isAdj = false;
-        for (n = 0; n < neighbors.length; n++) {
-          var nr = neighbors[n][0];
-          var nc = neighbors[n][1];
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-            if (_terr[_idx(nr, nc)]) {
-              isAdj = true;
-              break;
-            }
-          }
-        }
-        if (isAdj) {
-          _terr[i] = true;
-          changed = true;
-        }
-      }
-    }
+  /* Start a new puzzle round */
+  function _newPuzzle() {
+    _tiles    = _makeSolvable();
+    _moves    = 0;
+    _winTimer = -1;
+    _winAnim  = 0;
   }
 
-  function _isComplete() {
-    var i;
-    for (i = 0; i < ROWS * COLS; i++) {
-      if (!_terr[i]) {
-        return false;
-      }
-    }
+  /* Convert canvas tap to tile index; returns -1 if outside grid */
+  function _tapToTile(tapX, tapY) {
+    var lx = tapX - GRID_X;
+    var ly = tapY - GRID_Y;
+    if (lx < 0 || ly < 0) return -1;
+    var col = Math.floor(lx / (TILE_SIZE + TILE_GAP));
+    var row = Math.floor(ly / (TILE_SIZE + TILE_GAP));
+    if (col < 0 || col >= GRID_SIZE || row < 0 || row >= GRID_SIZE) return -1;
+    var cx = col * (TILE_SIZE + TILE_GAP);
+    var cy = row * (TILE_SIZE + TILE_GAP);
+    if (lx > cx + TILE_SIZE || ly > cy + TILE_SIZE) return -1;
+    return row * GRID_SIZE + col;
+  }
+
+  /* Try to slide tile at index idx; returns true if legal move */
+  function _slideIfAdjacent(idx) {
+    var blank = _blankIdx();
+    var br = Math.floor(blank / GRID_SIZE), bc = blank % GRID_SIZE;
+    var tr = Math.floor(idx   / GRID_SIZE), tc = idx   % GRID_SIZE;
+    var dr = Math.abs(br - tr), dc = Math.abs(bc - tc);
+    if (!((dr === 1 && dc === 0) || (dr === 0 && dc === 1))) return false;
+    var tmp = _tiles[blank];
+    _tiles[blank] = _tiles[idx];
+    _tiles[idx]   = tmp;
     return true;
   }
 
-  function _startGame() {
-    _grid = _newGrid();
-    _terr = _initTerritory();
-    _movesLeft = MAX_MOVES;
-    _state = 'PLAYING';
-    try { AdManager.gameplayStart(); } catch (e) {}
-  }
-
-  /* ── Public API ────────────────────────────────────────────── */
+  /* ── Public: init ────────────────────────────────────────────── */
   function init(canvas, bestScore) {
-    _canvas = canvas;
-    _ctx = canvas.getContext('2d');
-    _best = bestScore || 0;
-    _score = 0;
-    _state = 'MENU';
-    /* pre-build a sample grid for the menu */
-    _grid = _newGrid();
-    _terr = _initTerritory();
-    _movesLeft = MAX_MOVES;
+    _canvas  = canvas;
+    _ctx     = canvas.getContext('2d');
+    _best    = bestScore || 0;
+    _state   = 'MENU';
+    _pulseT  = 0;
+    _score   = 0;
+    _lives   = 3;
+    _round   = 0;
+    _newPuzzle();
   }
 
-  function update(dt) {
-    _pulse += dt * 3;
-    if (_pulse > Math.PI * 2) {
-      _pulse -= Math.PI * 2;
+  /* ── Public: tap ─────────────────────────────────────────────── */
+  function tap(tapX, tapY) {
+    if (_state === 'MENU') {
+      _startGame();
+      return;
     }
-  }
-
-  /* ── Drawing helpers ───────────────────────────────────────── */
-  function _drawRoundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  }
-
-  function _drawGrid(ctx, alpha) {
-    var borderPulse = 0.55 + 0.35 * Math.sin(_pulse);
-    var i, r, c, ci, x, y;
-    for (r = 0; r < ROWS; r++) {
-      for (c = 0; c < COLS; c++) {
-        i = _idx(r, c);
-        ci = _grid[i];
-        x = GRID_X + c * CELL_SIZE;
-        y = GRID_TOP + r * CELL_SIZE;
-
-        /* cell fill */
-        ctx.globalAlpha = alpha !== undefined ? alpha : 1;
-        ctx.fillStyle = COLORS[ci];
-        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-
-        /* grid line */
-        ctx.globalAlpha = (alpha !== undefined ? alpha : 1) * 0.18;
-        ctx.fillStyle = '#000';
-        ctx.fillRect(x, y, CELL_SIZE, 1);
-        ctx.fillRect(x, y, 1, CELL_SIZE);
-      }
+    if (_state === 'DEAD') {
+      init(_canvas, _best);
+      return;
     }
-
-    /* territory highlight */
     if (_state === 'PLAYING') {
-      ctx.globalAlpha = borderPulse;
-      for (r = 0; r < ROWS; r++) {
-        for (c = 0; c < COLS; c++) {
-          i = _idx(r, c);
-          if (!_terr[i]) {
-            continue;
-          }
-          x = GRID_X + c * CELL_SIZE;
-          y = GRID_TOP + r * CELL_SIZE;
-          /* Draw bright border only on edges that face non-territory */
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-          ctx.lineWidth = 2;
-          /* top */
-          if (r === 0 || !_terr[_idx(r - 1, c)]) {
-            ctx.beginPath(); ctx.moveTo(x, y + 1); ctx.lineTo(x + CELL_SIZE, y + 1); ctx.stroke();
-          }
-          /* bottom */
-          if (r === ROWS - 1 || !_terr[_idx(r + 1, c)]) {
-            ctx.beginPath(); ctx.moveTo(x, y + CELL_SIZE - 1); ctx.lineTo(x + CELL_SIZE, y + CELL_SIZE - 1); ctx.stroke();
-          }
-          /* left */
-          if (c === 0 || !_terr[_idx(r, c - 1)]) {
-            ctx.beginPath(); ctx.moveTo(x + 1, y); ctx.lineTo(x + 1, y + CELL_SIZE); ctx.stroke();
-          }
-          /* right */
-          if (c === COLS - 1 || !_terr[_idx(r, c + 1)]) {
-            ctx.beginPath(); ctx.moveTo(x + CELL_SIZE - 1, y); ctx.lineTo(x + CELL_SIZE - 1, y + CELL_SIZE); ctx.stroke();
+      if (_winTimer >= 0) return;
+
+      var tidx = _tapToTile(tapX, tapY);
+      if (tidx < 0) return;
+      if (_tiles[tidx] === 0) return;
+
+      if (_slideIfAdjacent(tidx)) {
+        _snd('tap');
+        _moves++;
+
+        if (_isSolved()) {
+          var gained = Math.max(0, MAX_MOVES - _moves);
+          _score += gained;
+          if (_score > _best) _best = _score;
+          _snd('gem');
+          _winTimer = 0;
+          _winAnim  = 0;
+          _round++;
+        } else if (_moves >= MAX_MOVES) {
+          _snd('lose');
+          _lives--;
+          if (_lives <= 0) {
+            _endGame();
+          } else {
+            _newPuzzle();
           }
         }
       }
     }
-    ctx.globalAlpha = 1;
   }
 
-  function _drawColorButtons(ctx) {
-    var i, cx, cy;
-    for (i = 0; i < NUM_COLORS; i++) {
-      cx = GRID_MARGIN_X + BTN_SPACING * i + Math.floor(BTN_SPACING / 2);
-      cy = BTN_AREA_Y + BTN_R;
-
-      /* shadow */
-      ctx.shadowColor = 'rgba(0,0,0,0.35)';
-      ctx.shadowBlur = 8;
-
-      /* circle fill */
-      ctx.fillStyle = COLORS[i];
-      ctx.beginPath();
-      ctx.arc(cx, cy, BTN_R, 0, Math.PI * 2);
-      ctx.fill();
-
-      /* white ring outline */
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
+  function _startGame() {
+    _score = 0;
+    _lives = 3;
+    _round = 0;
+    _newPuzzle();
+    try { AdManager.gameplayStart(); } catch (e) {}
+    _state = 'PLAYING';
   }
 
-  function _drawHUD(ctx) {
-    /* moves bar background */
-    var barX = GRID_X;
-    var barY = 72;
-    var barW = GRID_W;
-    var barH = 18;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    _drawRoundRect(ctx, barX, barY, barW, barH, 9);
-    ctx.fill();
-
-    /* moves bar fill */
-    var frac = _movesLeft / MAX_MOVES;
-    var fillW = Math.floor(barW * frac);
-    var barColor;
-    if (frac > 0.5) {
-      barColor = '#2ECC71';
-    } else if (frac > 0.25) {
-      barColor = '#F39C12';
-    } else {
-      barColor = '#E74C3C';
-    }
-    if (fillW > 18) {
-      ctx.fillStyle = barColor;
-      _drawRoundRect(ctx, barX, barY, fillW, barH, 9);
-      ctx.fill();
-    }
-
-    /* moves text */
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('MOVES: ' + _movesLeft + ' / ' + MAX_MOVES, VW / 2, barY + barH / 2);
-
-    /* score */
-    ctx.font = 'bold 20px Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#FFE066';
-    ctx.fillText('SCORE: ' + _score, GRID_X, 52);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.font = '14px Arial, sans-serif';
-    ctx.fillText('BEST: ' + _best, GRID_X + GRID_W, 52);
+  function _endGame() {
+    try { AdManager.gameplayStop(); } catch (e) {}
+    try { AdManager.onRunEnd();     } catch (e) {}
+    _state = 'DEAD';
   }
 
-  function _drawMenuBg(ctx) {
-    /* gradient background */
-    var grad = ctx.createLinearGradient(0, 0, 0, VH);
-    grad.addColorStop(0, '#1a1a2e');
-    grad.addColorStop(0.5, '#16213e');
-    grad.addColorStop(1, '#0f3460');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, VW, VH);
+  /* ── Public: update ──────────────────────────────────────────── */
+  function update(dt) {
+    _pulseT += dt;
 
-    /* decorative color swatches across top */
-    var sw = VW / NUM_COLORS;
-    var si;
-    for (si = 0; si < NUM_COLORS; si++) {
-      ctx.fillStyle = COLORS[si];
-      ctx.globalAlpha = 0.18;
-      ctx.fillRect(si * sw, 0, sw, VH);
+    if (_state === 'PLAYING' && _winTimer >= 0) {
+      _winTimer += dt;
+      _winAnim = Math.min(1, _winTimer / 0.8);
+      if (_winTimer > 1.0) {
+        _winTimer = -1;
+        _newPuzzle();
+      }
     }
-    ctx.globalAlpha = 1;
   }
 
+  /* ── Public: draw ────────────────────────────────────────────── */
   function draw() {
-    if (!_ctx) {
-      return;
-    }
     var ctx = _ctx;
     ctx.clearRect(0, 0, VW, VH);
 
+    var bg = ctx.createLinearGradient(0, 0, 0, VH);
+    bg.addColorStop(0, '#0d1b2a');
+    bg.addColorStop(1, '#1a2f4a');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, VW, VH);
+
     if (_state === 'MENU') {
-      _drawMenuBg(ctx);
-
-      /* sample grid (faded) */
-      _drawGrid(ctx, 0.35);
-
-      /* title */
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.7)';
-      ctx.shadowBlur = 18;
-
-      ctx.font = 'bold 52px Arial, sans-serif';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('COLOR', VW / 2, VH * 0.22);
-      ctx.fillText('FLOOD', VW / 2, VH * 0.22 + 58);
-
-      ctx.shadowBlur = 0;
-
-      /* color stripe under title */
-      var stripeY = VH * 0.22 + 86;
-      var sw2 = 40;
-      var totalW = sw2 * NUM_COLORS + 8 * (NUM_COLORS - 1);
-      var startX = (VW - totalW) / 2;
-      var si2;
-      for (si2 = 0; si2 < NUM_COLORS; si2++) {
-        ctx.fillStyle = COLORS[si2];
-        ctx.beginPath();
-        ctx.arc(startX + si2 * (sw2 + 8) + sw2 / 2, stripeY, sw2 / 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      /* best score */
-      if (_best > 0) {
-        ctx.font = '18px Arial, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillText('BEST: ' + _best, VW / 2, stripeY + 52);
-      }
-
-      /* tap to play */
-      var tapAlpha = 0.55 + 0.45 * Math.sin(_pulse);
-      ctx.globalAlpha = tapAlpha;
-      ctx.font = 'bold 22px Arial, sans-serif';
-      ctx.fillStyle = '#FFE066';
-      ctx.fillText('TAP TO PLAY', VW / 2, VH * 0.78);
-      ctx.globalAlpha = 1;
-
-      /* instructions */
-      ctx.font = '14px Arial, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.fillText('Capture the whole grid in ' + MAX_MOVES + ' moves', VW / 2, VH * 0.84);
-
+      _drawMenu(ctx);
     } else if (_state === 'PLAYING') {
-      /* background */
-      var bg = ctx.createLinearGradient(0, 0, 0, VH);
-      bg.addColorStop(0, '#1a1a2e');
-      bg.addColorStop(1, '#0f3460');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, VW, VH);
-
-      _drawGrid(ctx, 1);
-      _drawHUD(ctx);
-      _drawColorButtons(ctx);
-
-      /* label */
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.font = '12px Arial, sans-serif';
-      ctx.fillText('CHOOSE COLOR', VW / 2, BTN_AREA_Y + BTN_R * 2 + 16);
-
-    } else if (_state === 'DEAD') {
-      /* background with grid visible */
-      var bg2 = ctx.createLinearGradient(0, 0, 0, VH);
-      bg2.addColorStop(0, '#1a1a2e');
-      bg2.addColorStop(1, '#0f3460');
-      ctx.fillStyle = bg2;
-      ctx.fillRect(0, 0, VW, VH);
-
-      _drawGrid(ctx, 0.5);
-      _drawColorButtons(ctx);
-
-      /* dark overlay */
-      ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillRect(0, 0, VW, VH);
-
-      /* panel */
-      var panX = 40;
-      var panY = VH / 2 - 140;
-      var panW = VW - 80;
-      var panH = 280;
-      ctx.fillStyle = 'rgba(22,33,62,0.97)';
-      _drawRoundRect(ctx, panX, panY, panW, panH, 20);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth = 1.5;
-      _drawRoundRect(ctx, panX, panY, panW, panH, 20);
-      ctx.stroke();
-
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      var cx2 = VW / 2;
-
-      /* GAME OVER */
-      ctx.font = 'bold 36px Arial, sans-serif';
-      ctx.fillStyle = '#E74C3C';
-      ctx.shadowColor = '#E74C3C';
-      ctx.shadowBlur = 14;
-      ctx.fillText('GAME OVER', cx2, panY + 52);
-      ctx.shadowBlur = 0;
-
-      /* score */
-      ctx.font = 'bold 22px Arial, sans-serif';
-      ctx.fillStyle = '#FFE066';
-      ctx.fillText('Score: ' + _score, cx2, panY + 106);
-
-      /* best */
-      ctx.font = '17px Arial, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.65)';
-      ctx.fillText('Best: ' + _best, cx2, panY + 142);
-
-      /* tap to retry */
-      var tapAlpha2 = 0.6 + 0.4 * Math.sin(_pulse);
-      ctx.globalAlpha = tapAlpha2;
-      ctx.font = 'bold 20px Arial, sans-serif';
-      ctx.fillStyle = '#fff';
-      ctx.fillText('TAP TO RETRY', cx2, panY + 196);
-      ctx.globalAlpha = 1;
-
-      /* color dots decoration */
-      var di;
-      for (di = 0; di < NUM_COLORS; di++) {
-        ctx.fillStyle = COLORS[di];
-        ctx.beginPath();
-        ctx.arc(panX + 30 + di * ((panW - 60) / (NUM_COLORS - 1)), panY + 248, 9, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      _drawGame(ctx);
+    } else {
+      _drawGame(ctx);
+      _drawDead(ctx);
     }
   }
 
-  function tap(x, y) {
-    if (_state === 'MENU') {
-      _score = 0;
-      _startGame();
-      return;
-    }
+  function _drawMenu(ctx) {
+    _text(ctx, 'SLIDE PUZZLE', VW / 2, 200, 44, '#FFD700', 'center', '#FFA500');
+    _text(ctx, '15-Puzzle Classic', VW / 2, 260, 22, '#aaaaff', 'center');
+    _text(ctx, 'Tap tiles to slide', VW / 2, 340, 20, '#cccccc', 'center');
+    _text(ctx, 'Arrange 1-15 in order', VW / 2, 375, 20, '#cccccc', 'center');
+    _text(ctx, 'Max ' + MAX_MOVES + ' moves per puzzle', VW / 2, 410, 20, '#ffaa44', 'center');
 
-    if (_state === 'DEAD') {
-      _score = 0;
-      _startGame();
-      return;
-    }
-
-    if (_state === 'PLAYING') {
-      /* Check color button taps */
-      var i, cx, cy, dx, dy;
-      for (i = 0; i < NUM_COLORS; i++) {
-        cx = GRID_MARGIN_X + BTN_SPACING * i + Math.floor(BTN_SPACING / 2);
-        cy = BTN_AREA_Y + BTN_R;
-        dx = x - cx;
-        dy = y - cy;
-        if (dx * dx + dy * dy <= (BTN_R + 8) * (BTN_R + 8)) {
-          /* tapped color i */
-          try { Audio.play('tap'); } catch (e) {}
-          _floodFill(i);
-          _movesLeft--;
-
-          if (_isComplete()) {
-            _score++;
-            if (_score > _best) {
-              _best = _score;
-            }
-            try { Audio.play('gem'); } catch (e) {}
-            /* Start a fresh board, keep score */
-            _grid = _newGrid();
-            _terr = _initTerritory();
-            _movesLeft = MAX_MOVES;
-          } else if (_movesLeft <= 0) {
-            try { Audio.play('lose'); } catch (e) {}
-            try { AdManager.gameplayStop(); } catch (e) {}
-            try { AdManager.onRunEnd(); } catch (e) {}
-            _state = 'DEAD';
-          }
-          return;
-        }
+    var px = VW / 2 - 100, py = 460, ps = 44, pg = 4;
+    var k, pr, pc, val, mx, my;
+    for (k = 0; k < 16; k++) {
+      pr  = Math.floor(k / GRID_SIZE);
+      pc  = k % GRID_SIZE;
+      val = k < 15 ? k + 1 : 0;
+      mx  = px + pc * (ps + pg);
+      my  = py + pr * (ps + pg);
+      ctx.fillStyle = val === 0 ? '#0d1b2a' : '#2a4a7a';
+      _fillRoundRect(ctx, mx, my, ps, ps, 6);
+      if (val > 0) {
+        _text(ctx, '' + val, mx + ps / 2, my + ps / 2, 14, '#ffffff', 'center');
       }
     }
+
+    var pulse = 0.55 + 0.45 * Math.sin(_pulseT * 3.0);
+    ctx.globalAlpha = pulse;
+    _text(ctx, 'TAP TO PLAY', VW / 2, 680, 28, '#00FF88', 'center', '#00FF88');
+    ctx.globalAlpha = 1;
+
+    if (_best > 0) {
+      _text(ctx, 'BEST: ' + _best, VW / 2, 730, 20, '#FFDD44', 'center', '#FFAA00');
+    }
+  }
+
+  function _drawGame(ctx) {
+    _text(ctx, 'SLIDE PUZZLE', VW / 2, 50, 28, '#FFD700', 'center', '#FFA500');
+    _text(ctx, 'Score: ' + _score, 20, 90, 20, '#ffffff', 'left');
+    _text(ctx, 'Moves: ' + _moves + '/' + MAX_MOVES, VW / 2, 90, 20, '#ffffff', 'center');
+    _drawLives(ctx, VW - 20, 90);
+
+    var winGlow = (_winTimer >= 0) ? _winAnim : 0;
+    var i, row, col, tx, ty, val, isInOrder, tileColor, numSize;
+    for (i = 0; i < 16; i++) {
+      row = Math.floor(i / GRID_SIZE);
+      col = i % GRID_SIZE;
+      tx  = GRID_X + col * (TILE_SIZE + TILE_GAP);
+      ty  = GRID_Y + row * (TILE_SIZE + TILE_GAP);
+      val = _tiles[i];
+
+      if (val === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        _fillRoundRect(ctx, tx, ty, TILE_SIZE, TILE_SIZE, CORNER_R);
+      } else {
+        isInOrder = (val === i + 1);
+        tileColor = (isInOrder || winGlow > 0) ? '#2ecc71' : '#2a4a7a';
+        ctx.shadowColor = winGlow > 0 ? '#00FF88' : (isInOrder ? '#00cc55' : '#5599cc');
+        ctx.shadowBlur  = winGlow > 0 ? 20 * winGlow : (isInOrder ? 8 : 4);
+        ctx.fillStyle = tileColor;
+        _fillRoundRect(ctx, tx, ty, TILE_SIZE, TILE_SIZE, CORNER_R);
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = isInOrder ? '#00ff88' : '#4477aa';
+        ctx.lineWidth   = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx + CORNER_R, ty);
+        ctx.arcTo(tx + TILE_SIZE, ty,     tx + TILE_SIZE, ty + TILE_SIZE, CORNER_R);
+        ctx.arcTo(tx + TILE_SIZE, ty + TILE_SIZE, tx, ty + TILE_SIZE, CORNER_R);
+        ctx.arcTo(tx, ty + TILE_SIZE, tx, ty, CORNER_R);
+        ctx.arcTo(tx, ty, tx + TILE_SIZE, ty, CORNER_R);
+        ctx.closePath();
+        ctx.stroke();
+
+        numSize = val >= 10 ? 28 : 34;
+        _text(ctx, '' + val, tx + TILE_SIZE / 2, ty + TILE_SIZE / 2, numSize, '#ffffff', 'center');
+      }
+    }
+
+    if (_winTimer >= 0) {
+      ctx.globalAlpha = Math.min(1, _winAnim * 2);
+      _text(ctx, 'SOLVED!', VW / 2, GRID_Y + GRID_W / 2 + 20, 48, '#00FF88', 'center', '#00FF88');
+      _text(ctx, '+' + Math.max(0, MAX_MOVES - _moves) + ' pts', VW / 2, GRID_Y + GRID_W / 2 + 80, 28, '#FFD700', 'center', '#FFA500');
+      ctx.globalAlpha = 1;
+    }
+
+    var barW = VW - 40;
+    var barH = 12;
+    var barX = 20, barY = VH - 60;
+    var frac = 1 - Math.min(1, _moves / MAX_MOVES);
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    _fillRoundRect(ctx, barX, barY, barW, barH, 6);
+    var barColor = frac > 0.5 ? '#00DD44' : (frac > 0.2 ? '#FFAA00' : '#FF4444');
+    ctx.fillStyle = barColor;
+    _fillRoundRect(ctx, barX, barY, Math.max(0, barW * frac), barH, 6);
+    _text(ctx, 'Moves left', VW / 2, VH - 35, 14, '#aaaaaa', 'center');
+  }
+
+  function _drawDead(ctx) {
+    ctx.fillStyle = 'rgba(5, 10, 20, 0.80)';
+    ctx.fillRect(0, 0, VW, VH);
+
+    _text(ctx, 'GAME OVER', VW / 2, 330, 48, '#FF3366', 'center', '#FF3366');
+    _text(ctx, 'Score: ' + _score, VW / 2, 410, 30, '#ffffff', 'center');
+    _text(ctx, 'Best:  ' + _best,  VW / 2, 456, 22, '#FFDD44', 'center', '#FFAA00');
+
+    var pulse = 0.55 + 0.45 * Math.sin(_pulseT * 3.0);
+    ctx.globalAlpha = pulse;
+    _text(ctx, 'TAP TO RETRY', VW / 2, 560, 28, '#44CCFF', 'center', '#44CCFF');
+    ctx.globalAlpha = 1;
+  }
+
+  function _drawLives(ctx, rightX, y) {
+    var i;
+    for (i = 0; i < 3; i++) {
+      var hx = rightX - (3 - i) * 28;
+      ctx.font         = '22px Arial';
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle    = i < _lives ? '#FF4466' : '#444466';
+      ctx.fillText(i < _lives ? '♥' : '♡', hx, y);
+    }
+  }
+
+  function _fillRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function _text(ctx, str, x, y, size, color, align, glow) {
+    ctx.font         = 'bold ' + size + 'px Arial, sans-serif';
+    ctx.textAlign    = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = color;
+    if (glow) {
+      ctx.shadowColor = glow;
+      ctx.shadowBlur  = 16;
+    }
+    ctx.fillText(str, x, y);
+    ctx.shadowBlur = 0;
   }
 
   function getBest() {
@@ -543,10 +385,10 @@ var ColorFlood = (function () {
   }
 
   return {
-    init: init,
-    update: update,
-    draw: draw,
-    tap: tap,
+    init:    init,
+    update:  update,
+    draw:    draw,
+    tap:     tap,
     getBest: getBest
   };
 

@@ -5,275 +5,407 @@ var BombSquad = (function () {
     var state = 'MENU';
     var best = 0;
     var score, lives;
-    var paddleX, paddleTargetX;
-    var bombs;
-    var spawnTimer, spawnInterval;
+
+    // Grid constants: 8 cols x 10 rows, cell 42x44, grid starts at x=27, y=90
+    var COLS = 8, ROWS = 10;
+    var CELL_W = 42, CELL_H = 44;
+    var GX = Math.floor((VW - COLS * CELL_W) / 2); // 27
+    var GY = 90;
+    var NUM_MINES = 12;
+
+    var cells;
+    var firstTap;
+    var flagMode;
+    var flagsPlaced;
+    var revealedCount;
+    var numSafe;
+    var elapsedTime;
     var flashTimer;
-    var tick;
-    var PADDLE_W = 90, PADDLE_H = 18, PADDLE_Y;
+
+    // ── Cell helpers ───────────────────────────────────────────────────────────
+
+    function cellIndex(col, row) {
+        return row * COLS + col;
+    }
+
+    function getCell(col, row) {
+        if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+        return cells[cellIndex(col, row)];
+    }
+
+    function initBoard() {
+        cells = [];
+        var i;
+        for (i = 0; i < COLS * ROWS; i++) {
+            cells.push({ mine: false, revealed: false, flagged: false, adjacentMines: 0, exploded: false });
+        }
+        firstTap = true;
+        flagMode = false;
+        flagsPlaced = 0;
+        revealedCount = 0;
+        numSafe = COLS * ROWS - NUM_MINES;
+        elapsedTime = 0;
+    }
+
+    function placeMines(avoidCol, avoidRow) {
+        var placed = 0;
+        while (placed < NUM_MINES) {
+            var c = Math.floor(Math.random() * COLS);
+            var r = Math.floor(Math.random() * ROWS);
+            if (c === avoidCol && r === avoidRow) continue;
+            var cell = cells[cellIndex(c, r)];
+            if (!cell.mine) {
+                cell.mine = true;
+                placed++;
+            }
+        }
+        var col, row, dc, dr, nb, count;
+        for (row = 0; row < ROWS; row++) {
+            for (col = 0; col < COLS; col++) {
+                if (cells[cellIndex(col, row)].mine) continue;
+                count = 0;
+                for (dc = -1; dc <= 1; dc++) {
+                    for (dr = -1; dr <= 1; dr++) {
+                        if (dc === 0 && dr === 0) continue;
+                        nb = getCell(col + dc, row + dr);
+                        if (nb && nb.mine) count++;
+                    }
+                }
+                cells[cellIndex(col, row)].adjacentMines = count;
+            }
+        }
+    }
+
+    function floodReveal(col, row) {
+        var stack = [{c: col, r: row}];
+        var cur, cell, dc, dr, nb;
+        while (stack.length > 0) {
+            cur = stack.pop();
+            cell = getCell(cur.c, cur.r);
+            if (!cell || cell.revealed || cell.flagged || cell.mine) continue;
+            cell.revealed = true;
+            revealedCount++;
+            if (cell.adjacentMines === 0) {
+                for (dc = -1; dc <= 1; dc++) {
+                    for (dr = -1; dr <= 1; dr++) {
+                        if (dc === 0 && dr === 0) continue;
+                        nb = getCell(cur.c + dc, cur.r + dr);
+                        if (nb && !nb.revealed && !nb.flagged) {
+                            stack.push({c: cur.c + dc, r: cur.r + dr});
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Game flow ──────────────────────────────────────────────────────────────
 
     function startGame() {
         score = 0;
         lives = 3;
-        tick = 0;
-        PADDLE_Y = VH - 60;
-        paddleX = VW / 2;
-        paddleTargetX = VW / 2;
-        bombs = [];
-        spawnTimer = 0;
-        spawnInterval = 1.0;
         flashTimer = 0;
+        initBoard();
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
     }
 
-    function spawnBomb() {
-        var x = 40 + Math.random() * (VW - 80);
-        var dangerous = Math.random() < 0.45;
-        var spd = 130 + tick * 10 + Math.random() * 60;
-        bombs.push({
-            x: x, y: -30,
-            spd: spd,
-            dangerous: dangerous,
-            fuse: 0,
-            r: 20
-        });
+    function winBoard() {
+        var timeBonus = Math.max(0, 300 - Math.floor(elapsedTime * 2));
+        score += numSafe * 3 + timeBonus;
+        if (score > best) best = score;
+        try { Audio.play('gem'); } catch (e) {}
+        initBoard();
     }
+
+    function hitMine(col, row) {
+        cells[cellIndex(col, row)].exploded = true;
+        cells[cellIndex(col, row)].revealed = true;
+        lives--;
+        flashTimer = 0.4;
+        try { Audio.play('crash'); } catch (e) {}
+        if (lives <= 0) {
+            var i;
+            for (i = 0; i < cells.length; i++) {
+                if (cells[i].mine) cells[i].revealed = true;
+            }
+            state = 'DEAD';
+            if (score > best) best = score;
+            try { Audio.play('lose'); } catch (e) {}
+            try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+        }
+    }
+
+    // ── Update ─────────────────────────────────────────────────────────────────
 
     function update(dt) {
         if (state !== 'PLAYING') return;
-        tick += dt;
-        spawnInterval = Math.max(0.3, 1.0 - tick * 0.03);
-
-        // paddle movement
-        paddleX += (paddleTargetX - paddleX) * Math.min(1, dt * 9);
-
-        spawnTimer += dt;
-        if (spawnTimer >= spawnInterval) {
-            spawnTimer = 0;
-            spawnBomb();
-        }
-
-        for (var i = bombs.length - 1; i >= 0; i--) {
-            var b = bombs[i];
-            b.y += b.spd * dt;
-            if (b.dangerous) b.fuse += dt;
-
-            // off screen
-            if (b.y > VH + 40) {
-                bombs.splice(i, 1);
-                if (!b.dangerous) {
-                    // missed safe bomb - no penalty, just gone
-                } else {
-                    // missed dangerous bomb - also fine
-                }
-                continue;
-            }
-
-            // paddle collision
-            var px = paddleX - PADDLE_W / 2;
-            var py = PADDLE_Y;
-            if (b.x > px && b.x < px + PADDLE_W &&
-                b.y + b.r > py && b.y - b.r < py + PADDLE_H) {
-                bombs.splice(i, 1);
-                if (b.dangerous) {
-                    lives--;
-                    flashTimer = 0.35;
-                    try { Audio.play('crash'); } catch (e) {}
-                    if (lives <= 0) {
-                        state = 'DEAD';
-                        try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
-                    }
-                } else {
-                    score++;
-                    if (score > best) best = score;
-                    try { Audio.play('gem'); } catch (e) {}
-                }
-            }
-        }
-
         if (flashTimer > 0) flashTimer -= dt;
+        if (!firstTap) elapsedTime += dt;
     }
 
-    function drawBomb(b) {
-        ctx.save();
-        ctx.translate(b.x, b.y);
-        if (b.dangerous) {
-            // dark bomb with fuse
-            ctx.shadowColor = '#ff2200';
-            ctx.shadowBlur = 12;
-            ctx.beginPath();
-            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
-            ctx.fillStyle = '#111111';
-            ctx.fill();
-            ctx.strokeStyle = '#ff2200';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            // fuse
-            ctx.beginPath();
-            ctx.moveTo(4, -b.r);
-            ctx.quadraticCurveTo(14, -b.r - 12, 10, -b.r - 22);
-            ctx.strokeStyle = '#ffaa00';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            // spark at fuse tip - flicker
-            if (Math.floor(b.fuse * 12) % 2 === 0) {
-                ctx.beginPath();
-                ctx.arc(10, -b.r - 22, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffff00';
-                ctx.shadowColor = '#ffff00';
-                ctx.shadowBlur = 10;
-                ctx.fill();
+    // ── Tap ────────────────────────────────────────────────────────────────────
+
+    function tapCell(col, row) {
+        var cell = getCell(col, row);
+        if (!cell) return;
+
+        if (flagMode) {
+            if (cell.revealed) return;
+            if (cell.flagged) {
+                cell.flagged = false;
+                flagsPlaced--;
+            } else {
+                cell.flagged = true;
+                flagsPlaced++;
             }
-            // red X
-            ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-7, -7); ctx.lineTo(7, 7);
-            ctx.moveTo(7, -7); ctx.lineTo(-7, 7);
-            ctx.stroke();
-        } else {
-            // safe bomb - green or blue
-            var safe = (Math.floor(b.spd / 10) % 2 === 0);
-            ctx.shadowColor = safe ? '#00ff88' : '#4488ff';
-            ctx.shadowBlur = 14;
-            ctx.beginPath();
-            ctx.arc(0, 0, b.r, 0, Math.PI * 2);
-            ctx.fillStyle = safe ? '#005522' : '#002255';
-            ctx.fill();
-            ctx.strokeStyle = safe ? '#00ff88' : '#4488ff';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            // checkmark
-            ctx.strokeStyle = safe ? '#00ff88' : '#88ccff';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-8, 0); ctx.lineTo(-2, 8); ctx.lineTo(9, -7);
-            ctx.stroke();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
         }
-        ctx.shadowBlur = 0;
-        ctx.restore();
+
+        if (cell.revealed || cell.flagged) return;
+
+        if (firstTap) {
+            firstTap = false;
+            elapsedTime = 0;
+            placeMines(col, row);
+        }
+
+        if (cell.mine) {
+            hitMine(col, row);
+            return;
+        }
+
+        floodReveal(col, row);
+        score += 5;
+        if (score > best) best = score;
+        try { Audio.play('tap'); } catch (e) {}
+
+        if (revealedCount >= numSafe) {
+            winBoard();
+        }
     }
 
-    function drawPaddle() {
-        ctx.save();
-        var px = paddleX - PADDLE_W / 2;
-        ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 16;
-        ctx.fillStyle = '#004466';
+    function tap(x, y) {
+        if (state === 'MENU') {
+            startGame();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+        if (state === 'DEAD') {
+            startGame();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+        if (state !== 'PLAYING') return;
+
+        var btnY = VH - 60;
+        if (y >= btnY) {
+            flagMode = !flagMode;
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+
+        var col = Math.floor((x - GX) / CELL_W);
+        var row = Math.floor((y - GY) / CELL_H);
+        if (col >= 0 && col < COLS && row >= 0 && row < ROWS) {
+            tapCell(col, row);
+        }
+    }
+
+    // ── Draw helpers ───────────────────────────────────────────────────────────
+
+    function roundRect(x, y, w, h, r) {
         ctx.beginPath();
-        ctx.roundRect(px, PADDLE_Y, PADDLE_W, PADDLE_H, 8);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function drawBombIcon(cx, cy, r) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#222';
         ctx.fill();
-        ctx.strokeStyle = '#00ffff';
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + 2, cy - r);
+        ctx.quadraticCurveTo(cx + 8, cy - r - 6, cx + 6, cy - r - 11);
+        ctx.strokeStyle = '#bbb';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx - r * 0.3, cy - r * 0.3, r * 0.25, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.fill();
+    }
+
+    function drawFlagIcon(cx, cy) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy - 10);
+        ctx.lineTo(cx + 9, cy - 5);
+        ctx.lineTo(cx - 2, cy);
+        ctx.closePath();
+        ctx.fillStyle = '#ff3333';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy - 10);
+        ctx.lineTo(cx - 2, cy + 8);
+        ctx.strokeStyle = '#ccc';
         ctx.lineWidth = 2;
         ctx.stroke();
-        // grip lines
-        ctx.strokeStyle = '#00aacc';
-        ctx.lineWidth = 1.5;
-        for (var i = 0; i < 5; i++) {
-            var lx = px + 14 + i * 14;
-            ctx.beginPath();
-            ctx.moveTo(lx, PADDLE_Y + 3);
-            ctx.lineTo(lx, PADDLE_Y + PADDLE_H - 3);
-            ctx.stroke();
-        }
-        ctx.shadowBlur = 0;
-        ctx.restore();
     }
+
+    var NUM_COLORS = ['', '#4488ff', '#22aa44', '#ff4444', '#000088', '#880000', '#008888', '#111111', '#888888'];
+
+    function drawCell(col, row) {
+        var cell = cells[cellIndex(col, row)];
+        var px = GX + col * CELL_W;
+        var py = GY + row * CELL_H;
+        var pad = 2;
+        var cx = px + CELL_W / 2;
+        var cy = py + CELL_H / 2;
+
+        if (!cell.revealed) {
+            ctx.fillStyle = '#b0b8c0';
+            roundRect(px + pad, py + pad, CELL_W - pad * 2, CELL_H - pad * 2, 4);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillRect(px + pad, py + pad, CELL_W - pad * 2, 3);
+            ctx.fillRect(px + pad, py + pad, 3, CELL_H - pad * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.fillRect(px + pad, py + CELL_H - pad - 3, CELL_W - pad * 2, 3);
+            ctx.fillRect(px + CELL_W - pad - 3, py + pad, 3, CELL_H - pad * 2);
+            if (cell.flagged) drawFlagIcon(cx, cy);
+        } else {
+            var bg = cell.exploded ? '#ff2200' : (cell.mine ? '#cc2200' : '#788090');
+            ctx.fillStyle = bg;
+            roundRect(px + pad, py + pad, CELL_W - pad * 2, CELL_H - pad * 2, 3);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            if (cell.mine) {
+                drawBombIcon(cx, cy, (CELL_W < CELL_H ? CELL_W : CELL_H) / 2 - 6);
+            } else if (cell.adjacentMines > 0) {
+                ctx.fillStyle = NUM_COLORS[cell.adjacentMines] || '#ffffff';
+                ctx.font = 'bold 18px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(cell.adjacentMines, cx, cy);
+                ctx.textBaseline = 'alphabetic';
+            }
+        }
+    }
+
+    function drawHUD() {
+        var i, heartStr;
+        heartStr = '';
+        for (i = 0; i < lives; i++) heartStr += '♥';
+        for (i = lives; i < 3; i++) heartStr += '♡';
+        ctx.fillStyle = '#ff4444';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(heartStr, 12, 52);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(score, VW - 12, 52);
+
+        var minesLeft = NUM_MINES - flagsPlaced;
+        ctx.fillStyle = '#ffdd00';
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('M:' + minesLeft, VW / 2, 52);
+    }
+
+    function drawFlagButton() {
+        var btnY = VH - 60;
+        ctx.fillStyle = flagMode ? '#3a1a00' : '#001a3a';
+        ctx.fillRect(0, btnY, VW, 60);
+        ctx.strokeStyle = flagMode ? '#ff7700' : '#0077ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, btnY, VW, 60);
+        ctx.fillStyle = flagMode ? '#ff9900' : '#44aaff';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(flagMode ? 'FLAG MODE  (tap to switch)' : 'DIG MODE  (tap to FLAG)', VW / 2, btnY + 30);
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    // ── Draw ───────────────────────────────────────────────────────────────────
 
     function draw() {
         if (!ctx) return;
-        var grad = ctx.createLinearGradient(0, 0, 0, VH);
-        grad.addColorStop(0, '#0a0a0a');
-        grad.addColorStop(0.6, '#111820');
-        grad.addColorStop(1, '#0d0d0d');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = '#04050e';
         ctx.fillRect(0, 0, VW, VH);
-
-        // industrial grid lines
-        ctx.strokeStyle = 'rgba(40,60,80,0.5)';
-        ctx.lineWidth = 1;
-        for (var gx = 0; gx < VW; gx += 40) {
-            ctx.beginPath();
-            ctx.moveTo(gx, 0);
-            ctx.lineTo(gx, VH);
-            ctx.stroke();
-        }
-        for (var gy = 0; gy < VH; gy += 40) {
-            ctx.beginPath();
-            ctx.moveTo(0, gy);
-            ctx.lineTo(VW, gy);
-            ctx.stroke();
-        }
 
         if (state === 'MENU') {
             ctx.fillStyle = '#ffaa00';
             ctx.shadowColor = '#ff6600';
-            ctx.shadowBlur = 22;
-            ctx.font = 'bold 52px sans-serif';
+            ctx.shadowBlur = 24;
+            ctx.font = 'bold 50px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('BOMB SQUAD', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ccddff';
+            ctx.font = '20px sans-serif';
+            ctx.fillText('Minesweeper - clear the board!', VW / 2, VH / 2 - 28);
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 26px sans-serif';
-            ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 10);
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 30);
             if (best > 0) {
                 ctx.fillStyle = '#ffcc00';
-                ctx.font = '22px sans-serif';
-                ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 60);
+                ctx.font = '20px sans-serif';
+                ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 80);
             }
-            ctx.fillStyle = '#aaaacc';
-            ctx.font = '18px sans-serif';
-            ctx.fillText('Catch SAFE bombs, avoid DANGER!', VW / 2, VH / 2 + 110);
             return;
         }
 
         if (flashTimer > 0) {
-            ctx.globalAlpha = flashTimer / 0.35 * 0.42;
+            ctx.globalAlpha = (flashTimer / 0.4) * 0.38;
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(0, 0, VW, VH);
             ctx.globalAlpha = 1;
         }
 
-        for (var j = 0; j < bombs.length; j++) drawBomb(bombs[j]);
-        drawPaddle();
-
-        // lives
-        for (var l = 0; l < 3; l++) {
-            ctx.globalAlpha = (l < lives) ? 1 : 0.2;
-            ctx.fillStyle = '#ff4444';
-            ctx.shadowColor = '#ff0000';
-            ctx.shadowBlur = 6;
-            ctx.beginPath();
-            var hx = 24 + l * 32, hy = 30;
-            ctx.moveTo(hx, hy + 8);
-            ctx.bezierCurveTo(hx - 12, hy - 4, hx - 14, hy - 16, hx, hy - 10);
-            ctx.bezierCurveTo(hx + 14, hy - 16, hx + 12, hy - 4, hx, hy + 8);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1;
+        var col, row;
+        for (row = 0; row < ROWS; row++) {
+            for (col = 0; col < COLS; col++) {
+                drawCell(col, row);
+            }
         }
 
-        ctx.fillStyle = '#ffdd00';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(score, VW - 20, 44);
-        ctx.textAlign = 'left';
+        drawHUD();
+        drawFlagButton();
 
         if (state === 'DEAD') {
-            ctx.fillStyle = 'rgba(0,0,0,0.68)';
+            ctx.fillStyle = 'rgba(0,0,0,0.72)';
             ctx.fillRect(0, 0, VW, VH);
             ctx.fillStyle = '#ff4400';
             ctx.font = 'bold 52px sans-serif';
             ctx.textAlign = 'center';
             ctx.shadowColor = '#ff2200';
             ctx.shadowBlur = 22;
-            ctx.fillText('BOOM!', VW / 2, VH / 2 - 80);
+            ctx.fillText('GAME OVER', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 30px sans-serif';
             ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 - 14);
             ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 26px sans-serif';
             ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 36);
             ctx.fillStyle = '#aaffff';
             ctx.font = 'bold 26px sans-serif';
@@ -281,24 +413,14 @@ var BombSquad = (function () {
         }
     }
 
-    function tap(x, y) {
-        if (state === 'MENU') {
-            startGame();
-        } else if (state === 'DEAD') {
-            startGame();
-        } else if (state === 'PLAYING') {
-            paddleTargetX = x;
-        }
-    }
-
-    function getBest() { return best; }
-
     function init(c, b) {
         canvas = c;
         ctx = canvas.getContext('2d');
         best = b || 0;
         state = 'MENU';
     }
+
+    function getBest() { return best; }
 
     return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();

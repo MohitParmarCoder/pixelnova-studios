@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Bomb Squad</title>
+<title>Minesweeper</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Bomb Squad</span>
+    <span id="gameTitle">Minesweeper</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -44,12 +44,12 @@
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Bomb Squad</div>
+    <div class="info-game">Minesweeper</div>
     <ul class="info-list">
-      <li>Bombs fall — some safe, some deadly</li>
-      <li>Tap to catch only the green safe bombs</li>
-      <li>Catching a red bomb costs a life</li>
-      <li>Score as many safe catches as possible!</li>
+      <li>An 8x8 grid hides 10 mines under covered tiles</li>
+      <li>Tap a tile to reveal it</li>
+      <li>Numbers show how many mines are adjacent</li>
+      <li>Hit a mine = lose a life and reset the grid!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

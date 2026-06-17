@@ -1,257 +1,433 @@
 'use strict';
 var SequenceGame = (function () {
-  var canvas, ctx;
-  var VW = 390, VH = 844;
-  var state = 'MENU';
-  var best = 0;
-  var score = 0;
-  var lives = 3;
-  var round = 0;
+    var VW = 390, VH = 844;
+    var canvas, ctx;
+    var state = 'MENU';
+    var best = 0;
+    var score, lives;
 
-  var COLS = 3, ROWS = 3;
-  var TILE_W = 100, TILE_H = 100;
-  var TILE_PAD = 12;
-  var GRID_X, GRID_Y;
+    // Code Breaker / Mastermind
+    var COLORS = ['#f87171', '#60a5fa', '#86efac', '#fde68a', '#c084fc'];
+    var COLOR_NAMES = ['red', 'blue', 'green', 'yellow', 'purple'];
+    var CODE_LEN = 4;
+    var MAX_ATTEMPTS = 6;
 
-  var tiles = []; // [{num, x, y, flashT, wrongFlash}]
-  var nextExpected = 1;
-  var roundTimer = 0;
-  var baseTime = 8; // seconds for round
-  var roundLimit = 8;
-  var flashTiles = {};
-  var wrongTile = -1;
-  var wrongT = 0;
+    var secretCode;   // array of 4 color indices
+    var guesses;      // array of guess rows: [{colors:[...], blacks:N, whites:N}]
+    var currentGuess; // array of 4 color indices (current row being built)
+    var attemptCount;
+    var gameResult;   // 'win', 'lose', or null
 
-  function buildTiles() {
-    // place 1-9 randomly in 3x3 grid slots
-    var slots = [];
-    for (var r = 0; r < ROWS; r++) {
-      for (var c = 0; c < COLS; c++) {
-        slots.push([c, r]);
-      }
-    }
-    // shuffle slots
-    for (var j = slots.length-1; j > 0; j--) {
-      var k = Math.floor(Math.random() * (j+1));
-      var tmp = slots[j]; slots[j] = slots[k]; slots[k] = tmp;
-    }
-    tiles = [];
-    for (var i = 0; i < 9; i++) {
-      var col = slots[i][0];
-      var row = slots[i][1];
-      tiles.push({
-        num: i+1,
-        x: GRID_X + col*(TILE_W+TILE_PAD) + TILE_W/2,
-        y: GRID_Y + row*(TILE_H+TILE_PAD) + TILE_H/2,
-        flashT: 0,
-        lit: false
-      });
-    }
-    nextExpected = 1;
-    roundTimer = 0;
-    roundLimit = Math.max(3, baseTime - round * 0.5);
-    flashTiles = {};
-    wrongTile = -1;
-  }
+    // Layout
+    var HIST_ROW_H = 60;
+    var HIST_Y = 100;
+    var PEG_R = 22;
+    var PEG_GAP = 58;
+    var PEGS_X_START = 40; // center of first peg column
+    var FEEDBACK_X = 300;
+    var CUR_ROW_Y = HIST_Y + MAX_ATTEMPTS * HIST_ROW_H + 20;
+    var SUBMIT_BTN_Y = CUR_ROW_Y + 70;
+    var SUBMIT_BTN_H = 52;
+    var SUBMIT_BTN_X = 60;
+    var SUBMIT_BTN_W = VW - 120;
 
-  function init(c, b) {
-    canvas = c;
-    ctx = canvas.getContext('2d');
-    best = b || 0;
-    var totalW = COLS*(TILE_W+TILE_PAD)-TILE_PAD;
-    GRID_X = Math.floor((VW - totalW)/2);
-    GRID_Y = 250;
-    state = 'MENU';
-  }
+    // ── Helpers ────────────────────────────────────────────────────────────────
 
-  function startGame() {
-    score = 0;
-    lives = 3;
-    round = 0;
-    buildTiles();
-    state = 'PLAYING';
-    try { AdManager.gameplayStart(); } catch(e) {}
-  }
-
-  function endGame() {
-    if (score > best) best = score;
-    state = 'DEAD';
-    try { Audio.play('lose'); } catch(e) {}
-    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
-  }
-
-  function nextRound() {
-    round++;
-    score = round;
-    if (score > best) best = score;
-    try { Audio.play('gem'); } catch(e) {}
-    buildTiles();
-  }
-
-  function update(dt) {
-    if (state !== 'PLAYING') return;
-
-    roundTimer += dt;
-    if (roundTimer >= roundLimit) {
-      lives--;
-      try { Audio.play('crash'); } catch(e) {}
-      if (lives <= 0) { endGame(); return; }
-      buildTiles();
-      return;
-    }
-
-    if (wrongT > 0) {
-      wrongT -= dt;
-      if (wrongT < 0) { wrongT = 0; wrongTile = -1; }
-    }
-
-    for (var i = 0; i < tiles.length; i++) {
-      if (tiles[i].lit) {
-        tiles[i].flashT += dt;
-        if (tiles[i].flashT >= 0.25) {
-          tiles[i].lit = false;
-          tiles[i].flashT = 0;
+    function makeCode() {
+        var code = [];
+        var i;
+        for (i = 0; i < CODE_LEN; i++) {
+            code.push(Math.floor(Math.random() * COLORS.length));
         }
-      }
-    }
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, VW, VH);
-    var grad = ctx.createLinearGradient(0,0,0,VH);
-    grad.addColorStop(0,'#12192b');
-    grad.addColorStop(1,'#0a0f1c');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, VW, VH);
-
-    if (state === 'MENU') {
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 46px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('SEQUENCE', VW/2, 300);
-      ctx.font = '22px sans-serif';
-      ctx.fillStyle = '#aaa';
-      ctx.fillText('Tap numbers 1 to 9 in order!', VW/2, 360);
-      ctx.fillText('Faster each round.', VW/2, 395);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText('TAP TO PLAY', VW/2, 480);
-      if (best > 0) {
-        ctx.font = '22px sans-serif';
-        ctx.fillStyle = '#aaa';
-        ctx.fillText('Best: ' + best + ' rounds', VW/2, 540);
-      }
-      return;
+        return code;
     }
 
-    // HUD
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 26px sans-serif';
-    ctx.fillText('Round: ' + (round+1), 20, 50);
-    ctx.textAlign = 'right';
-    ctx.fillText('Score: ' + score, VW-20, 50);
-    // lives
-    ctx.textAlign = 'left';
-    for (var li = 0; li < 3; li++) {
-      ctx.fillStyle = li < lives ? '#e74c3c' : '#333';
-      ctx.beginPath();
-      ctx.arc(22 + li*34, 80, 13, 0, Math.PI*2);
-      ctx.fill();
+    function evaluate(guess, code) {
+        var blacks = 0, whites = 0;
+        var i;
+        var gUsed = [false, false, false, false];
+        var cUsed = [false, false, false, false];
+        for (i = 0; i < CODE_LEN; i++) {
+            if (guess[i] === code[i]) { blacks++; gUsed[i] = true; cUsed[i] = true; }
+        }
+        for (i = 0; i < CODE_LEN; i++) {
+            if (gUsed[i]) continue;
+            var j;
+            for (j = 0; j < CODE_LEN; j++) {
+                if (cUsed[j]) continue;
+                if (guess[i] === code[j]) { whites++; cUsed[j] = true; break; }
+            }
+        }
+        return { blacks: blacks, whites: whites };
     }
 
-    // timer bar
-    var timeRatio = 1 - (roundTimer / roundLimit);
-    ctx.fillStyle = '#222';
-    ctx.fillRect(20, 100, VW-40, 10);
-    ctx.fillStyle = timeRatio < 0.3 ? '#e74c3c' : '#3498db';
-    ctx.fillRect(20, 100, (VW-40)*timeRatio, 10);
+    // ── Game flow ──────────────────────────────────────────────────────────────
 
-    // "next" label
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f39c12';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText('TAP: ' + nextExpected, VW/2, 155);
-
-    // tiles
-    for (var i = 0; i < tiles.length; i++) {
-      var tile = tiles[i];
-      var tx = tile.x, ty = tile.y;
-      var isWrong = (wrongTile === tile.num);
-      var isLit = tile.lit;
-
-      ctx.save();
-      if (isLit) {
-        ctx.shadowColor = '#3498db';
-        ctx.shadowBlur = 20;
-      }
-      ctx.fillStyle = isWrong ? '#e74c3c' : (isLit ? '#3498db' : '#1e2d40');
-      ctx.beginPath();
-      ctx.roundRect(tx - TILE_W/2, ty - TILE_H/2, TILE_W, TILE_H, 14);
-      ctx.fill();
-
-      ctx.strokeStyle = isWrong ? '#ff6b6b' : (isLit ? '#74b9ff' : '#2d4a6a');
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      ctx.fillStyle = isWrong ? '#fff' : (isLit ? '#fff' : '#8ab4d4');
-      ctx.font = 'bold 42px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(tile.num, tx, ty);
-      ctx.textBaseline = 'alphabetic';
-      ctx.restore();
+    function startGame() {
+        score = 0;
+        lives = 3;
+        newCode();
+        state = 'PLAYING';
+        try { AdManager.gameplayStart(); } catch (e) {}
     }
 
-    if (state === 'DEAD') {
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(0, 0, VW, VH);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 42px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', VW/2, 340);
-      ctx.font = 'bold 30px sans-serif';
-      ctx.fillStyle = '#f39c12';
-      ctx.fillText('Score: ' + score + ' rounds', VW/2, 405);
-      ctx.fillStyle = '#aaa';
-      ctx.font = '24px sans-serif';
-      ctx.fillText('Best: ' + best, VW/2, 450);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText('TAP TO RETRY', VW/2, 520);
+    function newCode() {
+        secretCode = makeCode();
+        guesses = [];
+        currentGuess = [0, 0, 0, 0];
+        attemptCount = 0;
+        gameResult = null;
     }
-  }
 
-  function tap(x, y) {
-    if (state === 'MENU') { startGame(); return; }
-    if (state === 'DEAD')  { startGame(); return; }
+    function submitGuess() {
+        var result = evaluate(currentGuess, secretCode);
+        var row = { colors: currentGuess.slice(), blacks: result.blacks, whites: result.whites };
+        guesses.push(row);
+        attemptCount++;
 
-    for (var i = 0; i < tiles.length; i++) {
-      var tile = tiles[i];
-      var dx = x - tile.x, dy = y - tile.y;
-      if (Math.abs(dx) <= TILE_W/2 && Math.abs(dy) <= TILE_H/2) {
-        if (tile.num === nextExpected) {
-          tile.lit = true;
-          tile.flashT = 0;
-          nextExpected++;
-          try { Audio.play('tap'); } catch(e) {}
-          if (nextExpected > 9) {
-            nextRound();
-          }
+        if (result.blacks === CODE_LEN) {
+            // WIN this round
+            gameResult = 'win';
+            var pts = (MAX_ATTEMPTS + 1 - attemptCount) * 100;
+            score += pts;
+            if (score > best) best = score;
+            try { Audio.play('gem'); } catch (e) {}
+        } else if (attemptCount >= MAX_ATTEMPTS) {
+            // LOSE this round
+            gameResult = 'lose';
+            lives--;
+            try { Audio.play('crash'); } catch (e) {}
+            if (lives <= 0) {
+                state = 'DEAD';
+                if (score > best) best = score;
+                try { Audio.play('lose'); } catch (e) {}
+                try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+            }
+        }
+
+        if (state === 'PLAYING' && (gameResult === 'win' || gameResult === 'lose')) {
+            // brief pause handled by player tapping "next"
+            // keep gameResult visible, player taps to continue
+        }
+        currentGuess = [0, 0, 0, 0];
+    }
+
+    // ── Update ─────────────────────────────────────────────────────────────────
+
+    function update(dt) {
+        // no continuous animation needed
+    }
+
+    // ── Tap ────────────────────────────────────────────────────────────────────
+
+    function tap(x, y) {
+        if (state === 'MENU') {
+            startGame();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+        if (state === 'DEAD') {
+            startGame();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+        if (state !== 'PLAYING') return;
+
+        // If round ended (win or lose), tap anywhere to start new code
+        if (gameResult !== null) {
+            if (lives > 0) newCode();
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+
+        // Tap current guess pegs to cycle color
+        var i;
+        for (i = 0; i < CODE_LEN; i++) {
+            var pegX = PEGS_X_START + i * PEG_GAP;
+            var pegY = CUR_ROW_Y;
+            var dx = x - pegX;
+            var dy = y - pegY;
+            if (dx * dx + dy * dy <= (PEG_R + 8) * (PEG_R + 8)) {
+                currentGuess[i] = (currentGuess[i] + 1) % COLORS.length;
+                try { Audio.play('tap'); } catch (e) {}
+                return;
+            }
+        }
+
+        // Tap submit button
+        if (x >= SUBMIT_BTN_X && x <= SUBMIT_BTN_X + SUBMIT_BTN_W &&
+            y >= SUBMIT_BTN_Y && y <= SUBMIT_BTN_Y + SUBMIT_BTN_H) {
+            submitGuess();
+            try { Audio.play('tap'); } catch (e) {}
+        }
+    }
+
+    // ── Draw helpers ───────────────────────────────────────────────────────────
+
+    function roundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function drawPeg(cx, cy, r, colorIdx, filled) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        if (filled) {
+            ctx.fillStyle = COLORS[colorIdx];
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
         } else {
-          wrongTile = tile.num;
-          wrongT = 0.4;
-          lives--;
-          try { Audio.play('crash'); } catch(e) {}
-          if (lives <= 0) { endGame(); return; }
-          buildTiles();
+            ctx.fillStyle = '#1a2030';
+            ctx.fill();
+            ctx.strokeStyle = '#445';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
         }
-        return;
-      }
     }
-  }
 
-  function getBest() { return best; }
+    function drawFeedback(cx, cy, blacks, whites) {
+        var i, fx, fy;
+        var count = 0;
+        for (i = 0; i < blacks; i++) {
+            fx = cx + (count % 2) * 13;
+            fy = cy - 8 + Math.floor(count / 2) * 16;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            count++;
+        }
+        for (i = 0; i < whites; i++) {
+            fx = cx + (count % 2) * 13;
+            fy = cy - 8 + Math.floor(count / 2) * 16;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'transparent';
+            ctx.stroke();
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            count++;
+        }
+    }
 
-  return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
+    function drawHistoryRow(rowIdx, guess) {
+        var ry = HIST_Y + rowIdx * HIST_ROW_H;
+        var i, pegX;
+
+        // Row bg
+        ctx.fillStyle = (rowIdx % 2 === 0) ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)';
+        ctx.fillRect(0, ry, VW, HIST_ROW_H);
+
+        // Row number
+        ctx.fillStyle = '#556';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(rowIdx + 1, 10, ry + HIST_ROW_H / 2 + 5);
+
+        if (!guess) {
+            // Empty placeholder
+            for (i = 0; i < CODE_LEN; i++) {
+                pegX = PEGS_X_START + i * PEG_GAP;
+                ctx.beginPath();
+                ctx.arc(pegX, ry + HIST_ROW_H / 2, 18, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a2030';
+                ctx.fill();
+                ctx.strokeStyle = '#334';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            return;
+        }
+
+        for (i = 0; i < CODE_LEN; i++) {
+            pegX = PEGS_X_START + i * PEG_GAP;
+            drawPeg(pegX, ry + HIST_ROW_H / 2, 18, guess.colors[i], true);
+        }
+        drawFeedback(FEEDBACK_X, ry + HIST_ROW_H / 2, guess.blacks, guess.whites);
+    }
+
+    function drawCurrentRow() {
+        var i, pegX;
+        // Glow background
+        ctx.fillStyle = 'rgba(255,255,100,0.06)';
+        ctx.fillRect(0, CUR_ROW_Y - PEG_R - 10, VW, PEG_R * 2 + 20);
+        ctx.strokeStyle = 'rgba(255,255,100,0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, CUR_ROW_Y - PEG_R - 10, VW, PEG_R * 2 + 20);
+
+        for (i = 0; i < CODE_LEN; i++) {
+            pegX = PEGS_X_START + i * PEG_GAP;
+            ctx.shadowColor = COLORS[currentGuess[i]];
+            ctx.shadowBlur = 12;
+            drawPeg(pegX, CUR_ROW_Y, PEG_R, currentGuess[i], true);
+            ctx.shadowBlur = 0;
+        }
+
+        // Attempt counter
+        ctx.fillStyle = '#778';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText((attemptCount + 1) + '/' + MAX_ATTEMPTS, VW - 16, CUR_ROW_Y + 5);
+    }
+
+    function drawSubmitBtn() {
+        ctx.fillStyle = '#1a7a33';
+        roundRect(SUBMIT_BTN_X, SUBMIT_BTN_Y, SUBMIT_BTN_W, SUBMIT_BTN_H, 10);
+        ctx.fill();
+        ctx.strokeStyle = '#2ecc71';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('SUBMIT', VW / 2, SUBMIT_BTN_Y + 34);
+    }
+
+    function drawResultOverlay() {
+        var msg, col;
+        if (gameResult === 'win') {
+            msg = 'CORRECT!';
+            col = '#2ecc71';
+        } else {
+            msg = 'WRONG!  Code was:';
+            col = '#e74c3c';
+        }
+
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, CUR_ROW_Y - 40, VW, 200);
+        ctx.fillStyle = col;
+        ctx.font = 'bold 32px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(msg, VW / 2, CUR_ROW_Y + 10);
+
+        if (gameResult === 'lose') {
+            var i, px;
+            for (i = 0; i < CODE_LEN; i++) {
+                px = PEGS_X_START + i * PEG_GAP;
+                drawPeg(px, CUR_ROW_Y + 50, 18, secretCode[i], true);
+            }
+        }
+
+        ctx.fillStyle = '#aaffff';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText('TAP TO CONTINUE', VW / 2, CUR_ROW_Y + (gameResult === 'lose' ? 110 : 60));
+    }
+
+    // ── Draw ───────────────────────────────────────────────────────────────────
+
+    function draw() {
+        if (!ctx) return;
+        ctx.fillStyle = '#04050e';
+        ctx.fillRect(0, 0, VW, VH);
+
+        if (state === 'MENU') {
+            ctx.fillStyle = '#c084fc';
+            ctx.shadowColor = '#a855f7';
+            ctx.shadowBlur = 30;
+            ctx.font = 'bold 44px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('CODE BREAKER', VW / 2, VH / 2 - 80);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#aaa';
+            ctx.font = '20px sans-serif';
+            ctx.fillText('Guess the 4-color code!', VW / 2, VH / 2 - 28);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 30);
+            if (best > 0) {
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '20px sans-serif';
+                ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 80);
+            }
+            return;
+        }
+
+        // HUD
+        var i, heartStr;
+        heartStr = '';
+        for (i = 0; i < lives; i++) heartStr += '♥';
+        for (i = lives; i < 3; i++) heartStr += '♡';
+        ctx.fillStyle = '#ff4444';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(heartStr, 12, 50);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(score, VW - 12, 50);
+
+        // Column header dots (color swatches)
+        for (i = 0; i < CODE_LEN; i++) {
+            ctx.beginPath();
+            ctx.arc(PEGS_X_START + i * PEG_GAP, 75, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#334';
+            ctx.fill();
+        }
+        ctx.fillStyle = '#556';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('FEEDBACK', FEEDBACK_X, 80);
+
+        // History rows
+        for (i = 0; i < MAX_ATTEMPTS; i++) {
+            drawHistoryRow(i, guesses[i] || null);
+        }
+
+        if (gameResult !== null) {
+            drawResultOverlay();
+        } else {
+            drawCurrentRow();
+            drawSubmitBtn();
+        }
+
+        if (state === 'DEAD') {
+            ctx.fillStyle = 'rgba(0,0,0,0.78)';
+            ctx.fillRect(0, 0, VW, VH);
+            ctx.fillStyle = '#ff4400';
+            ctx.font = 'bold 52px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#ff2200';
+            ctx.shadowBlur = 22;
+            ctx.fillText('GAME OVER', VW / 2, VH / 2 - 80);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 30px sans-serif';
+            ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 - 14);
+            ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 36);
+            ctx.fillStyle = '#aaffff';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 100);
+        }
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+
+    function init(c, b) {
+        canvas = c;
+        ctx = canvas.getContext('2d');
+        best = b || 0;
+        state = 'MENU';
+    }
+
+    function getBest() { return best; }
+
+    return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();

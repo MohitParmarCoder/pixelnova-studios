@@ -2,166 +2,85 @@
 
 var RooftopRun = (function () {
 
-  // ─── Constants ───────────────────────────────────────────────────────────────
+  // ── Constants ──────────────────────────────────────────────────────────────
   var VW = 390;
   var VH = 844;
 
-  var GRAVITY        = 2200;   // px/s²
-  var JUMP_VEL       = -680;   // px/s  (negative = up)
-  var BASE_SPEED     = 220;    // px/s
-  var SPEED_INC      = 12;     // px/s per score point
-  var MAX_SPEED      = 620;    // px/s cap
+  var PLAYER_Y      = VH * 0.65;   // fixed vertical position of player
+  var PLAYER_R      = 18;
+  var BASE_SPEED    = 200;          // px/s platforms scroll down
+  var SPEED_INC     = 20;           // added per 10 score
+  var BASE_INTERVAL = 1.5;          // seconds between platforms
+  var MIN_INTERVAL  = 0.8;
+  var WINDOW_GOOD   = 0.15;         // ±0.15s timing window
+  var WINDOW_PERF   = 0.08;         // inner perfect window
+  var PLAT_W        = 120;
+  var PLAT_H        = 16;
+  var MAX_LIVES     = 3;
 
-  var PLAYER_W       = 18;
-  var PLAYER_H       = 32;
-
-  var BUILDING_MIN_H = 120;    // min height of rooftop from bottom
-  var BUILDING_MAX_H = 420;    // max height of rooftop from bottom
-  var BUILDING_MIN_W = 90;
-  var BUILDING_MAX_W = 160;
-  var GAP_MIN        = 80;
-  var GAP_MAX        = 145;
-
-  var WINDOW_COLS    = 3;
-  var WINDOW_ROWS    = 6;
-
-  var STAR_COUNT     = 80;
-
-  // ─── Module state ────────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   var canvas, ctx;
-  var state;            // 'MENU' | 'PLAYING' | 'DEAD'
+  var state;          // 'MENU' | 'PLAYING' | 'DEAD'
   var bestScore;
 
-  // Player
-  var px, py, pvy;      // position, vertical velocity
-  var onGround;
-
-  // Buildings
-  var buildings;        // array of { x, y (rooftop), w, h, windows[] }
+  // gameplay
   var score;
-  var lastScoredBuilding;
+  var lives;
+  var platforms;      // array of {x, y, xCenter, judged}
+  var spawnTimer;
+  var spawnInterval;
+  var scrollSpeed;
+  var playerX;        // current x of player circle center
+  var targetX;        // x we lerp player toward
+  var streak;         // consecutive hits
 
-  // Scroll speed
-  var speed;
+  // feedback
+  var flashText;      // 'PERFECT!' | 'GOOD!'
+  var flashTimer;
+  var flashColor;
+  var shakeTimer;
 
-  // Stars
-  var stars;            // array of { x, y, r }
-
-  // Flash on death
-  var deadFlash;
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-  function rnd(min, max) {
-    return min + Math.random() * (max - min);
-  }
-
-  function rndInt(min, max) {
-    return Math.floor(rnd(min, max + 1));
-  }
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   function clamp(v, lo, hi) {
     return v < lo ? lo : v > hi ? hi : v;
   }
 
-  // ─── Building factory ────────────────────────────────────────────────────────
-
-  function makeWindows(bx, by, bw, bh) {
-    var wins = [];
-    var cols = WINDOW_COLS;
-    var rows = WINDOW_ROWS;
-    var padX = 12;
-    var padY = 14;
-    var cellW = (bw - padX * 2) / cols;
-    var cellH = (bh - padY * 2) / rows;
-    var ww = clamp(cellW - 8, 6, 18);
-    var wh = clamp(cellH - 8, 6, 14);
-    var i, j;
-    for (i = 0; i < rows; i++) {
-      for (j = 0; j < cols; j++) {
-        if (Math.random() > 0.35) {
-          wins.push({
-            x: bx + padX + j * cellW + (cellW - ww) / 2,
-            y: by + padY + i * cellH + (cellH - wh) / 2,
-            w: ww,
-            h: wh,
-            lit: Math.random() > 0.3
-          });
-        }
-      }
-    }
-    return wins;
+  function spawnPlatform() {
+    var zone = Math.floor(Math.random() * 3);
+    var xCenter;
+    if (zone === 0) { xCenter = VW * 0.2; }
+    else if (zone === 1) { xCenter = VW * 0.5; }
+    else { xCenter = VW * 0.8; }
+    platforms.push({
+      x: xCenter - PLAT_W / 2,
+      y: -PLAT_H,
+      xCenter: xCenter,
+      judged: false
+    });
   }
 
-  function makeBuilding(x, rooftopY) {
-    var bh = VH - rooftopY;
-    var bw = rnd(BUILDING_MIN_W, BUILDING_MAX_W);
-    return {
-      x: x,
-      y: rooftopY,
-      w: bw,
-      h: bh,
-      windows: makeWindows(x, rooftopY, bw, bh)
-    };
+  function calcPlatSpeed() {
+    return BASE_SPEED + Math.floor(score / 10) * SPEED_INC;
   }
 
-  function makeStars() {
-    var arr = [];
-    var i;
-    for (i = 0; i < STAR_COUNT; i++) {
-      arr.push({
-        x: rnd(0, VW),
-        y: rnd(0, VH * 0.65),
-        r: rnd(0.5, 2)
-      });
-    }
-    return arr;
-  }
-
-  // ─── Init ────────────────────────────────────────────────────────────────────
-
-  function init(cnv, best) {
-    canvas = cnv;
-    ctx    = canvas.getContext('2d');
-    bestScore = best || 0;
-    stars  = makeStars();
-    state  = 'MENU';
-    resetGame();
+  function calcInterval() {
+    return clamp(BASE_INTERVAL - score * 0.015, MIN_INTERVAL, BASE_INTERVAL);
   }
 
   function resetGame() {
-    score  = 0;
-    speed  = BASE_SPEED;
-    deadFlash = 0;
-    lastScoredBuilding = -1;
-
-    // First building — wide, mid-height, starting left side
-    var firstRooftopY = VH - 260;
-    var firstW = 180;
-    buildings = [];
-    buildings.push({
-      x: 0,
-      y: firstRooftopY,
-      w: firstW,
-      h: VH - firstRooftopY,
-      windows: makeWindows(0, firstRooftopY, firstW, VH - firstRooftopY)
-    });
-
-    // Pre-fill screen with more buildings
-    var nx = firstW + rnd(GAP_MIN, GAP_MAX);
-    while (nx < VW + 300) {
-      var ry = rnd(BUILDING_MIN_H, BUILDING_MAX_H);
-      var ry2 = VH - ry;
-      var b = makeBuilding(nx, ry2);
-      buildings.push(b);
-      nx = nx + b.w + rnd(GAP_MIN, GAP_MAX);
-    }
-
-    // Player stands on first building's rooftop
-    px = 70;
-    py = firstRooftopY - PLAYER_H;
-    pvy = 0;
-    onGround = true;
+    score         = 0;
+    lives         = MAX_LIVES;
+    platforms     = [];
+    spawnTimer    = 0.4;
+    spawnInterval = BASE_INTERVAL;
+    scrollSpeed   = BASE_SPEED;
+    playerX       = VW / 2;
+    targetX       = VW / 2;
+    streak        = 0;
+    flashText     = null;
+    flashTimer    = 0;
+    shakeTimer    = 0;
   }
 
   function startGame() {
@@ -170,323 +89,76 @@ var RooftopRun = (function () {
     try { AdManager.gameplayStart(); } catch (e) {}
   }
 
-  // ─── Update ──────────────────────────────────────────────────────────────────
+  function endGame() {
+    state = 'DEAD';
+    if (score > bestScore) { bestScore = score; }
+    try { Audio.play('lose'); } catch (e) {}
+    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  function init(cnv, best) {
+    canvas    = cnv;
+    ctx       = canvas.getContext('2d');
+    bestScore = best || 0;
+    state     = 'MENU';
+    resetGame();
+  }
+
+  // ── Update ─────────────────────────────────────────────────────────────────
 
   function update(dt) {
     if (state !== 'PLAYING') { return; }
-
     dt = clamp(dt, 0, 0.05);
 
-    // Update speed
-    speed = clamp(BASE_SPEED + score * SPEED_INC, BASE_SPEED, MAX_SPEED);
+    scrollSpeed   = calcPlatSpeed();
+    spawnInterval = calcInterval();
 
-    // Scroll buildings
-    var i;
-    for (i = 0; i < buildings.length; i++) {
-      buildings[i].x -= speed * dt;
-      var wi, wlen;
-      for (wi = 0, wlen = buildings[i].windows.length; wi < wlen; wi++) {
-        buildings[i].windows[wi].x -= speed * dt;
+    // Spawn timer
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnPlatform();
+      spawnTimer = spawnInterval;
+    }
+
+    // Scroll platforms down
+    var i, p, platCenter, dist, missY;
+    for (i = 0; i < platforms.length; i++) {
+      platforms[i].y += scrollSpeed * dt;
+    }
+
+    // Check for missed platforms
+    for (i = 0; i < platforms.length; i++) {
+      p = platforms[i];
+      if (p.judged) { continue; }
+      platCenter = p.y + PLAT_H / 2;
+      missY      = PLAYER_Y + scrollSpeed * WINDOW_GOOD;
+      if (platCenter > missY) {
+        p.judged = true;
+        streak   = 0;
+        lives--;
+        shakeTimer = 0.25;
+        try { Audio.play('crash'); } catch (e) {}
+        if (lives <= 0) { endGame(); return; }
       }
     }
 
-    // Spawn new buildings off right edge
-    var last = buildings[buildings.length - 1];
-    if (last.x + last.w < VW + 400) {
-      var ry = VH - rnd(BUILDING_MIN_H, BUILDING_MAX_H);
-      var nb = makeBuilding(last.x + last.w + rnd(GAP_MIN, GAP_MAX), ry);
-      buildings.push(nb);
-    }
-
-    // Remove buildings fully off-screen left
-    while (buildings.length > 1 && buildings[0].x + buildings[0].w < -10) {
-      buildings.shift();
-      // adjust lastScoredBuilding index since we removed the first
-      lastScoredBuilding -= 1;
-    }
-
-    // Physics
-    pvy += GRAVITY * dt;
-    py  += pvy * dt;
-
-    // Landing detection
-    onGround = false;
-    for (i = 0; i < buildings.length; i++) {
-      var b = buildings[i];
-      var playerLeft  = px;
-      var playerRight = px + PLAYER_W;
-      var playerBottom = py + PLAYER_H;
-
-      // Check horizontal overlap
-      var overlapX = playerRight > b.x + 4 && playerLeft < b.x + b.w - 4;
-
-      if (overlapX && pvy >= 0 && playerBottom >= b.y && playerBottom <= b.y + 30) {
-        // Land on rooftop
-        py = b.y - PLAYER_H;
-        pvy = 0;
-        onGround = true;
-
-        // Score: count each new building landing
-        if (i > lastScoredBuilding && i > 0) {
-          score += (i - Math.max(lastScoredBuilding, 0));
-          lastScoredBuilding = i;
-          try { Audio.play('gem'); } catch (e) {}
-        }
-        break;
+    // Remove platforms off bottom
+    for (i = platforms.length - 1; i >= 0; i--) {
+      if (platforms[i].y > VH + 30) {
+        platforms.splice(i, 1);
       }
     }
 
-    // Death: fell below screen
-    if (py > VH + 20) {
-      killPlayer();
-      return;
-    }
+    // Lerp player x toward target
+    playerX += (targetX - playerX) * clamp(dt * 12, 0, 1);
 
-    // Death: ran into a building wall (clipped left side of a building ahead)
-    for (i = 0; i < buildings.length; i++) {
-      var b2 = buildings[i];
-      if (px + PLAYER_W > b2.x + 5 &&
-          px < b2.x + b2.w - 5 &&
-          py + PLAYER_H > b2.y + 30 &&
-          py < VH) {
-        // Player body inside the building bulk (below rooftop) — shouldn't happen with landing check
-        // but guard against clipping through side
-        if (px + PLAYER_W > b2.x && px + PLAYER_W < b2.x + 20 && py + PLAYER_H > b2.y) {
-          killPlayer();
-          return;
-        }
-      }
-    }
-
-    // Death: player scrolled off left edge entirely
-    if (px + PLAYER_W < 0) {
-      killPlayer();
-      return;
-    }
-
-    // Slowly push player right to maintain character on screen (runner feel)
-    // Character x is fixed; buildings scroll toward them
-    // But clamp player x to not scroll off screen left
-    if (px < 30) { px = 30; }
+    if (flashTimer > 0) { flashTimer -= dt; }
+    if (shakeTimer > 0) { shakeTimer -= dt; }
   }
 
-  function killPlayer() {
-    state = 'DEAD';
-    deadFlash = 1.0;
-    if (score > bestScore) { bestScore = score; }
-    try { Audio.play('crash'); } catch (e) {}
-    try { Audio.play('lose'); } catch (e) {}
-    try { AdManager.gameplayStop(); } catch (e) {}
-    try { AdManager.onRunEnd(); } catch (e) {}
-  }
-
-  // ─── Draw ────────────────────────────────────────────────────────────────────
-
-  function drawSky() {
-    var grad = ctx.createLinearGradient(0, 0, 0, VH * 0.75);
-    grad.addColorStop(0, '#060618');
-    grad.addColorStop(1, '#0a0a2e');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, VW, VH);
-  }
-
-  function drawStars() {
-    var i, s;
-    ctx.fillStyle = '#ffffff';
-    for (i = 0; i < stars.length; i++) {
-      s = stars[i];
-      ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawMoon() {
-    ctx.fillStyle = '#fffde7';
-    ctx.shadowColor = '#fffde7';
-    ctx.shadowBlur = 18;
-    ctx.beginPath();
-    ctx.arc(VW - 60, 70, 28, 0, Math.PI * 2);
-    ctx.fill();
-    // crescent shadow
-    ctx.fillStyle = '#08082a';
-    ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.arc(VW - 50, 64, 24, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  }
-
-  function drawBuildings() {
-    var i, b, wi, w;
-    for (i = 0; i < buildings.length; i++) {
-      b = buildings[i];
-
-      // Building body
-      ctx.fillStyle = '#1a1a3a';
-      ctx.fillRect(b.x, b.y, b.w, b.h);
-
-      // Rooftop edge highlight
-      ctx.fillStyle = '#2a2a5a';
-      ctx.fillRect(b.x, b.y, b.w, 4);
-
-      // Windows
-      for (wi = 0; wi < b.windows.length; wi++) {
-        w = b.windows[wi];
-        if (w.lit) {
-          ctx.fillStyle = '#ffe066';
-          ctx.shadowColor = '#ffe066';
-          ctx.shadowBlur = 6;
-        } else {
-          ctx.fillStyle = '#0d0d28';
-          ctx.shadowBlur = 0;
-        }
-        ctx.fillRect(w.x, w.y, w.w, w.h);
-      }
-      ctx.shadowBlur = 0;
-    }
-  }
-
-  function drawPlayer() {
-    var x = px;
-    var y = py;
-
-    // Body
-    ctx.fillStyle = '#e53935';
-    ctx.fillRect(x + 4, y + 10, 10, 14);
-
-    // Head
-    ctx.fillStyle = '#ffcc80';
-    ctx.fillRect(x + 4, y + 2, 10, 10);
-
-    // Eyes
-    ctx.fillStyle = '#333';
-    ctx.fillRect(x + 6, y + 4, 2, 2);
-    ctx.fillRect(x + 10, y + 4, 2, 2);
-
-    // Legs (animated)
-    var legOff = onGround ? 0 : 4;
-    ctx.fillStyle = '#1565c0';
-    ctx.fillRect(x + 4,      y + 24, 4, 8 - legOff);
-    ctx.fillRect(x + 10,     y + 24, 4, 8 + legOff);
-
-    // Feet
-    ctx.fillStyle = '#333';
-    ctx.fillRect(x + 3,  y + 32 - legOff, 5, 3);
-    ctx.fillRect(x + 10, y + 32 + legOff, 5, 3);
-
-    // Scarf / cape
-    ctx.fillStyle = '#fff176';
-    ctx.fillRect(x + 12, y + 11, 5, 8);
-  }
-
-  function drawHUD() {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(score, VW / 2, 52);
-    ctx.font = '14px monospace';
-    ctx.fillStyle = '#aaaacc';
-    ctx.fillText('BEST ' + bestScore, VW / 2, 72);
-    ctx.textAlign = 'left';
-  }
-
-  function drawMenu() {
-    drawSky();
-    drawStars();
-    drawMoon();
-    drawBuildings();
-    drawPlayer();
-
-    // Title panel
-    ctx.fillStyle = 'rgba(6,6,24,0.78)';
-    ctx.fillRect(30, VH / 2 - 130, VW - 60, 240);
-
-    ctx.fillStyle = '#ffe066';
-    ctx.font = 'bold 38px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('ROOFTOP', VW / 2, VH / 2 - 72);
-    ctx.fillText('RUNNER', VW / 2, VH / 2 - 28);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '16px monospace';
-    ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 28);
-
-    if (bestScore > 0) {
-      ctx.fillStyle = '#aaaacc';
-      ctx.font = '14px monospace';
-      ctx.fillText('BEST  ' + bestScore, VW / 2, VH / 2 + 60);
-    }
-
-    ctx.textAlign = 'left';
-  }
-
-  function drawDead() {
-    drawSky();
-    drawStars();
-    drawMoon();
-    drawBuildings();
-    drawPlayer();
-
-    // Flash effect on death
-    if (deadFlash > 0) {
-      ctx.fillStyle = 'rgba(255,80,80,' + (deadFlash * 0.45) + ')';
-      ctx.fillRect(0, 0, VW, VH);
-      deadFlash -= 0.04;
-      if (deadFlash < 0) { deadFlash = 0; }
-    }
-
-    // Overlay panel
-    ctx.fillStyle = 'rgba(6,6,24,0.82)';
-    ctx.fillRect(30, VH / 2 - 150, VW - 60, 280);
-
-    ctx.fillStyle = '#ff5252';
-    ctx.font = 'bold 32px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', VW / 2, VH / 2 - 90);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 52px monospace';
-    ctx.fillText(score, VW / 2, VH / 2 - 20);
-
-    ctx.fillStyle = '#ffe066';
-    ctx.font = '16px monospace';
-    ctx.fillText('BEST  ' + bestScore, VW / 2, VH / 2 + 22);
-
-    ctx.fillStyle = '#aaaacc';
-    ctx.font = '15px monospace';
-    ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 76);
-
-    ctx.textAlign = 'left';
-  }
-
-  function draw() {
-    if (!ctx) { return; }
-
-    ctx.clearRect(0, 0, VW, VH);
-
-    if (state === 'MENU') {
-      drawMenu();
-      return;
-    }
-
-    if (state === 'DEAD') {
-      drawDead();
-      return;
-    }
-
-    // PLAYING
-    drawSky();
-    drawStars();
-    drawMoon();
-    drawBuildings();
-    drawPlayer();
-    drawHUD();
-  }
-
-  // ─── Input ───────────────────────────────────────────────────────────────────
+  // ── Tap ────────────────────────────────────────────────────────────────────
 
   function tap(x, y) {
     if (state === 'MENU') {
@@ -494,25 +166,239 @@ var RooftopRun = (function () {
       startGame();
       return;
     }
-
     if (state === 'DEAD') {
       try { Audio.play('tap'); } catch (e) {}
       startGame();
       return;
     }
+    if (state !== 'PLAYING') { return; }
 
-    if (state === 'PLAYING') {
-      // Jump (can jump even in air for double-jump feel — or restrict to onGround)
-      pvy = JUMP_VEL;
+    // Find nearest un-judged platform within WINDOW_GOOD
+    var best = null;
+    var bestDist = 9999;
+    var i, p, platCenter, dist;
+    for (i = 0; i < platforms.length; i++) {
+      p = platforms[i];
+      if (p.judged) { continue; }
+      platCenter = p.y + PLAT_H / 2;
+      dist       = Math.abs(platCenter - PLAYER_Y);
+      if (dist <= scrollSpeed * WINDOW_GOOD && dist < bestDist) {
+        bestDist = dist;
+        best     = p;
+      }
+    }
+
+    if (best === null) {
+      try { Audio.play('tap'); } catch (e) {}
+      return;
+    }
+
+    best.judged = true;
+    var timing  = bestDist / scrollSpeed;
+
+    if (timing <= WINDOW_PERF) {
+      score += 2;
+      streak++;
+      if (streak >= 3) { score += 1; }
+      flashText  = 'PERFECT!';
+      flashColor = '#00e5ff';
+      flashTimer = 0.7;
+      targetX    = best.xCenter;
+      try { Audio.play('gem'); } catch (e) {}
+    } else {
+      score += 1;
+      streak++;
+      flashText  = 'GOOD!';
+      flashColor = '#ffeb3b';
+      flashTimer = 0.5;
+      targetX    = best.xCenter;
       try { Audio.play('tap'); } catch (e) {}
     }
   }
 
-  // ─── Public API ──────────────────────────────────────────────────────────────
+  // ── Draw helpers ───────────────────────────────────────────────────────────
 
-  function getBest() {
-    return bestScore;
+  function drawBg() {
+    ctx.fillStyle = '#04050e';
+    ctx.fillRect(0, 0, VW, VH);
+    ctx.strokeStyle = 'rgba(0,200,255,0.04)';
+    ctx.lineWidth   = 1;
+    var gx;
+    for (gx = 0; gx < VW; gx += 40) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, VH);
+      ctx.stroke();
+    }
   }
+
+  function drawTrack() {
+    ctx.strokeStyle = 'rgba(0,200,255,0.18)';
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.moveTo(VW / 2, 0);
+    ctx.lineTo(VW / 2, VH);
+    ctx.stroke();
+  }
+
+  function drawPlatforms() {
+    var i, p, platCenter, dist, proximity;
+    for (i = 0; i < platforms.length; i++) {
+      p = platforms[i];
+      if (p.judged) { continue; }
+      platCenter  = p.y + PLAT_H / 2;
+      dist        = Math.abs(platCenter - PLAYER_Y);
+      proximity   = 1 - clamp(dist / (scrollSpeed * WINDOW_GOOD * 2), 0, 1);
+
+      ctx.shadowColor = '#00e5ff';
+      ctx.shadowBlur  = proximity * 24;
+      ctx.fillStyle   = '#00bcd4';
+      ctx.fillRect(p.x, p.y, PLAT_W, PLAT_H);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(p.x + 4, p.y + 2, PLAT_W - 8, 3);
+      ctx.shadowBlur = 0;
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  function drawPlayer() {
+    var sx  = shakeTimer > 0 ? (Math.random() - 0.5) * 6 : 0;
+    var px2 = playerX + sx;
+    ctx.shadowColor = '#ff4081';
+    ctx.shadowBlur  = 18;
+    ctx.fillStyle   = '#ff4081';
+    ctx.beginPath();
+    ctx.arc(px2, PLAYER_Y, PLAYER_R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(px2 - 5, PLAYER_Y - 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawTargetLine() {
+    ctx.strokeStyle = 'rgba(255,64,129,0.2)';
+    ctx.lineWidth   = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(0, PLAYER_Y);
+    ctx.lineTo(VW, PLAYER_Y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawFlash() {
+    if (!flashText || flashTimer <= 0) { return; }
+    var alpha = clamp(flashTimer * 2, 0, 1);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle   = flashColor;
+    ctx.font        = 'bold 36px monospace';
+    ctx.textAlign   = 'center';
+    ctx.fillText(flashText, VW / 2, PLAYER_Y - 50);
+    ctx.globalAlpha = 1;
+    ctx.textAlign   = 'left';
+  }
+
+  function drawLives() {
+    ctx.font      = '26px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff1744';
+    var str = '';
+    var i;
+    for (i = 0; i < MAX_LIVES; i++) {
+      str += (i < lives) ? '♥' : '♡';
+    }
+    ctx.fillText(str, 16, 44);
+  }
+
+  function drawScore() {
+    ctx.font      = 'bold 28px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(score, VW - 16, 44);
+    if (streak >= 3) {
+      ctx.font      = '14px monospace';
+      ctx.fillStyle = '#ffeb3b';
+      ctx.fillText('x' + streak + ' streak', VW - 16, 64);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  function drawMenu() {
+    drawBg();
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#00e5ff';
+    ctx.font        = 'bold 54px monospace';
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur  = 24;
+    ctx.fillText('GRIND', VW / 2, VH / 2 - 60);
+    ctx.fillStyle   = '#ff4081';
+    ctx.shadowColor = '#ff4081';
+    ctx.fillText('RAILS', VW / 2, VH / 2);
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = '#ffffff';
+    ctx.font        = '20px monospace';
+    ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 70);
+    if (bestScore > 0) {
+      ctx.fillStyle = '#aaaacc';
+      ctx.font      = '16px monospace';
+      ctx.fillText('BEST: ' + bestScore, VW / 2, VH / 2 + 106);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  function drawDead() {
+    drawBg();
+    ctx.fillStyle = 'rgba(4,5,14,0.75)';
+    ctx.fillRect(0, 0, VW, VH);
+
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#ff4081';
+    ctx.font        = 'bold 48px monospace';
+    ctx.shadowColor = '#ff4081';
+    ctx.shadowBlur  = 20;
+    ctx.fillText('GAME OVER', VW / 2, VH / 2 - 80);
+    ctx.shadowBlur  = 0;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font      = 'bold 60px monospace';
+    ctx.fillText(score, VW / 2, VH / 2);
+
+    ctx.fillStyle = '#ffeb3b';
+    ctx.font      = '22px monospace';
+    ctx.fillText('BEST: ' + bestScore, VW / 2, VH / 2 + 52);
+
+    ctx.fillStyle = '#aaaacc';
+    ctx.font      = '18px monospace';
+    ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 110);
+    ctx.textAlign = 'left';
+  }
+
+  // ── Draw (main) ────────────────────────────────────────────────────────────
+
+  function draw() {
+    if (!ctx) { return; }
+    ctx.clearRect(0, 0, VW, VH);
+
+    if (state === 'MENU') { drawMenu(); return; }
+    if (state === 'DEAD')  { drawDead();  return; }
+
+    // PLAYING
+    drawBg();
+    drawTrack();
+    drawTargetLine();
+    drawPlatforms();
+    drawPlayer();
+    drawFlash();
+    drawLives();
+    drawScore();
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  function getBest() { return bestScore; }
 
   return {
     init:    init,

@@ -3,137 +3,275 @@ var LightningGrab = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, bolts, particles, spawnTimer, spawnInterval, missed;
 
-  function init(canvas, bestScore) { c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU'; }
+  // Game state variables
+  var score, lives;
+  var phase; // 'FLASH' or 'CHOOSE'
+  var flashTimer, chooseTimer, flashDuration, chooseDuration;
+  var targetColor, reactionStart;
+  var roundColors, buttonLayout;
+
+  var COLORS = ['#f87171', '#86efac', '#60a5fa', '#fde68a'];
+
+  function init(canvas, bestScore) {
+    c = canvas;
+    ctx = c.getContext('2d');
+    best = bestScore || 0;
+    state = 'MENU';
+  }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
 
   function startGame() {
-    score = 0; missed = 0; bolts = []; particles = [];
-    spawnTimer = 0; spawnInterval = 0.7;
+    score = 0;
+    lives = 3;
+    flashDuration = 0.4;
+    chooseDuration = 2.5;
     state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
+    startRound();
   }
 
-  function spawnBolt() {
-    var life = 1.2 - score * 0.008;
-    life = Math.max(0.35, life);
-    bolts.push({
-      x: 30 + Math.random() * (VW - 60), y: 120 + Math.random() * (VH - 280),
-      life: life, maxLife: life,
-      segments: makeBolt(30 + Math.random() * (VW - 60), 120 + Math.random() * (VH - 280))
-    });
-  }
-
-  function makeBolt(x, y) {
-    var segs = []; var cx = x, cy = y;
-    for (var i = 0; i < 5; i++) {
-      var nx = cx + (Math.random() - 0.5) * 30;
-      var ny = cy + (Math.random() - 0.5) * 30;
-      segs.push([cx, cy, nx, ny]); cx = nx; cy = ny;
+  function startRound() {
+    var idx = Math.floor(Math.random() * COLORS.length);
+    targetColor = COLORS[idx];
+    roundColors = shuffle(COLORS);
+    // Layout: 2x2 grid centered on screen
+    // Each button 110px wide, 90px tall with gap
+    var bw = 110, bh = 90, gap = 20;
+    var totalW = bw * 2 + gap;
+    var totalH = bh * 2 + gap;
+    var startX = (VW - totalW) / 2;
+    var startY = (VH - totalH) / 2;
+    buttonLayout = [];
+    for (var row = 0; row < 2; row++) {
+      for (var col = 0; col < 2; col++) {
+        var colorIdx = row * 2 + col;
+        buttonLayout.push({
+          x: startX + col * (bw + gap),
+          y: startY + row * (bh + gap),
+          w: bw,
+          h: bh,
+          color: roundColors[colorIdx]
+        });
+      }
     }
-    return segs;
+    phase = 'FLASH';
+    flashTimer = flashDuration;
   }
 
-  function addParticles(x, y) {
-    for (var i = 0; i < 12; i++) {
-      var a = Math.random() * Math.PI * 2;
-      particles.push({ x: x, y: y, vx: Math.cos(a) * (60 + Math.random() * 100),
-        vy: Math.sin(a) * (60 + Math.random() * 100), life: 0.5, maxLife: 0.5, color: '#FFD700' });
+  function loseLife() {
+    lives--;
+    try { Audio.play('crash'); } catch(e) {}
+    if (lives <= 0) {
+      lives = 0;
+      if (score > best) best = score;
+      state = 'DEAD';
+      try { Audio.play('lose'); } catch(e) {}
+      try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    } else {
+      startRound();
     }
   }
 
   function update(dt) {
     if (state !== 'PLAYING') return;
-    spawnTimer += dt;
-    spawnInterval = Math.max(0.3, 0.7 - score * 0.005);
-    var maxBolts = Math.min(6, 2 + Math.floor(score / 8));
-    if (spawnTimer >= spawnInterval && bolts.length < maxBolts) { spawnTimer = 0; spawnBolt(); }
 
-    for (var i = bolts.length - 1; i >= 0; i--) {
-      bolts[i].life -= dt;
-      if (bolts[i].life <= 0) { bolts.splice(i, 1); missed++; if (missed >= 5) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} } }
-    }
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var p = particles[j]; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
-      if (p.life <= 0) particles.splice(j, 1);
-    }
-  }
-
-  function drawBolt(b) {
-    var alpha = b.life / b.maxLife;
-    var t = Date.now() / 100;
-    ctx.save(); ctx.globalAlpha = alpha;
-    // glow ring
-    ctx.strokeStyle = 'rgba(255,220,0,' + alpha * 0.3 + ')'; ctx.lineWidth = 30;
-    ctx.beginPath(); ctx.arc(b.x, b.y, 22, 0, Math.PI * 2); ctx.stroke();
-    // bolt segments
-    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2.5; ctx.shadowBlur = 16; ctx.shadowColor = '#FFD700';
-    b.segments.forEach(function (seg, idx) {
-      var ox = Math.sin(t + idx) * 3, oy = Math.cos(t + idx) * 3;
-      ctx.beginPath(); ctx.moveTo(seg[0] - b.x + b.x + ox, seg[1] - b.y + b.y + oy);
-      ctx.lineTo(seg[2] - b.x + b.x + ox, seg[3] - b.y + b.y + oy); ctx.stroke();
-    });
-    // touch indicator
-    ctx.fillStyle = 'rgba(255,220,0,' + alpha * 0.5 + ')';
-    ctx.beginPath(); ctx.arc(b.x, b.y, 28, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-  }
-
-  function draw() {
-    var bg = ctx.createLinearGradient(0, 0, 0, VH);
-    bg.addColorStop(0, '#050010'); bg.addColorStop(1, '#100500');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, VW, VH);
-
-    if (state === 'MENU') {
-      ctx.fillStyle = '#FFD700'; ctx.font = 'bold 44px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 24; ctx.shadowColor = '#FFD700'; ctx.fillText('LIGHTNING GRAB', VW / 2, 270);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
-      ctx.fillText('Tap lightning before it fades!', VW / 2, 340); ctx.fillText('TAP TO PLAY', VW / 2, 400);
-      ctx.fillStyle = '#a8edea'; ctx.font = '18px system-ui'; ctx.fillText('BEST: ' + best, VW / 2, 460);
-      return;
-    }
-
-    bolts.forEach(drawBolt);
-    ctx.shadowBlur = 0;
-    particles.forEach(function (p) {
-      ctx.globalAlpha = p.life / p.maxLife; ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    ctx.fillStyle = '#FFD700'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
-    ctx.shadowBlur = 0; ctx.fillText('Score: ' + score, 16, 44);
-    ctx.fillStyle = '#f87171'; ctx.textAlign = 'right';
-    for (var i = 0; i < 5; i++) {
-      ctx.fillStyle = i < missed ? '#f87171' : 'rgba(255,255,255,0.3)';
-      ctx.fillRect(VW - 16 - (5 - i) * 22, 28, 16, 14);
-    }
-
-    if (state === 'DEAD') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, VW, VH);
-      ctx.fillStyle = '#f87171'; ctx.font = 'bold 44px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 18; ctx.shadowColor = '#f87171'; ctx.fillText('GAME OVER', VW / 2, 310);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#FFD700'; ctx.font = 'bold 30px system-ui';
-      ctx.fillText('Score: ' + score, VW / 2, 380); ctx.fillStyle = '#a8edea'; ctx.font = '22px system-ui';
-      ctx.fillText('Best: ' + best, VW / 2, 425); ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
-      ctx.fillText('TAP TO RETRY', VW / 2, 495);
-    }
-    ctx.textAlign = 'left';
-  }
-
-  function tap(x, y) {
-    if (state === 'MENU') { startGame(); return; }
-    if (state === 'DEAD') { startGame(); return; }
-    for (var i = bolts.length - 1; i >= 0; i--) {
-      var b = bolts[i], dx = x - b.x, dy = y - b.y;
-      if (dx * dx + dy * dy < 35 * 35) {
-        score++; if (score > best) best = score;
-        addParticles(b.x, b.y); bolts.splice(i, 1);
-        try { Audio.play('power'); } catch(e) {}
-        return;
+    if (phase === 'FLASH') {
+      flashTimer -= dt;
+      if (flashTimer <= 0) {
+        phase = 'CHOOSE';
+        chooseTimer = chooseDuration;
+        reactionStart = chooseTimer;
+      }
+    } else if (phase === 'CHOOSE') {
+      chooseTimer -= dt;
+      if (chooseTimer <= 0) {
+        // Time ran out - lose a life
+        loseLife();
       }
     }
   }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function drawHUD() {
+    ctx.font = 'bold 26px system-ui';
+    ctx.textAlign = 'left';
+    var heartsStr = '';
+    for (var i = 0; i < 3; i++) {
+      heartsStr += (i < lives) ? '♥' : '♡';
+    }
+    ctx.fillStyle = '#f87171';
+    ctx.fillText(heartsStr, 14, 44);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 26px system-ui';
+    ctx.fillText(score, VW - 14, 44);
+    ctx.textAlign = 'left';
+  }
+
+  function draw() {
+    ctx.fillStyle = '#04050e';
+    ctx.fillRect(0, 0, VW, VH);
+
+    if (state === 'MENU') {
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 52px system-ui';
+      ctx.fillStyle = '#fde68a';
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#fde68a';
+      ctx.fillText('Quick Draw', VW / 2, 300);
+      ctx.shadowBlur = 0;
+
+      ctx.font = '22px system-ui';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('Watch the color flash,', VW / 2, 370);
+      ctx.fillText('then tap the matching button!', VW / 2, 402);
+
+      ctx.font = 'bold 24px system-ui';
+      ctx.fillStyle = '#86efac';
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = '#86efac';
+      ctx.fillText('TAP TO PLAY', VW / 2, 480);
+      ctx.shadowBlur = 0;
+
+      ctx.font = '18px system-ui';
+      ctx.fillStyle = '#a8edea';
+      ctx.fillText('BEST: ' + best, VW / 2, 540);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    drawHUD();
+
+    if (state === 'PLAYING') {
+      if (phase === 'FLASH') {
+        ctx.save();
+        ctx.shadowBlur = 60;
+        ctx.shadowColor = targetColor;
+        ctx.fillStyle = targetColor;
+        ctx.beginPath();
+        ctx.arc(VW / 2, VH / 2, 90, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.textAlign = 'center';
+        ctx.font = '20px system-ui';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('Remember this color!', VW / 2, VH / 2 + 140);
+        ctx.textAlign = 'left';
+
+      } else if (phase === 'CHOOSE') {
+        // Timer bar
+        var timerFrac = chooseTimer / chooseDuration;
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(20, 70, VW - 40, 10);
+        ctx.fillStyle = timerFrac > 0.4 ? '#86efac' : '#f87171';
+        ctx.fillRect(20, 70, (VW - 40) * timerFrac, 10);
+
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 22px system-ui';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('Tap the correct color!', VW / 2, VH / 2 - 140);
+        ctx.textAlign = 'left';
+
+        for (var i = 0; i < buttonLayout.length; i++) {
+          var btn = buttonLayout[i];
+          ctx.save();
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = btn.color;
+          ctx.fillStyle = btn.color;
+          roundRect(btn.x, btn.y, btn.w, btn.h, 16);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    if (state === 'DEAD') {
+      ctx.fillStyle = 'rgba(0,0,0,0.72)';
+      ctx.fillRect(0, 0, VW, VH);
+
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 52px system-ui';
+      ctx.fillStyle = '#f87171';
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#f87171';
+      ctx.fillText('GAME OVER', VW / 2, 300);
+      ctx.shadowBlur = 0;
+
+      ctx.font = 'bold 32px system-ui';
+      ctx.fillStyle = '#fde68a';
+      ctx.fillText(score, VW / 2, 375);
+
+      ctx.font = '22px system-ui';
+      ctx.fillStyle = '#a8edea';
+      ctx.fillText('BEST: ' + best, VW / 2, 428);
+
+      ctx.font = 'bold 24px system-ui';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('TAP TO RETRY', VW / 2, 510);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  function tap(x, y) {
+    if (state === 'MENU') {
+      startGame();
+      try { Audio.play('tap'); } catch(e) {}
+      return;
+    }
+    if (state === 'DEAD') {
+      startGame();
+      try { Audio.play('tap'); } catch(e) {}
+      return;
+    }
+    if (state === 'PLAYING' && phase === 'CHOOSE') {
+      try { Audio.play('tap'); } catch(e) {}
+      for (var i = 0; i < buttonLayout.length; i++) {
+        var btn = buttonLayout[i];
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+          if (btn.color === targetColor) {
+            var elapsed = chooseDuration - chooseTimer;
+            var bonus = Math.floor(10 - 10 * elapsed / 2.0);
+            if (bonus < 1) bonus = 1;
+            score += bonus;
+            if (score > best) best = score;
+            try { Audio.play('gem'); } catch(e) {}
+            flashDuration -= 0.02;
+            if (flashDuration < 0.15) flashDuration = 0.15;
+            startRound();
+          } else {
+            loseLife();
+          }
+          return;
+        }
+      }
+    }
+  }
+
   function getBest() { return best; }
+
   return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();

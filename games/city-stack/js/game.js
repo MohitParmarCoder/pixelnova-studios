@@ -1,356 +1,468 @@
 'use strict';
+
 var CityStack = (function () {
-  var VW = 390, VH = 844;
-  var ctx, best, state, score;
-  var PLATFORM_Y = 720;   // y of the ground platform top
-  var PLATFORM_H = 80;    // height of ground/each stacked block
-  var slider;             // {x, w, h, color, spd, dir}
-  var stack;              // [{x, w, h, color, y}] bottom to top
-  var fallingSlabs;       // overhang falling off [{x,y,w,h,vy,color}]
-  var particles;
-  var BLOCK_H_MIN = 24, BLOCK_H_MAX = 52;
-  var BASE_W = 210;
-  var SLIDER_Y;
-  var speed;
 
-  var NEON = ['#00fff7','#ff00cc','#39ff14','#ffe600','#ff6600','#cc00ff','#0099ff'];
+  // ── Constants ──────────────────────────────────────────────────────────────
+  var VW = 390;
+  var VH = 844;
 
-  function _pickColor() { return NEON[Math.floor(Math.random() * NEON.length)]; }
+  var ROWS         = 8;
+  var COLS         = 3;
+  var BLOCK_W      = 90;
+  var BLOCK_H      = 28;
+  var BLOCK_GAP    = 4;
+  var ROW_H        = BLOCK_H + BLOCK_GAP;
+  var TOWER_BASE_Y = VH - 120;    // y of bottom row top
+  var TOWER_CX     = 195;         // center x of tower
+  var MAX_LIVES    = 3;
 
-  function _reset() { state = 'MENU'; score = 0; }
+  // Row colors: bottom = brownish, top = gray
+  var ROW_COLORS = [
+    '#8d6e63', '#795548', '#6d4c41',
+    '#607d8b', '#546e7a', '#455a64',
+    '#78909c', '#90a4ae'
+  ];
 
-  function _stackTop() {
-    if (stack.length === 0) return { x: VW / 2 - BASE_W / 2, w: BASE_W, y: PLATFORM_Y, color: '#004466' };
-    var top = stack[stack.length - 1];
-    return top;
+  // ── State ──────────────────────────────────────────────────────────────────
+  var canvas, ctx;
+  var state;        // 'MENU' | 'PLAYING' | 'DEAD'
+  var bestScore;
+
+  var score;
+  var lives;
+  var pullCount;    // total blocks pulled this game
+  var safeLeft;     // guaranteed safe pulls remaining
+
+  // blocks[row][col] = true (present) | false (removed)
+  var blocks;
+
+  // Animation
+  var wobbleAmt;    // current wobble amplitude
+  var wobbleTime;   // accumulated time for wobble oscillation
+  var wobbleDecay;
+  var crashFlash;   // timer for crash flash before DEAD
+
+  // highlight: which block is "pre-selected" (last tap candidate)
+  var highlightRow, highlightCol;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function clamp(v, lo, hi) {
+    return v < lo ? lo : v > hi ? hi : v;
   }
 
-  function _newSlider(prevTop) {
-    var bh = BLOCK_H_MIN + Math.floor(Math.random() * (BLOCK_H_MAX - BLOCK_H_MIN + 1));
-    SLIDER_Y = prevTop.y - bh;
-    speed = Math.min(280, 80 + score * 12);
-    return {
-      x: 0,
-      w: prevTop.w,
-      h: bh,
-      color: _pickColor(),
-      spd: speed,
-      dir: 1
-    };
+  function blockX(col) {
+    // Left edge of a block in a given column (0,1,2)
+    var totalW = COLS * BLOCK_W + (COLS - 1) * BLOCK_GAP;
+    return TOWER_CX - totalW / 2 + col * (BLOCK_W + BLOCK_GAP);
   }
 
-  function _startGame() {
+  function blockY(row) {
+    // Top edge of block in a given row (0=bottom, 7=top)
+    return TOWER_BASE_Y - row * ROW_H;
+  }
+
+  function countPresent(row) {
+    var n = 0;
+    var c;
+    for (c = 0; c < COLS; c++) {
+      if (blocks[row][c]) { n++; }
+    }
+    return n;
+  }
+
+  function isTappable(row) {
+    // Can only pull from rows 0-6 (not the top row 7)
+    // and the row must have at least one block
+    if (row >= ROWS - 1) { return false; }
+    if (countPresent(row) === 0) { return false; }
+    return true;
+  }
+
+  function stabilityCheck() {
+    // First safeLeft pulls always succeed
+    if (safeLeft > 0) {
+      safeLeft--;
+      return 'safe';
+    }
+    // Probability of collapse grows with pulls
+    var pCollapse = pullCount * 0.08;
+    var r = Math.random();
+    if (r < pCollapse) {
+      return 'collapse';
+    }
+    // Near-miss: reduce a life but don't collapse
+    var pNearMiss = pCollapse * 0.5;
+    if (r < pCollapse + pNearMiss) {
+      return 'nearmiss';
+    }
+    return 'safe';
+  }
+
+  function initBlocks() {
+    var r, c;
+    blocks = [];
+    for (r = 0; r < ROWS; r++) {
+      blocks[r] = [];
+      for (c = 0; c < COLS; c++) {
+        blocks[r][c] = true;
+      }
+    }
+  }
+
+  function resetGame() {
+    score         = 0;
+    lives         = MAX_LIVES;
+    pullCount     = 0;
+    safeLeft      = 2;
+    wobbleAmt     = 0;
+    wobbleTime    = 0;
+    wobbleDecay   = 0;
+    crashFlash    = 0;
+    highlightRow  = -1;
+    highlightCol  = -1;
+    initBlocks();
+  }
+
+  function startGame() {
+    resetGame();
     state = 'PLAYING';
-    score = 0;
-    particles = [];
-    fallingSlabs = [];
-    stack = [];
-    // Ground block
-    var groundW = BASE_W;
-    var groundX = Math.floor(VW / 2 - groundW / 2);
-    stack.push({ x: groundX, w: groundW, h: PLATFORM_H, y: PLATFORM_Y, color: '#004466' });
-    slider = _newSlider(_stackTop());
     try { AdManager.gameplayStart(); } catch (e) {}
   }
 
-  function _spawnParticles(bx, by, bw, bh, color) {
-    for (var i = 0; i < 14; i++) {
-      var px = bx + Math.random() * bw;
-      var py = by + Math.random() * bh;
-      var ang = Math.random() * Math.PI * 2;
-      var spd = 50 + Math.random() * 120;
-      particles.push({ x: px, y: py, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd - 40, life: 0.9, maxLife: 0.9, color: color, r: 3 + Math.random() * 3 });
-    }
+  function triggerCollapse() {
+    crashFlash = 0.8;
+    // Delay death to show crash flash
   }
 
-  function init(canvas, savedBest) {
-    ctx = canvas.getContext('2d');
-    best = savedBest || 0;
-    _reset();
+  // ── Init ───────────────────────────────────────────────────────────────────
+
+  function init(cnv, best) {
+    canvas    = cnv;
+    ctx       = canvas.getContext('2d');
+    bestScore = best || 0;
+    state     = 'MENU';
+    resetGame();
   }
+
+  // ── Update ─────────────────────────────────────────────────────────────────
 
   function update(dt) {
-    if (state !== 'PLAYING') return;
+    if (state !== 'PLAYING') { return; }
+    dt = clamp(dt, 0, 0.05);
 
-    // Move slider
-    slider.x += slider.spd * slider.dir * dt;
-    if (slider.x + slider.w > VW) { slider.x = VW - slider.w; slider.dir = -1; }
-    if (slider.x < 0) { slider.x = 0; slider.dir = 1; }
-
-    // Falling slabs
-    for (var i = fallingSlabs.length - 1; i >= 0; i--) {
-      var fs = fallingSlabs[i];
-      fs.vy += 500 * dt;
-      fs.y += fs.vy * dt;
-      if (fs.y > VH + 100) fallingSlabs.splice(i, 1);
+    // Wobble animation
+    if (wobbleDecay > 0) {
+      wobbleTime  += dt * 18;
+      wobbleDecay -= dt * 1.5;
+      if (wobbleDecay < 0) { wobbleDecay = 0; }
+      wobbleAmt = wobbleDecay;
+    } else {
+      wobbleAmt  = 0;
+      wobbleTime = 0;
     }
 
-    // Particles
-    for (var pi = particles.length - 1; pi >= 0; pi--) {
-      var p = particles[pi];
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.vy += 300 * dt;
-      p.life -= dt;
-      if (p.life <= 0) particles.splice(pi, 1);
-    }
-  }
-
-  function tap(x, y) {
-    if (state === 'MENU') { _startGame(); return; }
-    if (state === 'DEAD') {
-      try { AdManager.showInterstitial(function () { _startGame(); }); } catch (e) { _startGame(); }
-      return;
-    }
-    if (state !== 'PLAYING') return;
-
-    var prev = _stackTop();
-    // Calculate overlap
-    var overlapStart = Math.max(slider.x, prev.x);
-    var overlapEnd = Math.min(slider.x + slider.w, prev.x + prev.w);
-    var overlapW = overlapEnd - overlapStart;
-
-    if (overlapW <= 0) {
-      // Complete miss
-      state = 'DEAD';
-      if (score > best) best = score;
-      try { Audio.play('lose'); } catch (e) {}
-      try { AdManager.gameplayStop(); } catch (e) {}
-      try { AdManager.onRunEnd(); } catch (e) {}
-      return;
-    }
-
-    if (overlapW < 15) {
-      // Too thin
-      state = 'DEAD';
-      if (score > best) best = score;
-      try { Audio.play('crash'); } catch (e) {}
-      try { AdManager.gameplayStop(); } catch (e) {}
-      try { AdManager.onRunEnd(); } catch (e) {}
-      return;
-    }
-
-    // Spawn falling overhang slabs
-    if (slider.x < prev.x) {
-      // Left overhang
-      fallingSlabs.push({ x: slider.x, y: SLIDER_Y, w: prev.x - slider.x, h: slider.h, vy: 0, color: slider.color });
-    }
-    if (slider.x + slider.w > prev.x + prev.w) {
-      // Right overhang
-      var rx = prev.x + prev.w;
-      fallingSlabs.push({ x: rx, y: SLIDER_Y, w: (slider.x + slider.w) - rx, h: slider.h, vy: 0, color: slider.color });
-    }
-
-    // Add new block to stack
-    var newBlock = {
-      x: overlapStart,
-      w: overlapW,
-      h: slider.h,
-      y: SLIDER_Y,
-      color: slider.color
-    };
-    stack.push(newBlock);
-    score++;
-
-    _spawnParticles(overlapStart, SLIDER_Y, overlapW, slider.h, slider.color);
-
-    // Check if stack is getting too high — scroll if needed
-    if (SLIDER_Y < 300) {
-      // Shift everything down
-      var shift = 300 - SLIDER_Y;
-      for (var si = 0; si < stack.length; si++) stack[si].y += shift;
-      SLIDER_Y += shift;
-    }
-
-    try { Audio.play('land'); } catch (e) {}
-
-    // New slider based on new top
-    slider = _newSlider(_stackTop());
-  }
-
-  function _drawBuilding(bx, by, bw, bh, color) {
-    ctx.save();
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = color;
-    // Main fill with gradient
-    var g = ctx.createLinearGradient(bx, by, bx, by + bh);
-    g.addColorStop(0, color);
-    g.addColorStop(1, 'rgba(4,5,14,0.8)');
-    ctx.fillStyle = g;
-    ctx.fillRect(bx, by, bw, bh);
-    // Border
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(bx, by, bw, bh);
-    ctx.shadowBlur = 0;
-
-    // Windows
-    var winW = 7, winH = 9, winGapX = 5, winGapY = 7;
-    var winStartX = bx + winGapX;
-    var winStartY = by + winGapY;
-    var cols = Math.floor((bw - winGapX) / (winW + winGapX));
-    var rows = Math.floor((bh - winGapY) / (winH + winGapY));
-    for (var wr = 0; wr < rows; wr++) {
-      for (var wc = 0; wc < cols; wc++) {
-        var wx = winStartX + wc * (winW + winGapX);
-        var wy = winStartY + wr * (winH + winGapY);
-        var lit = Math.random() > 0.25;
-        ctx.fillStyle = lit ? 'rgba(255,255,180,0.7)' : 'rgba(0,0,0,0.5)';
-        ctx.fillRect(wx, wy, winW, winH);
+    // Crash flash counts down to DEAD
+    if (crashFlash > 0) {
+      crashFlash -= dt;
+      if (crashFlash <= 0) {
+        crashFlash = 0;
+        state      = 'DEAD';
+        if (score > bestScore) { bestScore = score; }
+        try { Audio.play('lose'); } catch (e) {}
+        try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
       }
     }
-    ctx.restore();
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, VW, VH);
+  // ── Tap ────────────────────────────────────────────────────────────────────
+
+  function tap(x, y) {
+    if (state === 'MENU') {
+      try { Audio.play('tap'); } catch (e) {}
+      startGame();
+      return;
+    }
+    if (state === 'DEAD') {
+      try { Audio.play('tap'); } catch (e) {}
+      startGame();
+      return;
+    }
+    if (state !== 'PLAYING') { return; }
+    if (crashFlash > 0) { return; }
+
+    // Hit-test which block was tapped
+    var tappedRow = -1;
+    var tappedCol = -1;
+    var r, c, bx, by;
+    for (r = 0; r < ROWS - 1; r++) {
+      for (c = 0; c < COLS; c++) {
+        if (!blocks[r][c]) { continue; }
+        bx = blockX(c);
+        by = blockY(r);
+        if (x >= bx && x <= bx + BLOCK_W && y >= by && y <= by + BLOCK_H) {
+          tappedRow = r;
+          tappedCol = c;
+          break;
+        }
+      }
+      if (tappedRow >= 0) { break; }
+    }
+
+    if (tappedRow < 0 || !isTappable(tappedRow)) {
+      try { Audio.play('tap'); } catch (e) {}
+      return;
+    }
+
+    // Pull the block
+    blocks[tappedRow][tappedCol] = false;
+    pullCount++;
+
+    var result = stabilityCheck();
+
+    if (result === 'collapse') {
+      try { Audio.play('crash'); } catch (e) {}
+      // near-total wobble then crash
+      wobbleDecay = 1.5;
+      wobbleTime  = 0;
+      triggerCollapse();
+    } else if (result === 'nearmiss') {
+      lives--;
+      if (lives < 1) { lives = 1; }
+      score += 10;
+      wobbleDecay = 0.8;
+      wobbleTime  = 0;
+      try { Audio.play('crash'); } catch (e) {}
+    } else {
+      // Safe
+      score += 10;
+      wobbleDecay = 0.3;
+      wobbleTime  = 0;
+      try { Audio.play('gem'); } catch (e) {}
+    }
+
+    highlightRow = -1;
+    highlightCol = -1;
+  }
+
+  // ── Draw helpers ───────────────────────────────────────────────────────────
+
+  function drawBg() {
     ctx.fillStyle = '#04050e';
     ctx.fillRect(0, 0, VW, VH);
-
-    // Stars bg
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    for (var si = 0; si < 60; si++) {
-      var sx = (si * 137.5 + 10) % VW;
-      var sy = (si * 97.3 + 20) % (VH * 0.85);
+    // stars
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    var i, sx, sy;
+    for (i = 0; i < 60; i++) {
+      sx = (i * 137.5 + 10) % VW;
+      sy = (i * 97.3  + 20) % (VH * 0.85);
       ctx.fillRect(sx, sy, 1, 1);
     }
+  }
 
-    if (state === 'MENU') { _drawMenu(); return; }
+  function drawBlock(bx, by, color, present, tappable, highlight) {
+    if (!present) {
+      // Empty gap — draw faint outline
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+      ctx.lineWidth   = 1;
+      ctx.strokeRect(bx + 2, by + 2, BLOCK_W - 4, BLOCK_H - 4);
+      return;
+    }
 
-    // Ground
-    ctx.save();
-    ctx.fillStyle = '#0a1a2a';
-    ctx.fillRect(0, PLATFORM_Y + PLATFORM_H, VW, VH - PLATFORM_Y - PLATFORM_H);
-    ctx.strokeStyle = '#00fff7';
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = '#00fff7';
+    // Shadow / glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = tappable ? 8 : 3;
+
+    // Gradient fill
+    var grad = ctx.createLinearGradient(bx, by, bx, by + BLOCK_H);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(4,5,14,0.6)');
+    ctx.fillStyle = grad;
+
+    // Rounded rect via arc
+    var r = 4;
     ctx.beginPath();
-    ctx.moveTo(0, PLATFORM_Y + PLATFORM_H);
-    ctx.lineTo(VW, PLATFORM_Y + PLATFORM_H);
+    ctx.moveTo(bx + r, by);
+    ctx.lineTo(bx + BLOCK_W - r, by);
+    ctx.quadraticCurveTo(bx + BLOCK_W, by, bx + BLOCK_W, by + r);
+    ctx.lineTo(bx + BLOCK_W, by + BLOCK_H - r);
+    ctx.quadraticCurveTo(bx + BLOCK_W, by + BLOCK_H, bx + BLOCK_W - r, by + BLOCK_H);
+    ctx.lineTo(bx + r, by + BLOCK_H);
+    ctx.quadraticCurveTo(bx, by + BLOCK_H, bx, by + BLOCK_H - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur  = 0;
+
+    // Border
+    ctx.strokeStyle = highlight ? '#ffffff' : color;
+    ctx.lineWidth   = highlight ? 2 : 1;
     ctx.stroke();
-    ctx.restore();
 
-    // Stack
-    for (var bi = 0; bi < stack.length; bi++) {
-      var b = stack[bi];
-      _drawBuilding(b.x, b.y, b.w, b.h, b.color);
-    }
-
-    // Falling slabs
-    for (var fi = 0; fi < fallingSlabs.length; fi++) {
-      var fs = fallingSlabs[fi];
-      ctx.save();
-      ctx.globalAlpha = 0.75;
-      _drawBuilding(fs.x, fs.y, fs.w, fs.h, fs.color);
-      ctx.restore();
-    }
-
-    // Slider
-    if (state === 'PLAYING') {
-      _drawBuilding(slider.x, SLIDER_Y, slider.w, slider.h, slider.color);
-      // Drop guide line
-      var prev = _stackTop();
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.setLineDash([4, 6]);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(prev.x, SLIDER_Y + slider.h);
-      ctx.lineTo(prev.x, prev.y);
-      ctx.stroke();
-      ctx.moveTo(prev.x + prev.w, SLIDER_Y + slider.h);
-      ctx.lineTo(prev.x + prev.w, prev.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
-
-    // Particles
-    for (var pi = 0; pi < particles.length; pi++) {
-      var p = particles[pi];
-      ctx.save();
-      ctx.globalAlpha = p.life / p.maxLife;
-      ctx.fillStyle = p.color;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // HUD
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 36px system-ui';
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = '#00fff7';
-    ctx.fillText(score, VW / 2, 56);
-    ctx.fillStyle = 'rgba(255,230,0,0.7)';
-    ctx.font = '13px system-ui';
-    ctx.shadowBlur = 0;
-    ctx.fillText('BEST ' + best, VW / 2, 76);
-    ctx.restore();
-
-    if (state === 'DEAD') _drawDead();
+    // Shine
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(bx + 4, by + 3, BLOCK_W - 8, 4);
   }
 
-  function _drawMenu() {
+  function drawTower() {
+    var wobbleX = wobbleAmt > 0 ? Math.sin(wobbleTime) * wobbleAmt * 10 : 0;
+
     ctx.save();
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 52px system-ui';
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = '#00fff7';
-    ctx.fillStyle = '#00fff7';
-    ctx.fillText('CITY', VW / 2, VH / 2 - 55);
-    ctx.fillStyle = '#ffe600';
-    ctx.shadowColor = '#ffe600';
-    ctx.fillText('STACK', VW / 2, VH / 2 + 8);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '15px system-ui';
-    ctx.fillText('Tap to drop the building block!', VW / 2, VH / 2 + 72);
-    ctx.fillText('Stack as high as you can.', VW / 2, VH / 2 + 95);
-    var pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.004);
-    ctx.fillStyle = 'rgba(57,255,20,' + pulse + ')';
-    ctx.font = 'bold 22px system-ui';
-    ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 160);
-    if (best > 0) {
-      ctx.fillStyle = 'rgba(255,230,0,0.7)';
-      ctx.font = '15px system-ui';
-      ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 200);
+    ctx.translate(wobbleX, 0);
+
+    var r, c, bx, by, color, present, tappable, highlight;
+    for (r = 0; r < ROWS; r++) {
+      color    = ROW_COLORS[r % ROW_COLORS.length];
+      tappable = isTappable(r);
+      for (c = 0; c < COLS; c++) {
+        bx      = blockX(c);
+        by      = blockY(r);
+        present = blocks[r][c];
+        highlight = (r === highlightRow && c === highlightCol);
+        drawBlock(bx, by, color, present, tappable, highlight);
+      }
     }
+
     ctx.restore();
   }
 
-  function _drawDead() {
-    ctx.save();
-    ctx.fillStyle = 'rgba(4,5,14,0.8)';
+  function drawHUD() {
+    // Lives top-left
+    ctx.font      = '26px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff1744';
+    var str = '';
+    var i;
+    for (i = 0; i < MAX_LIVES; i++) {
+      str += (i < lives) ? '♥' : '♡';
+    }
+    ctx.fillText(str, 16, 44);
+
+    // Score top-right
+    ctx.font      = 'bold 28px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(score, VW - 16, 44);
+
+    // Pull count
+    ctx.font      = '13px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('pulls: ' + pullCount, VW - 16, 64);
+
+    // Stability label
+    var stabilityLabel, stabilityColor;
+    if (lives === 3) {
+      stabilityLabel = 'STABLE';
+      stabilityColor = '#69f0ae';
+    } else if (lives === 2) {
+      stabilityLabel = 'WOBBLING';
+      stabilityColor = '#ffeb3b';
+    } else {
+      stabilityLabel = 'CRITICAL!';
+      stabilityColor = '#ff5252';
+    }
+    ctx.font      = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = stabilityColor;
+    ctx.fillText(stabilityLabel, VW / 2, VH - 30);
+
+    ctx.textAlign = 'left';
+  }
+
+  function drawCrashFlash() {
+    if (crashFlash <= 0) { return; }
+    var alpha = clamp(crashFlash * 0.7, 0, 0.7);
+    ctx.fillStyle = 'rgba(255,80,40,' + alpha + ')';
     ctx.fillRect(0, 0, VW, VH);
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 52px system-ui';
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = '#ff00cc';
-    ctx.fillStyle = '#ff00cc';
-    ctx.fillText('GAME', VW / 2, VH / 2 - 60);
-    ctx.fillStyle = '#ff6600';
-    ctx.shadowColor = '#ff6600';
-    ctx.fillText('OVER', VW / 2, VH / 2 + 0);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 28px system-ui';
-    ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 + 62);
-    ctx.fillStyle = 'rgba(255,230,0,0.85)';
-    ctx.font = '16px system-ui';
-    ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 95);
-    var pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.004);
-    ctx.fillStyle = 'rgba(57,255,20,' + pulse + ')';
-    ctx.font = 'bold 20px system-ui';
-    ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 155);
-    ctx.restore();
+
+    // "CRASH!" text
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#ffffff';
+    ctx.font        = 'bold 72px monospace';
+    ctx.shadowColor = '#ff5252';
+    ctx.shadowBlur  = 30;
+    ctx.fillText('CRASH!', VW / 2, VH / 2);
+    ctx.shadowBlur  = 0;
+    ctx.textAlign   = 'left';
   }
 
-  function getBest() { return best; }
-  return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
-})();
+  function drawMenu() {
+    drawBg();
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#00e5ff';
+    ctx.font        = 'bold 54px monospace';
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur  = 24;
+    ctx.fillText('JENGA', VW / 2, VH / 2 - 60);
+    ctx.fillStyle   = '#ffeb3b';
+    ctx.shadowColor = '#ffeb3b';
+    ctx.fillText('PULL', VW / 2, VH / 2);
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = '#ffffff';
+    ctx.font        = '20px monospace';
+    ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 70);
+    if (bestScore > 0) {
+      ctx.fillStyle = '#aaaacc';
+      ctx.font      = '16px monospace';
+      ctx.fillText('BEST: ' + bestScore, VW / 2, VH / 2 + 106);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  function drawDead() {
+    ctx.fillStyle = 'rgba(4,5,14,0.78)';
+    ctx.fillRect(0, 0, VW, VH);
+
+    ctx.textAlign   = 'center';
+    ctx.fillStyle   = '#ff5252';
+    ctx.font        = 'bold 48px monospace';
+    ctx.shadowColor = '#ff5252';
+    ctx.shadowBlur  = 20;
+    ctx.fillText('GAME OVER', VW / 2, VH / 2 - 80);
+    ctx.shadowBlur  = 0;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font      = 'bold 60px monospace';
+    ctx.fillText(score, VW / 2, VH / 2);
+
+    ctx.fillStyle = '#ffeb3b';
+    ctx.font      = '22px monospace';
+    ctx.fillText('BEST: ' + bestScore, VW / 2, VH / 2 + 52);
+
+    ctx.fillStyle = '#aaaacc';
+    ctx.font      = '18px monospace';
+    ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 110);
+    ctx.textAlign = 'left';
+  }
+
+  // ── Draw (main) ────────────────────────────────────────────────────────────
+
+  function draw() {
+    if (!ctx) { return; }
+    ctx.clearRect(0, 0, VW, VH);
+
+    if (state === 'MENU') { drawMenu(); return; }
+
+    drawBg();
+    drawTower();
+    drawHUD();
+    drawCrashFlash();
+
+    if (state === 'DEAD') { drawDead(); }
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  function getBest() { return bestScore; }
+
+  return {
+    init:    init,
+    update:  update,
+    draw:    draw,
+    tap:     tap,
+    getBest: getBest
+  };
+
+}());

@@ -3,143 +3,243 @@ var SnowballCatch = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, lives, items, particles, spawnTimer, spawnInterval, speed, snowflakes;
-  var basket = { x: 195, w: 72, h: 26, y: VH - 80 };
-  var dragX = null;
+  var score, lives, fish, hook, consecutiveMisses;
+  var WATER_TOP = 300;
+  var HOOK_START_Y = 200;
+  var HOOK_MAX_Y = VH - 60;
+  var HOOK_SPEED = 340;
+  var LINE_RETRACT_TIME = 1.5;
+
+  var hookStates = {
+    IDLE: 'IDLE',
+    FALLING: 'FALLING',
+    WAITING: 'WAITING',
+    RETRACTING: 'RETRACTING'
+  };
 
   function init(canvas, bestScore) {
-    c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU';
-    snowflakes = [];
-    for (var i = 0; i < 50; i++) {
-      snowflakes.push({ x: Math.random() * VW, y: Math.random() * VH, r: 1 + Math.random() * 2, spd: 20 + Math.random() * 40, wx: Math.random() * 0.5 - 0.25 });
-    }
+    c = canvas; ctx = c.getContext('2d'); best = bestScore || 0;
+    state = 'MENU';
+  }
+
+  function makeFish() {
+    var big = Math.random() < 0.3;
+    var r = big ? 26 : 16;
+    var pts = big ? 3 : 1;
+    var speed = big ? (40 + Math.random() * 30) : (70 + Math.random() * 60);
+    var depth = WATER_TOP + 60 + Math.random() * (VH - WATER_TOP - 120);
+    var startLeft = Math.random() < 0.5;
+    return {
+      x: startLeft ? -r : VW + r,
+      y: depth,
+      r: r,
+      pts: pts,
+      speed: speed,
+      dir: startLeft ? 1 : -1,
+      color: big ? '#ffd700' : '#6bcb77'
+    };
   }
 
   function startGame() {
-    score = 0; lives = 3; items = []; particles = [];
-    spawnTimer = 0; spawnInterval = 0.9; speed = 155;
-    basket.x = VW / 2; dragX = null; state = 'PLAYING';
+    score = 0; lives = 3; consecutiveMisses = 0;
+    fish = [];
+    var i;
+    for (i = 0; i < 4; i++) fish.push(makeFish());
+    hook = { x: VW / 2, y: HOOK_START_Y, hookState: hookStates.IDLE, waitTimer: 0 };
+    state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
-  }
-
-  function spawnItem() {
-    var isIcicle = Math.random() < 0.2 + score * 0.004;
-    items.push({
-      x: 20 + Math.random() * (VW - 40), y: -20,
-      r: isIcicle ? 8 : 14 + Math.random() * 6,
-      icicle: isIcicle, speed: speed * (0.8 + Math.random() * 0.4)
-    });
-  }
-
-  function addParticles(x, y, color) {
-    for (var i = 0; i < 10; i++) {
-      var a = Math.random() * Math.PI * 2;
-      particles.push({ x: x, y: y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, life: 0.55, maxLife: 0.55, color: color });
-    }
   }
 
   function update(dt) {
     if (state !== 'PLAYING') return;
-    if (dragX !== null) basket.x += (dragX - basket.x) * 0.28;
-    basket.x = Math.max(basket.w / 2, Math.min(VW - basket.w / 2, basket.x));
-
-    snowflakes.forEach(function (sf) {
-      sf.y += sf.spd * dt; sf.x += sf.wx;
-      if (sf.y > VH) { sf.y = -5; sf.x = Math.random() * VW; }
-    });
-
-    spawnTimer += dt; speed = 155 + score * 3;
-    spawnInterval = Math.max(0.35, 0.9 - score * 0.009);
-    if (spawnTimer >= spawnInterval) { spawnTimer = 0; spawnItem(); }
-
-    for (var i = items.length - 1; i >= 0; i--) {
-      var it = items[i];
-      it.y += it.speed * dt;
-      var hit = it.y > basket.y - 10 && it.y < basket.y + basket.h &&
-          it.x > basket.x - basket.w / 2 - it.r && it.x < basket.x + basket.w / 2 + it.r;
-      if (hit) {
-        if (it.icicle) { lives--; addParticles(it.x, it.y, '#88CCFF'); try { Audio.play('crash'); } catch(e) {} }
-        else { score++; if (score > best) best = score; addParticles(it.x, it.y, '#fff'); try { Audio.play('land'); } catch(e) {} }
-        items.splice(i, 1);
-        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-      } else if (it.y > VH + 20) {
-        if (!it.icicle) { lives--; try { Audio.play('lose'); } catch(e) {}
-          if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-        }
-        items.splice(i, 1);
+    var i, f;
+    for (i = fish.length - 1; i >= 0; i--) {
+      f = fish[i];
+      f.x += f.speed * f.dir * dt;
+      if (f.x < -f.r - 20 || f.x > VW + f.r + 20) {
+        fish.splice(i, 1);
+        fish.push(makeFish());
       }
     }
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var p = particles[j]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt; p.life -= dt;
-      if (p.life <= 0) particles.splice(j, 1);
+    while (fish.length < 4) fish.push(makeFish());
+
+    if (hook.hookState === hookStates.FALLING) {
+      hook.y += HOOK_SPEED * dt;
+      if (hook.y >= HOOK_MAX_Y) {
+        hook.y = HOOK_MAX_Y;
+        hook.hookState = hookStates.WAITING;
+        hook.waitTimer = LINE_RETRACT_TIME;
+      }
+    } else if (hook.hookState === hookStates.WAITING) {
+      hook.waitTimer -= dt;
+      if (hook.waitTimer <= 0) {
+        hook.hookState = hookStates.RETRACTING;
+        consecutiveMisses++;
+        if (consecutiveMisses >= 3) {
+          consecutiveMisses = 0;
+          lives--;
+          try { Audio.play('lose'); } catch(e) {}
+          if (lives <= 0) {
+            lives = 0; state = 'DEAD';
+            try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+            return;
+          }
+        }
+      }
+    } else if (hook.hookState === hookStates.RETRACTING) {
+      hook.y -= HOOK_SPEED * 1.5 * dt;
+      if (hook.y <= HOOK_START_Y) {
+        hook.y = HOOK_START_Y;
+        hook.hookState = hookStates.IDLE;
+      }
     }
   }
 
+  function trySetHook() {
+    if (hook.hookState !== hookStates.WAITING) return;
+    var i, f, dx, dy, dist;
+    for (i = 0; i < fish.length; i++) {
+      f = fish[i];
+      dx = hook.x - f.x;
+      dy = hook.y - f.y;
+      dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < f.r + 16) {
+        score += f.pts;
+        if (score > best) best = score;
+        consecutiveMisses = 0;
+        try { Audio.play('gem'); } catch(e) {}
+        fish.splice(i, 1);
+        fish.push(makeFish());
+        hook.hookState = hookStates.RETRACTING;
+        return;
+      }
+    }
+    hook.hookState = hookStates.RETRACTING;
+    consecutiveMisses++;
+    if (consecutiveMisses >= 3) {
+      consecutiveMisses = 0;
+      lives--;
+      try { Audio.play('lose'); } catch(e) {}
+      if (lives <= 0) {
+        lives = 0; state = 'DEAD';
+        try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      }
+    }
+  }
+
+  function drawBg() {
+    ctx.fillStyle = '#87ceeb';
+    ctx.fillRect(0, 0, VW, WATER_TOP);
+    var g = ctx.createLinearGradient(0, WATER_TOP, 0, VH);
+    g.addColorStop(0, '#1a6b9e'); g.addColorStop(1, '#0a3d5e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, WATER_TOP, VW, VH - WATER_TOP);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+    var wy;
+    for (wy = WATER_TOP + 30; wy < VH; wy += 60) {
+      ctx.beginPath(); ctx.moveTo(0, wy); ctx.lineTo(VW, wy); ctx.stroke();
+    }
+    ctx.strokeStyle = '#1a6b9e'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, WATER_TOP); ctx.lineTo(VW, WATER_TOP); ctx.stroke();
+    ctx.fillStyle = '#5a3010'; ctx.fillRect(0, HOOK_START_Y - 12, VW, 12);
+    ctx.fillStyle = '#8B4513'; ctx.fillRect(VW / 2 - 10, HOOK_START_Y - 12, 20, -40);
+  }
+
+  function drawFish(f) {
+    ctx.save();
+    ctx.fillStyle = f.color;
+    ctx.shadowBlur = 8; ctx.shadowColor = f.color;
+    ctx.beginPath();
+    ctx.ellipse(f.x, f.y, f.r * 1.6, f.r * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    var tailX = f.x - f.dir * f.r * 1.6;
+    ctx.beginPath();
+    ctx.moveTo(tailX, f.y);
+    ctx.lineTo(tailX - f.dir * f.r * 0.7, f.y - f.r * 0.8);
+    ctx.lineTo(tailX - f.dir * f.r * 0.7, f.y + f.r * 0.8);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#222';
+    var eyeX = f.x + f.dir * f.r * 1.1;
+    ctx.beginPath(); ctx.arc(eyeX, f.y - 4, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   function draw() {
-    var bg = ctx.createLinearGradient(0, 0, 0, VH);
-    bg.addColorStop(0, '#001020'); bg.addColorStop(1, '#102030');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, VW, VH);
-
-    // snowflakes
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    snowflakes.forEach(function (sf) {
-      ctx.beginPath(); ctx.arc(sf.x, sf.y, sf.r, 0, Math.PI * 2); ctx.fill();
-    });
-
+    var i, hearts, h;
+    drawBg();
     if (state === 'MENU') {
-      ctx.fillStyle = '#a8edea'; ctx.font = 'bold 44px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 22; ctx.shadowColor = '#a8edea'; ctx.fillText('SNOWBALL CATCH', VW / 2, 270);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '19px system-ui';
-      ctx.fillText('Catch snowballs, dodge icicles!', VW / 2, 340); ctx.fillText('TAP TO PLAY', VW / 2, 400);
-      ctx.fillStyle = '#a8edea'; ctx.font = '18px system-ui'; ctx.fillText('BEST: ' + best, VW / 2, 460);
+      ctx.fillStyle = '#1a6b9e'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#4d96ff';
+      ctx.fillText('FISHING DERBY', VW / 2, 180);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
+      ctx.fillText('Tap to cast the line', VW / 2, 240);
+      ctx.fillText('Tap again to set the hook!', VW / 2, 270);
+      ctx.fillStyle = '#ffd700'; ctx.font = '18px system-ui';
+      ctx.fillText('Gold fish = 3 pts, Green = 1 pt', VW / 2, 310);
+      ctx.fillStyle = '#a8edea'; ctx.font = '20px system-ui';
+      ctx.fillText('BEST: ' + best, VW / 2, 360);
+      ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
+      ctx.fillText('TAP TO PLAY', VW / 2, 430);
+      ctx.textAlign = 'left';
       return;
     }
-
-    items.forEach(function (it) {
-      ctx.save(); ctx.translate(it.x, it.y);
-      if (it.icicle) {
-        ctx.fillStyle = '#88CCFF'; ctx.shadowBlur = 10; ctx.shadowColor = '#88CCFF';
-        ctx.beginPath(); ctx.moveTo(0, -it.r * 2.5); ctx.lineTo(it.r, 0); ctx.lineTo(-it.r, 0); ctx.closePath(); ctx.fill();
-      } else {
-        ctx.fillStyle = '#fff'; ctx.shadowBlur = 14; ctx.shadowColor = '#a8edea';
-        ctx.beginPath(); ctx.arc(0, 0, it.r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(168,237,234,0.3)'; ctx.beginPath(); ctx.arc(-it.r * 0.3, -it.r * 0.3, it.r * 0.35, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.restore();
-    });
-
-    particles.forEach(function (p) {
-      ctx.globalAlpha = p.life / p.maxLife; ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    var bx = basket.x - basket.w / 2;
-    ctx.strokeStyle = '#a8edea'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(168,237,234,0.1)';
-    ctx.beginPath(); ctx.moveTo(bx, basket.y); ctx.lineTo(bx + basket.w, basket.y);
-    ctx.lineTo(bx + basket.w - 6, basket.y + basket.h); ctx.lineTo(bx + 6, basket.y + basket.h);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-
-    ctx.shadowBlur = 0; ctx.fillStyle = '#a8edea'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
-    ctx.fillText('Score: ' + score, 16, 44); ctx.fillStyle = '#f87171'; ctx.textAlign = 'right'; ctx.font = '22px system-ui';
-    ctx.fillText('♥ '.repeat(lives), VW - 16, 44);
-
+    for (i = 0; i < fish.length; i++) drawFish(fish[i]);
+    if (hook.hookState !== hookStates.IDLE) {
+      ctx.strokeStyle = 'rgba(200,200,200,0.8)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(hook.x, HOOK_START_Y); ctx.lineTo(hook.x, hook.y); ctx.stroke();
+      ctx.fillStyle = '#c0c0c0'; ctx.shadowBlur = 6; ctx.shadowColor = '#aaa';
+      ctx.beginPath();
+      ctx.moveTo(hook.x, hook.y);
+      ctx.lineTo(hook.x - 6, hook.y + 14);
+      ctx.lineTo(hook.x + 6, hook.y + 14);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = '#aaa'; ctx.font = '18px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText('TAP TO CAST', VW / 2, HOOK_START_Y - 20);
+    }
+    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('Score: ' + score, 16, 44);
+    ctx.fillStyle = '#f87171'; ctx.textAlign = 'right';
+    hearts = '';
+    for (h = 0; h < lives; h++) hearts += '♥';
+    for (h = lives; h < 3; h++) hearts += '♡';
+    ctx.fillText(hearts, VW - 16, 44);
+    ctx.fillStyle = '#ff9f43'; ctx.font = '16px system-ui'; ctx.textAlign = 'right';
+    ctx.fillText('Misses: ' + consecutiveMisses + '/3', VW - 16, 68);
     if (state === 'DEAD') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, VW, VH);
-      ctx.fillStyle = '#f87171'; ctx.font = 'bold 44px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 18; ctx.shadowColor = '#f87171'; ctx.fillText('GAME OVER', VW / 2, 310);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#a8edea'; ctx.font = 'bold 30px system-ui';
-      ctx.fillText('Score: ' + score, VW / 2, 380); ctx.fillStyle = '#a8edea'; ctx.font = '22px system-ui';
-      ctx.fillText('Best: ' + best, VW / 2, 425); ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
-      ctx.fillText('TAP TO RETRY', VW / 2, 495);
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, VW, VH);
+      ctx.fillStyle = '#f87171'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#f87171';
+      ctx.fillText('GAME OVER', VW / 2, 320);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#ffd700'; ctx.font = 'bold 32px system-ui';
+      ctx.fillText('Score: ' + score, VW / 2, 390);
+      ctx.fillStyle = '#a8edea'; ctx.font = '22px system-ui';
+      ctx.fillText('Best: ' + best, VW / 2, 430);
+      ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
+      ctx.fillText('TAP TO RETRY', VW / 2, 500);
     }
     ctx.textAlign = 'left';
   }
 
   function tap(x, y) {
-    if (state === 'MENU' || state === 'DEAD') { startGame(); return; }
-    dragX = x;
+    if (state === 'MENU') { startGame(); return; }
+    if (state === 'DEAD') { startGame(); return; }
+    if (state !== 'PLAYING') return;
+    if (hook.hookState === hookStates.IDLE) {
+      hook.x = x;
+      hook.y = HOOK_START_Y;
+      hook.hookState = hookStates.FALLING;
+      hook.waitTimer = LINE_RETRACT_TIME;
+      try { Audio.play('tap'); } catch(e) {}
+    } else if (hook.hookState === hookStates.FALLING || hook.hookState === hookStates.WAITING) {
+      trySetHook();
+    }
   }
+
   function getBest() { return best; }
+
+  c = null;
   return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();

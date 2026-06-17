@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Grid Snake</title>
+<title>Merge Snake</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Grid Snake</span>
+    <span id="gameTitle">Merge Snake</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -44,12 +44,12 @@
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Grid Snake</div>
+    <div class="info-game">Merge Snake</div>
     <ul class="info-list">
-      <li>Tap the screen quadrants to steer</li>
-      <li>Eat food pellets to grow longer</li>
-      <li>Don't hit walls or your own tail</li>
-      <li>Fill the grid for the max score!</li>
+      <li>Your snake has a number on its head (starts at 2)</li>
+      <li>Food pellets have numbers — eat the same number to merge!</li>
+      <li>Matching = head number doubles and snake grows</li>
+      <li>Wrong number = lose a life; reach 2048 to win!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

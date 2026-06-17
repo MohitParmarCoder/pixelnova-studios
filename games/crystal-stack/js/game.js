@@ -1,433 +1,368 @@
 'use strict';
 var CrystalStack = (function () {
-  var VW = 390, VH = 844;
-  var ctx, best, state, score;
-  var COLS = 8, ROWS = 18;
-  var CELL = 40, BOARD_X, BOARD_Y, BOARD_W, BOARD_H;
-  var board;        // ROWS x COLS grid, 0=empty or color string
-  var piece;        // current falling piece
-  var nextType;
-  var dropAcc, dropInterval;
-  var rowsCleared;
-  var sparkles;     // particles from cleared rows
-  var flashRows;    // [{row, life}]
+    var VW = 390, VH = 844;
+    var canvas, ctx;
+    var state = 'MENU';
+    var best = 0;
+    var score, lives, moveCount;
+    var selectedTube;   // index -1 = none
+    var tubes;          // array of 5 arrays of color strings (bottom of array = bottom of tube)
+    var MAX_BALLS = 4;
+    var NUM_TUBES = 5;
+    var TUBE_W = 48, TUBE_H = 200;
+    var BALL_R = 18;
+    var flashTimer;     // used for win flash
+    var winFlash;
+    var puzzleNum;
 
-  var TETROMINOES = {
-    I: { cells: [[0,1],[1,1],[2,1],[3,1]], color: '#00fff7', glow: '#00cccc' },
-    O: { cells: [[0,0],[1,0],[0,1],[1,1]], color: '#ffe600', glow: '#cc9900' },
-    T: { cells: [[1,0],[0,1],[1,1],[2,1]], color: '#cc00ff', glow: '#ff00cc' },
-    L: { cells: [[2,0],[0,1],[1,1],[2,1]], color: '#ff6600', glow: '#ff3300' },
-    J: { cells: [[0,0],[0,1],[1,1],[2,1]], color: '#0066ff', glow: '#00ccff' },
-    S: { cells: [[1,0],[2,0],[0,1],[1,1]], color: '#39ff14', glow: '#00aa00' },
-    Z: { cells: [[0,0],[1,0],[1,1],[2,1]], color: '#ff00cc', glow: '#cc0099' }
-  };
-  var TYPES = ['I','O','T','L','J','S','Z'];
+    var COLORS = ['#f87171', '#60a5fa', '#86efac', '#fde68a'];
+    var COLOR_NAMES = ['red', 'blue', 'green', 'yellow'];
 
-  function _initBoard() {
-    board = [];
-    for (var r = 0; r < ROWS; r++) {
-      board.push([]);
-      for (var c = 0; c < COLS; c++) board[r].push(0);
-    }
-  }
-
-  function _newPiece(type) {
-    var def = TETROMINOES[type];
-    var cells = def.cells.map(function(c){ return [c[0], c[1]]; });
-    return {
-      type: type,
-      cells: cells,
-      color: def.color,
-      glow: def.glow,
-      x: Math.floor(COLS / 2) - 2,
-      y: 0
-    };
-  }
-
-  function _randomType() {
-    return TYPES[Math.floor(Math.random() * TYPES.length)];
-  }
-
-  function _pieceCells(p) {
-    return p.cells.map(function(c){ return [c[0] + p.x, c[1] + p.y]; });
-  }
-
-  function _collides(cells) {
-    for (var i = 0; i < cells.length; i++) {
-      var cx = cells[i][0], cy = cells[i][1];
-      if (cx < 0 || cx >= COLS || cy >= ROWS) return true;
-      if (cy >= 0 && board[cy][cx]) return true;
-    }
-    return false;
-  }
-
-  function _rotateCells(cells) {
-    // Rotate 90 degrees clockwise around centroid of bounding box
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (var i = 0; i < cells.length; i++) {
-      minX = Math.min(minX, cells[i][0]); maxX = Math.max(maxX, cells[i][0]);
-      minY = Math.min(minY, cells[i][1]); maxY = Math.max(maxY, cells[i][1]);
-    }
-    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    return cells.map(function(c) {
-      var dx = c[0] - cx, dy = c[1] - cy;
-      return [Math.round(cx + dy), Math.round(cy - dx)];
-    });
-  }
-
-  function _lockPiece() {
-    var cells = _pieceCells(piece);
-    for (var i = 0; i < cells.length; i++) {
-      var cx = cells[i][0], cy = cells[i][1];
-      if (cy >= 0) board[cy][cx] = piece.color;
-    }
-    try { Audio.play('land'); } catch(e){}
-    _clearRows();
-    piece = _newPiece(nextType);
-    nextType = _randomType();
-    if (_collides(_pieceCells(piece))) {
-      state = 'DEAD';
-      if (score > best) best = score;
-      try { Audio.play('lose'); } catch(e){}
-      try { AdManager.gameplayStop(); } catch(e){}
-      try { AdManager.onRunEnd(); } catch(e){}
-    }
-  }
-
-  function _clearRows() {
-    var cleared = 0;
-    flashRows = flashRows || [];
-    for (var r = ROWS - 1; r >= 0; r--) {
-      var full = true;
-      for (var c = 0; c < COLS; c++) {
-        if (!board[r][c]) { full = false; break; }
-      }
-      if (full) {
-        _spawnRowSparkles(r);
-        board.splice(r, 1);
-        var empty = [];
-        for (var c2 = 0; c2 < COLS; c2++) empty.push(0);
-        board.unshift(empty);
-        cleared++;
-        r++; // re-check same row index after splice
-      }
-    }
-    if (cleared > 0) {
-      rowsCleared += cleared;
-      score += cleared === 4 ? 800 : cleared === 3 ? 400 : cleared === 2 ? 200 : 80;
-      dropInterval = Math.max(0.1, 0.7 - Math.floor(rowsCleared / 5) * 0.05);
-      try { Audio.play('score'); } catch(e){}
-    }
-  }
-
-  function _spawnRowSparkles(row) {
-    var by = BOARD_Y + row * CELL;
-    for (var i = 0; i < COLS * 3; i++) {
-      var sx = BOARD_X + Math.random() * BOARD_W;
-      var sy = by + Math.random() * CELL;
-      var ang = Math.random() * Math.PI * 2;
-      var spd = 60 + Math.random() * 120;
-      sparkles.push({
-        x: sx, y: sy,
-        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-        life: 0.8, maxLife: 0.8,
-        r: 2 + Math.random() * 3,
-        color: ['#00fff7','#ff00cc','#ffe600','#39ff14'][Math.floor(Math.random()*4)]
-      });
-    }
-  }
-
-  function _reset() { state = 'MENU'; score = 0; }
-
-  function _startGame() {
-    state = 'PLAYING';
-    score = 0;
-    rowsCleared = 0;
-    dropAcc = 0;
-    dropInterval = 0.7;
-    sparkles = [];
-    flashRows = [];
-    BOARD_W = COLS * CELL;
-    BOARD_H = ROWS * CELL;
-    BOARD_X = Math.floor((VW - BOARD_W) / 2);
-    BOARD_Y = 80;
-    _initBoard();
-    nextType = _randomType();
-    piece = _newPiece(_randomType());
-    try { AdManager.gameplayStart(); } catch(e){}
-  }
-
-  function init(canvas, savedBest) {
-    ctx = canvas.getContext('2d');
-    best = savedBest || 0;
-    _reset();
-  }
-
-  function update(dt) {
-    if (state !== 'PLAYING') return;
-
-    dropAcc += dt;
-    if (dropAcc >= dropInterval) {
-      dropAcc -= dropInterval;
-      var moved = _pieceCells(piece).map(function(c){ return [c[0], c[1] + 1]; });
-      if (_collides(moved)) {
-        _lockPiece();
-      } else {
-        piece.y++;
-      }
+    function tubeX(i) {
+        // 5 tubes evenly spaced across VW
+        var totalW = NUM_TUBES * TUBE_W + (NUM_TUBES - 1) * 18;
+        var startX = (VW - totalW) / 2;
+        return startX + i * (TUBE_W + 18);
     }
 
-    // Sparkles
-    for (var i = sparkles.length - 1; i >= 0; i--) {
-      var sp = sparkles[i];
-      sp.x += sp.vx * dt; sp.y += sp.vy * dt;
-      sp.vy += 150 * dt;
-      sp.life -= dt;
-      if (sp.life <= 0) sparkles.splice(i, 1);
+    function tubeY() {
+        return VH / 2 - 30;
     }
-  }
 
-  function tap(x, y) {
-    if (state === 'MENU') { _startGame(); return; }
-    if (state === 'DEAD') {
-      try { AdManager.showInterstitial(function(){ _startGame(); }); } catch(e){ _startGame(); }
-      return;
-    }
-    if (state !== 'PLAYING') return;
-
-    var third = VW / 3;
-    if (x < third) {
-      // Move left
-      var moved = _pieceCells(piece).map(function(c){ return [c[0]-1, c[1]]; });
-      if (!_collides(moved)) { piece.x--; try{Audio.play('hop');}catch(e){} }
-    } else if (x > third * 2) {
-      // Move right
-      var moved2 = _pieceCells(piece).map(function(c){ return [c[0]+1, c[1]]; });
-      if (!_collides(moved2)) { piece.x++; try{Audio.play('hop');}catch(e){} }
-    } else {
-      // Rotate
-      var rotated = _rotateCells(piece.cells.map(function(c){return[c[0],c[1]];}));
-      var testPiece = {cells: rotated, x: piece.x, y: piece.y};
-      var testCells = _pieceCells(testPiece);
-      // Wall kick: try shifting ±1 if collides
-      if (!_collides(testCells)) {
-        piece.cells = rotated;
-      } else {
-        var kick = _pieceCells({cells:rotated, x:piece.x+1, y:piece.y});
-        if (!_collides(kick)) { piece.cells = rotated; piece.x++; }
-        else {
-          var kick2 = _pieceCells({cells:rotated, x:piece.x-1, y:piece.y});
-          if (!_collides(kick2)) { piece.cells = rotated; piece.x--; }
+    function generatePuzzle() {
+        // 4 colors x 4 balls = 16 balls, placed in 4 tubes (4 each, randomly shuffled)
+        // 5th tube starts empty
+        var allBalls = [];
+        for (var ci = 0; ci < 4; ci++) {
+            for (var bi = 0; bi < 4; bi++) {
+                allBalls.push(COLORS[ci]);
+            }
         }
-      }
-      try{Audio.play('flip');}catch(e){}
-    }
-  }
-
-  function _drawCrystalCell(x, y, color, glow, alpha) {
-    var sz = CELL - 2;
-    ctx.save();
-    ctx.globalAlpha = alpha !== undefined ? alpha : 1;
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = glow;
-    var g = ctx.createLinearGradient(x, y, x + sz, y + sz);
-    g.addColorStop(0, '#fff');
-    g.addColorStop(0.3, color);
-    g.addColorStop(1, glow);
-    ctx.fillStyle = g;
-    // Diamond-cut polygon
-    ctx.beginPath();
-    ctx.moveTo(x + sz / 2, y);
-    ctx.lineTo(x + sz, y + sz * 0.35);
-    ctx.lineTo(x + sz, y + sz * 0.65);
-    ctx.lineTo(x + sz / 2, y + sz);
-    ctx.lineTo(x, y + sz * 0.65);
-    ctx.lineTo(x, y + sz * 0.35);
-    ctx.closePath();
-    ctx.fill();
-    // Inner highlight
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath();
-    ctx.moveTo(x + sz / 2, y + 2);
-    ctx.lineTo(x + sz - 3, y + sz * 0.35);
-    ctx.lineTo(x + sz / 2, y + sz * 0.55);
-    ctx.lineTo(x + 3, y + sz * 0.35);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, VW, VH);
-    ctx.fillStyle = '#04050e';
-    ctx.fillRect(0, 0, VW, VH);
-
-    if (state === 'MENU') { _drawMenu(); return; }
-
-    // Board background
-    ctx.save();
-    ctx.strokeStyle = 'rgba(0,255,247,0.08)';
-    ctx.lineWidth = 1;
-    for (var r = 0; r <= ROWS; r++) {
-      ctx.beginPath();
-      ctx.moveTo(BOARD_X, BOARD_Y + r * CELL);
-      ctx.lineTo(BOARD_X + BOARD_W, BOARD_Y + r * CELL);
-      ctx.stroke();
-    }
-    for (var c = 0; c <= COLS; c++) {
-      ctx.beginPath();
-      ctx.moveTo(BOARD_X + c * CELL, BOARD_Y);
-      ctx.lineTo(BOARD_X + c * CELL, BOARD_Y + BOARD_H);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Board border
-    ctx.save();
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = '#00fff7';
-    ctx.strokeStyle = '#00fff7';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(BOARD_X - 1, BOARD_Y - 1, BOARD_W + 2, BOARD_H + 2);
-    ctx.restore();
-
-    // Placed cells
-    for (var row = 0; row < ROWS; row++) {
-      for (var col = 0; col < COLS; col++) {
-        if (board[row][col]) {
-          var def = TETROMINOES;
-          // find glow by color
-          var glow = board[row][col];
-          for (var k in TETROMINOES) {
-            if (TETROMINOES[k].color === board[row][col]) { glow = TETROMINOES[k].glow; break; }
-          }
-          _drawCrystalCell(BOARD_X + col * CELL + 1, BOARD_Y + row * CELL + 1, board[row][col], glow);
+        // Fisher-Yates shuffle
+        for (var i = allBalls.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = allBalls[i]; allBalls[i] = allBalls[j]; allBalls[j] = tmp;
         }
-      }
-    }
-
-    // Current piece
-    if (piece && state === 'PLAYING') {
-      var cells = _pieceCells(piece);
-      // Ghost piece
-      var ghostY = piece.y;
-      while (true) {
-        var below = cells.map(function(c){ return [c[0], c[1]+1+(ghostY-piece.y)]; });
-        if (_collides(below)) break;
-        ghostY++;
-      }
-      if (ghostY > piece.y) {
-        var def2 = TETROMINOES[piece.type];
-        piece.cells.forEach(function(c) {
-          var gx = BOARD_X + (c[0] + piece.x) * CELL + 1;
-          var gy = BOARD_Y + (c[1] + ghostY) * CELL + 1;
-          _drawCrystalCell(gx, gy, def2.color, def2.glow, 0.2);
-        });
-      }
-      // Real piece
-      cells.forEach(function(c) {
-        if (c[1] >= 0) {
-          _drawCrystalCell(BOARD_X + c[0] * CELL + 1, BOARD_Y + c[1] * CELL + 1, piece.color, piece.glow);
+        tubes = [];
+        for (var t = 0; t < NUM_TUBES; t++) {
+            tubes.push([]);
         }
-      });
+        // Fill first 4 tubes
+        for (var k = 0; k < 16; k++) {
+            tubes[Math.floor(k / 4)].push(allBalls[k]);
+        }
+        // 5th tube empty
+        selectedTube = -1;
+        moveCount = 0;
     }
 
-    // Sparkles
-    for (var si = 0; si < sparkles.length; si++) {
-      var sp = sparkles[si];
-      ctx.save();
-      ctx.globalAlpha = sp.life / sp.maxLife;
-      ctx.fillStyle = sp.color;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = sp.color;
-      ctx.beginPath();
-      ctx.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+    function checkWin() {
+        // Each tube must be empty OR have 4 balls all same color
+        for (var i = 0; i < NUM_TUBES; i++) {
+            var tube = tubes[i];
+            if (tube.length === 0) { continue; }
+            if (tube.length !== MAX_BALLS) { return false; }
+            var col = tube[0];
+            for (var j = 1; j < tube.length; j++) {
+                if (tube[j] !== col) { return false; }
+            }
+        }
+        return true;
     }
 
-    // HUD
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 28px system-ui';
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = '#00fff7';
-    ctx.fillText(score, VW / 2, BOARD_Y - 14);
-    ctx.fillStyle = 'rgba(255,230,0,0.7)';
-    ctx.font = '12px system-ui';
-    ctx.shadowBlur = 0;
-    ctx.fillText('BEST ' + best, VW / 2, BOARD_Y - 0);
-
-    // Controls hint
-    var hintY = BOARD_Y + BOARD_H + 28;
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.font = '12px system-ui';
-    ctx.fillText('LEFT  |  ROTATE  |  RIGHT', VW / 2, hintY);
-    ctx.restore();
-
-    if (state === 'DEAD') _drawDead();
-  }
-
-  function _drawMenu() {
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 52px system-ui';
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = '#00fff7';
-    ctx.fillStyle = '#00fff7';
-    ctx.fillText('CRYSTAL', VW / 2, VH / 2 - 55);
-    ctx.fillStyle = '#cc00ff';
-    ctx.shadowColor = '#cc00ff';
-    ctx.fillText('STACK', VW / 2, VH / 2 + 8);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '15px system-ui';
-    ctx.fillText('Left / Center / Right to move & rotate', VW / 2, VH / 2 + 72);
-    ctx.fillText('Clear rows to score!', VW / 2, VH / 2 + 96);
-    var pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.004);
-    ctx.fillStyle = 'rgba(57,255,20,' + pulse + ')';
-    ctx.font = 'bold 22px system-ui';
-    ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 160);
-    if (best > 0) {
-      ctx.fillStyle = 'rgba(255,230,0,0.7)';
-      ctx.font = '15px system-ui';
-      ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 200);
+    function startGame() {
+        score = 0;
+        lives = 3;
+        puzzleNum = 1;
+        winFlash = false;
+        flashTimer = 0;
+        generatePuzzle();
+        state = 'PLAYING';
+        try { AdManager.gameplayStart(); } catch (e) {}
     }
-    ctx.restore();
-  }
 
-  function _drawDead() {
-    ctx.save();
-    ctx.fillStyle = 'rgba(4,5,14,0.82)';
-    ctx.fillRect(0, 0, VW, VH);
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 52px system-ui';
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = '#ff00cc';
-    ctx.fillStyle = '#ff00cc';
-    ctx.fillText('GAME', VW / 2, VH / 2 - 60);
-    ctx.fillStyle = '#ff6600';
-    ctx.shadowColor = '#ff6600';
-    ctx.fillText('OVER', VH / 2, VH / 2 + 0);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 28px system-ui';
-    ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 + 60);
-    ctx.fillStyle = 'rgba(255,230,0,0.85)';
-    ctx.font = '16px system-ui';
-    ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 92);
-    var pulse = 0.65 + 0.35 * Math.sin(Date.now() * 0.004);
-    ctx.fillStyle = 'rgba(57,255,20,' + pulse + ')';
-    ctx.font = 'bold 20px system-ui';
-    ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 150);
-    ctx.restore();
-  }
+    function endGame() {
+        if (score > best) { best = score; }
+        state = 'DEAD';
+        try { Audio.play('lose'); } catch (e) {}
+        try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    }
 
-  function getBest() { return best; }
-  return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
+    function update(dt) {
+        if (state !== 'PLAYING') { return; }
+        if (flashTimer > 0) {
+            flashTimer -= dt;
+            if (flashTimer <= 0 && winFlash) {
+                winFlash = false;
+                // Start next puzzle
+                puzzleNum++;
+                generatePuzzle();
+            }
+        }
+    }
+
+    function roundedRect(x, y, w, h, rad) {
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.lineTo(x + w - rad, y);
+        ctx.arcTo(x + w, y, x + w, y + rad, rad);
+        ctx.lineTo(x + w, y + h - rad);
+        ctx.arcTo(x + w, y + h, x + w - rad, y + h, rad);
+        ctx.lineTo(x + rad, y + h);
+        ctx.arcTo(x, y + h, x, y + h - rad, rad);
+        ctx.lineTo(x, y + rad);
+        ctx.arcTo(x, y, x + rad, y, rad);
+        ctx.closePath();
+    }
+
+    function drawTube(i) {
+        var x = tubeX(i);
+        var ty = tubeY();
+        var tube = tubes[i];
+        var isSelected = (selectedTube === i);
+
+        ctx.save();
+
+        // Draw tube outline (tall rounded rect, open at top)
+        ctx.strokeStyle = isSelected ? '#ffffff' : '#334466';
+        ctx.lineWidth = isSelected ? 3 : 2;
+        if (isSelected) {
+            ctx.shadowColor = '#aaddff';
+            ctx.shadowBlur = 18;
+        }
+
+        // Tube body
+        ctx.fillStyle = 'rgba(10, 15, 35, 0.8)';
+        roundedRect(x, ty - TUBE_H, TUBE_W, TUBE_H, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw ball slots (empty circles as guides)
+        for (var slot = 0; slot < MAX_BALLS; slot++) {
+            var ballY = ty - 14 - slot * (BALL_R * 2 + 4);
+            if (slot >= tube.length) {
+                // Empty slot hint
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.beginPath();
+                ctx.arc(x + TUBE_W / 2, ballY, BALL_R - 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Draw balls
+        for (var bi = 0; bi < tube.length; bi++) {
+            var col = tube[bi];
+            var bx = x + TUBE_W / 2;
+            var by = ty - 14 - bi * (BALL_R * 2 + 4);
+
+            // Ball gradient glow
+            ctx.save();
+            ctx.shadowColor = col;
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(bx, by, BALL_R, 0, Math.PI * 2);
+            ctx.fill();
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.beginPath();
+            ctx.arc(bx - BALL_R * 0.25, by - BALL_R * 0.25, BALL_R * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    function drawLives() {
+        ctx.save();
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textBaseline = 'middle';
+        for (var i = 0; i < 3; i++) {
+            ctx.fillStyle = i < lives ? '#ff4444' : '#442222';
+            ctx.fillText(i < lives ? '♥' : '♡', 18 + i * 28, 28);
+        }
+        ctx.textBaseline = 'alphabetic';
+        ctx.restore();
+    }
+
+    function draw() {
+        if (!ctx) { return; }
+        ctx.fillStyle = '#04050e';
+        ctx.fillRect(0, 0, VW, VH);
+
+        if (state === 'MENU') {
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#f87171';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#f87171';
+            ctx.font = 'bold 52px sans-serif';
+            ctx.fillText('COLOR', VW / 2, VH / 2 - 80);
+            ctx.fillStyle = '#60a5fa';
+            ctx.shadowColor = '#60a5fa';
+            ctx.fillText('SORT', VW / 2, VH / 2 - 18);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('TAP TO PLAY', VW / 2, VH / 2 + 60);
+            ctx.fillStyle = '#aaaacc';
+            ctx.font = '18px sans-serif';
+            ctx.fillText('Sort colored balls into tubes!', VW / 2, VH / 2 + 108);
+            ctx.fillText('Tap to select, tap again to move', VW / 2, VH / 2 + 138);
+            if (best > 0) {
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '20px sans-serif';
+                ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 190);
+            }
+            return;
+        }
+
+        if (state === 'PLAYING' || state === 'DEAD') {
+            // Win flash overlay
+            if (winFlash && flashTimer > 0) {
+                var alpha = Math.sin(flashTimer * 8) * 0.3 + 0.1;
+                ctx.fillStyle = 'rgba(100,255,150,' + alpha + ')';
+                ctx.fillRect(0, 0, VW, VH);
+            }
+
+            // Draw all tubes
+            for (var i = 0; i < NUM_TUBES; i++) {
+                drawTube(i);
+            }
+
+            // HUD
+            drawLives();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(score, VW - 16, 44);
+            ctx.textAlign = 'left';
+
+            // Move count bottom
+            ctx.fillStyle = '#8899aa';
+            ctx.font = '18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Moves: ' + moveCount + '  |  Puzzle ' + puzzleNum, VW / 2, VH - 30);
+
+            // Hint: over-move warning
+            if (moveCount >= 25) {
+                ctx.fillStyle = '#ff8800';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText('Too many moves! Lose a life at 30', VW / 2, VH - 55);
+            }
+        }
+
+        if (state === 'DEAD') {
+            ctx.fillStyle = 'rgba(0,0,0,0.75)';
+            ctx.fillRect(0, 0, VW, VH);
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#ff4444';
+            ctx.shadowBlur = 28;
+            ctx.fillStyle = '#ff4444';
+            ctx.font = 'bold 56px sans-serif';
+            ctx.fillText('GAME OVER', VW / 2, VH / 2 - 80);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 30px sans-serif';
+            ctx.fillText('SCORE: ' + score, VW / 2, VH / 2 - 10);
+            ctx.fillStyle = '#ffcc00';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('BEST: ' + best, VW / 2, VH / 2 + 38);
+            ctx.fillStyle = '#aaffff';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('TAP TO RETRY', VW / 2, VH / 2 + 100);
+        }
+    }
+
+    function tap(x, y) {
+        if (state === 'MENU') { startGame(); return; }
+        if (state === 'DEAD') { startGame(); return; }
+        if (state !== 'PLAYING') { return; }
+        if (winFlash) { return; }
+
+        // Find which tube was tapped
+        var ty = tubeY();
+        var tappedTube = -1;
+        for (var i = 0; i < NUM_TUBES; i++) {
+            var tx = tubeX(i);
+            if (x >= tx && x <= tx + TUBE_W && y >= ty - TUBE_H && y <= ty) {
+                tappedTube = i;
+                break;
+            }
+        }
+
+        if (tappedTube === -1) {
+            // Tapped outside — deselect
+            selectedTube = -1;
+            return;
+        }
+
+        if (selectedTube === -1) {
+            // Select this tube if it has balls
+            if (tubes[tappedTube].length > 0) {
+                selectedTube = tappedTube;
+                try { Audio.play('tap'); } catch (e) {}
+            }
+            return;
+        }
+
+        if (tappedTube === selectedTube) {
+            // Deselect
+            selectedTube = -1;
+            return;
+        }
+
+        // Try to move top ball from selectedTube to tappedTube
+        var srcTube = tubes[selectedTube];
+        var dstTube = tubes[tappedTube];
+
+        if (srcTube.length === 0) {
+            selectedTube = tappedTube;
+            return;
+        }
+
+        if (dstTube.length >= MAX_BALLS) {
+            // Destination full — reselect destination
+            selectedTube = tappedTube;
+            try { Audio.play('tap'); } catch (e) {}
+            return;
+        }
+
+        // Move top ball
+        var ball = srcTube[srcTube.length - 1];
+        srcTube.pop();
+        dstTube.push(ball);
+        moveCount++;
+        try { Audio.play('tap'); } catch (e) {}
+        selectedTube = -1;
+
+        // Check over-move penalty (> 30 moves)
+        if (moveCount > 30) {
+            lives--;
+            try { Audio.play('crash'); } catch (e) {}
+            moveCount = 0; // reset move count, give them another 30
+            if (lives <= 0) { endGame(); return; }
+        }
+
+        // Check win
+        if (checkWin()) {
+            var bonus = Math.max(10, 100 - moveCount * 2);
+            score += bonus;
+            if (score > best) { best = score; }
+            try { Audio.play('gem'); } catch (e) {}
+            winFlash = true;
+            flashTimer = 1.2;
+        }
+    }
+
+    function getBest() { return best; }
+
+    function init(c, b) {
+        canvas = c;
+        ctx = canvas.getContext('2d');
+        best = b || 0;
+        state = 'MENU';
+    }
+
+    return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();

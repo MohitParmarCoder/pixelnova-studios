@@ -1,357 +1,347 @@
 'use strict';
+
+/* Ice Curling — LavaSurf namespace
+   6 stones per game. Tap left/right to adjust aim angle.
+   Tap RELEASE button to launch. Score 1-10 per stone by ring.
+   Total score = sum of all 6. */
 var LavaSurf = (function () {
-
+  var VW = 390, VH = 844;
   var canvas, ctx;
-  var state; // MENU, PLAYING, DEAD
-  var best;
+  var state = 'MENU';
+  var score = 0, _best = 0;
+  var t = 0;
+  var lives = 3;
 
-  var VW = 390;
-  var VH = 844;
+  // Lane
+  var LANE_X = 40, LANE_W = VW - 80;
+  var LANE_TOP = 118, LANE_BOT = VH - 195;
 
-  // lava baseline
-  var LAVA_BASE = 720;
-  // surfboard / character y
-  var charX, charY, charVY;
-  var CHAR_W = 48;
-  var CHAR_H = 24;
-  var CHAR_X = 90;
-  var GRAVITY = 1800;
-  var JUMP_VEL = -820;
-  var onSurf; // on the lava surface
+  // Bullseye
+  var TARGET_CX = VW / 2, TARGET_CY = LANE_TOP + 92;
 
-  // lava wave
-  var wavePhase;
-  var lavaPoints; // array of y offsets for lava surface
-  var LAVA_SEGS = 20;
+  // Rings: outermost first
+  var RING_R    = [68, 48, 30, 14];
+  var RING_PTS  = [4,  6,  8, 10];
+  var RING_COLS = ['#1b3c6e', '#1e5c2e', '#8b2020', '#cc3333'];
 
-  // rocks
-  var rocks; // {x, h} — height above lava
-  var nextRockDist;
+  // Aim
+  var aimAngle = 0;
+  var AIM_STEP = 0.055, AIM_MAX = 0.44;
 
-  // game
-  var scrollX;
-  var speed;
-  var SPEED_BASE = 250;
-  var score;
-  var scoreFrac;
+  // Physics
+  var STONE_SPD = 560;
+  var FRICTION  = 0.97;
+  var MIN_SPD   = 2;
 
-  function getLavaY(screenX) {
-    // interpolate lava y at given screen x
-    var segW = VW / LAVA_SEGS;
-    var idx = Math.floor(screenX / segW);
-    idx = Math.max(0, Math.min(LAVA_SEGS - 2, idx));
-    var t = (screenX - idx * segW) / segW;
-    var y0 = LAVA_BASE + lavaPoints[idx];
-    var y1 = LAVA_BASE + lavaPoints[idx + 1];
-    return y0 + (y1 - y0) * t;
-  }
+  // Game state
+  var STONES_TOTAL = 6;
+  var stonesLeft   = 0;
+  var placedStones = [];  // {x,y,pts}
+  var stone        = null; // {x,y,vx,vy}
+  var lastPts      = 0;
+
+  // Phase: 'AIM' | 'SLIDING' | 'RESULT'
+  var phase      = 'AIM';
+  var phaseTimer = 0;
+
+  // Release button
+  var BTN_X = VW / 2 - 70, BTN_Y = VH - 170;
+  var BTN_W = 140, BTN_H = 50;
+
+  function snd(name) { try { Audio.play(name); } catch (e) {} }
 
   function resetGame() {
-    scrollX = 0;
-    speed = SPEED_BASE;
-    score = 0;
-    scoreFrac = 0;
-    rocks = [];
-    nextRockDist = 350;
-    wavePhase = 0;
-
-    lavaPoints = [];
-    var i;
-    for (i = 0; i <= LAVA_SEGS; i++) {
-      lavaPoints.push(0);
-    }
-
-    charX = CHAR_X;
-    charY = LAVA_BASE - CHAR_H;
-    charVY = 0;
-    onSurf = true;
+    score = 0; lives = 3;
+    stonesLeft = STONES_TOTAL;
+    placedStones = [];
+    stone = null;
+    aimAngle = 0; lastPts = 0;
+    phase = 'AIM'; phaseTimer = 0;
   }
 
-  function init(c, bestScore) {
-    canvas = c;
-    ctx = canvas.getContext('2d');
-    best = bestScore || 0;
-    state = 'MENU';
+  function startGame() {
     resetGame();
+    state = 'PLAYING';
+    try { AdManager.gameplayStart(); } catch (e) {}
   }
 
-  function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
-    var m = 5;
-    return ax + m < bx + bw - m && ax + aw - m > bx + m &&
-           ay + m < by + bh - m && ay + ah - m > by + m;
+  function runEnded() {
+    if (score > _best) _best = score;
+    try { AdManager.gameplayStop(); } catch (e) {}
+    try { AdManager.onRunEnd(); } catch (e) {}
+  }
+
+  function launchStone() {
+    var dir = Math.PI / 2 + aimAngle;
+    stone = {
+      x: VW / 2, y: LANE_BOT - 20,
+      vx: -Math.cos(dir) * STONE_SPD,
+      vy: -Math.sin(dir) * STONE_SPD
+    };
+    phase = 'SLIDING';
+    snd('tap');
+  }
+
+  function calcPts(sx, sy) {
+    var dx = sx - TARGET_CX, dy = sy - TARGET_CY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var i;
+    for (i = 0; i < RING_R.length; i++) {
+      if (dist <= RING_R[i]) return RING_PTS[i];
+    }
+    return 1;
+  }
+
+  function stopStone() {
+    var pts = calcPts(stone.x, stone.y);
+    lastPts = pts;
+    score += pts;
+    placedStones.push({ x: stone.x, y: stone.y, pts: pts });
+    stonesLeft--;
+    snd(pts >= 8 ? 'gem' : 'tap');
+    phase = 'RESULT';
+    phaseTimer = stonesLeft <= 0 ? 2.2 : 1.3;
+  }
+
+  // ---- Public API ----
+
+  function init(c, best) {
+    canvas = c; ctx = canvas.getContext('2d');
+    _best = best || 0; state = 'MENU';
+    score = 0; lives = 3; t = 0;
+    placedStones = []; stone = null;
+    stonesLeft = 0; aimAngle = 0; phase = 'AIM';
   }
 
   function update(dt) {
+    t += dt;
     if (state !== 'PLAYING') return;
 
-    speed = SPEED_BASE + score * 0.6;
-    scrollX += speed * dt;
-    scoreFrac += speed * dt / 100;
-    score = Math.floor(scoreFrac);
-
-    // update lava wave
-    wavePhase += dt * 1.8;
-    var i;
-    for (i = 0; i <= LAVA_SEGS; i++) {
-      var nx = (i / LAVA_SEGS) * Math.PI * 4;
-      lavaPoints[i] = Math.sin(wavePhase + nx) * 22 +
-                      Math.sin(wavePhase * 1.7 + nx * 0.6) * 12;
+    if (phase === 'SLIDING' && stone) {
+      stone.x += stone.vx * dt;
+      stone.y += stone.vy * dt;
+      var spd = Math.sqrt(stone.vx * stone.vx + stone.vy * stone.vy);
+      if (spd > MIN_SPD) {
+        var f = Math.pow(FRICTION, dt * 60);
+        stone.vx *= f; stone.vy *= f;
+      } else {
+        stopStone(); return;
+      }
+      // Wall bounces
+      if (stone.x < LANE_X + 14) { stone.x = LANE_X + 14; stone.vx = Math.abs(stone.vx) * 0.55; }
+      if (stone.x > LANE_X + LANE_W - 14) { stone.x = LANE_X + LANE_W - 14; stone.vx = -Math.abs(stone.vx) * 0.55; }
+      if (stone.y < LANE_TOP + 12) { stone.y = LANE_TOP + 12; stopStone(); return; }
+      if (stone.y > LANE_BOT + 10) { stone.y = LANE_BOT - 5; stopStone(); return; }
     }
 
-    // lava y at character x
-    var lavaY = getLavaY(CHAR_X);
-
-    // gravity
-    charVY += GRAVITY * dt;
-    charY += charVY * dt;
-
-    if (charY + CHAR_H >= lavaY) {
-      charY = lavaY - CHAR_H;
-      charVY = 0;
-      onSurf = true;
-    } else {
-      onSurf = false;
-    }
-
-    // move rocks
-    for (i = rocks.length - 1; i >= 0; i--) {
-      rocks[i].x -= speed * dt;
-      if (rocks[i].x + rocks[i].w < -20) rocks.splice(i, 1);
-    }
-
-    // spawn rocks
-    nextRockDist -= speed * dt;
-    if (nextRockDist <= 0) {
-      var rh = 40 + Math.random() * 60;
-      var rw = 24 + Math.random() * 20;
-      var lavaAtSpawn = getLavaY(VW + 40);
-      rocks.push({ x: VW + 30, w: rw, h: rh, ry: lavaAtSpawn - rh });
-      nextRockDist = 240 + Math.random() * 280;
-    }
-
-    // collision
-    for (i = 0; i < rocks.length; i++) {
-      var r = rocks[i];
-      var ry = getLavaY(r.x + r.w / 2) - r.h;
-      if (rectOverlap(charX, charY, CHAR_W, CHAR_H, r.x, ry, r.w, r.h)) {
-        die();
-        return;
+    if (phase === 'RESULT') {
+      phaseTimer -= dt;
+      if (phaseTimer <= 0) {
+        if (stonesLeft <= 0) {
+          state = 'DEAD'; snd('lose'); runEnded(); return;
+        }
+        stone = null; phase = 'AIM'; aimAngle = 0; lastPts = 0;
       }
     }
-
-    // char fell into lava (shouldn't happen normally but safety check)
-    if (charY > VH) {
-      die();
-    }
   }
 
-  function die() {
-    state = 'DEAD';
-    if (score > best) best = score;
-    try { Audio.play('crash'); } catch (e) {}
-    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
-  }
-
-  function tap(x, y) {
-    if (state === 'MENU') {
-      state = 'PLAYING';
-      try { AdManager.gameplayStart(); } catch (e) {}
-      return;
-    }
+  function tap(vx, vy) {
+    if (state === 'MENU') { startGame(); snd('tap'); return; }
     if (state === 'DEAD') {
-      resetGame();
-      state = 'PLAYING';
-      try { AdManager.gameplayStart(); } catch (e) {}
-      return;
+      try { AdManager.showInterstitial(function () { startGame(); }); } catch (e) { startGame(); }
+      snd('tap'); return;
     }
-    if (state === 'PLAYING' && onSurf) {
-      charVY = JUMP_VEL;
-      onSurf = false;
-      try { Audio.play('tap'); } catch (e) {}
+    if (state !== 'PLAYING') return;
+
+    if (phase === 'AIM') {
+      if (vx >= BTN_X && vx <= BTN_X + BTN_W && vy >= BTN_Y && vy <= BTN_Y + BTN_H) {
+        launchStone(); return;
+      }
+      if (vx < VW / 2) {
+        aimAngle = Math.max(-AIM_MAX, aimAngle - AIM_STEP);
+      } else {
+        aimAngle = Math.min(AIM_MAX, aimAngle + AIM_STEP);
+      }
+      snd('tap');
     }
   }
 
-  // ---- drawing ----
+  function getBest()  { return _best; }
+  function getScore() { return score; }
+  function getState() { return state; }
+
+  // ---- Drawing helpers ----
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
   function drawBg() {
-    var grad = ctx.createLinearGradient(0, 0, 0, VH);
-    grad.addColorStop(0, '#1a0500');
-    grad.addColorStop(0.4, '#7f1300');
-    grad.addColorStop(0.7, '#bf360c');
-    grad.addColorStop(1, '#e64a19');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, VW, VH);
+    var g = ctx.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, '#091828'); g.addColorStop(1, '#0b2434');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  }
 
-    // embers
-    var time = scrollX / 200;
+  function drawLane() {
+    var h = LANE_BOT - LANE_TOP;
+    ctx.fillStyle = 'rgba(180,225,255,0.10)';
+    roundRect(LANE_X, LANE_TOP, LANE_W, h, 10); ctx.fill();
+    ctx.strokeStyle = 'rgba(130,195,255,0.32)'; ctx.lineWidth = 2;
+    roundRect(LANE_X, LANE_TOP, LANE_W, h, 10); ctx.stroke();
+    ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
     var i;
-    for (i = 0; i < 18; i++) {
-      var ex = ((i * 71 + scrollX * (0.1 + i * 0.02)) % (VW + 40)) - 20;
-      var ey = ((i * 113 + time * 30) % (LAVA_BASE)) + 10;
-      var alpha = 0.4 + Math.sin(time * 3 + i) * 0.3;
-      ctx.fillStyle = 'rgba(255,' + Math.floor(100 + i * 8) + ',0,' + alpha + ')';
-      ctx.beginPath();
-      ctx.arc(ex, ey, 2 + Math.sin(time * 2 + i) * 1.5, 0, Math.PI * 2);
-      ctx.fill();
+    for (i = 0; i < 6; i++) {
+      var xi = LANE_X + 18 + i * 52;
+      ctx.beginPath(); ctx.moveTo(xi, LANE_TOP + 18); ctx.lineTo(xi - 8, LANE_BOT - 18); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawTarget() {
+    var cx = TARGET_CX, cy = TARGET_CY, i;
+    for (i = RING_R.length - 1; i >= 0; i--) {
+      ctx.beginPath(); ctx.arc(cx, cy, RING_R[i], 0, Math.PI * 2);
+      ctx.fillStyle = RING_COLS[i]; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.font = 'bold 10px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (i = 0; i < RING_R.length; i++) {
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText(String(RING_PTS[i]), cx + RING_R[i] - 8, cy);
     }
   }
 
-  function drawLava() {
-    var segW = VW / LAVA_SEGS;
-    // lava surface gradient fill
-    var grad = ctx.createLinearGradient(0, LAVA_BASE - 30, 0, VH);
-    grad.addColorStop(0, '#ff6f00');
-    grad.addColorStop(0.3, '#e64a19');
-    grad.addColorStop(1, '#bf360c');
-    ctx.fillStyle = grad;
+  function drawAimGuide() {
+    if (phase !== 'AIM') return;
+    var dir = Math.PI / 2 + aimAngle;
+    var sx = VW / 2, sy = LANE_BOT - 20;
+    var ex = sx - Math.cos(dir) * 210, ey = sy - Math.sin(dir) * 210;
+    ctx.save(); ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = 'rgba(100,215,255,0.5)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
 
-    ctx.beginPath();
-    ctx.moveTo(0, getLavaY(0));
+  function drawStone(sx, sy, col, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha || 1;
+    ctx.shadowColor = col; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(sx, sy, 13, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill(); ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(sx - 4, sy - 4, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlaced() {
     var i;
-    for (i = 0; i <= LAVA_SEGS; i++) {
-      ctx.lineTo(i * segW, LAVA_BASE + lavaPoints[i]);
-    }
-    ctx.lineTo(VW, VH);
-    ctx.lineTo(0, VH);
-    ctx.closePath();
-    ctx.fill();
-
-    // bright glow line on top of lava
-    ctx.strokeStyle = '#ffeb3b';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, getLavaY(0));
-    for (i = 1; i <= LAVA_SEGS; i++) {
-      ctx.lineTo(i * segW, LAVA_BASE + lavaPoints[i]);
-    }
-    ctx.stroke();
-
-    // lava bubbles
-    for (i = 0; i < 5; i++) {
-      var bx2 = ((i * 80 + scrollX * 0.15) % VW);
-      var bphase = (scrollX * 0.03 + i) % (Math.PI * 2);
-      var br = 8 + Math.sin(bphase) * 4;
-      var bly = getLavaY(bx2) - br;
-      ctx.fillStyle = 'rgba(255,160,0,0.7)';
-      ctx.beginPath();
-      ctx.arc(bx2, bly, br, 0, Math.PI * 2);
-      ctx.fill();
+    for (i = 0; i < placedStones.length; i++) {
+      var s = placedStones[i];
+      drawStone(s.x, s.y, '#4ab8ff', 0.82);
+      ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#fff'; ctx.fillText(String(s.pts), s.x, s.y - 15);
     }
   }
 
-  function drawRocks() {
-    var i;
-    for (i = 0; i < rocks.length; i++) {
-      var r = rocks[i];
-      var ry = getLavaY(r.x + r.w / 2) - r.h;
-      // rock shape
-      ctx.fillStyle = '#4e342e';
-      ctx.fillRect(r.x, ry, r.w, r.h);
-      // highlight
-      ctx.fillStyle = '#6d4c41';
-      ctx.fillRect(r.x + 3, ry + 3, r.w * 0.4, r.h * 0.3);
-      // glowing base
-      ctx.fillStyle = '#ff6f00';
-      ctx.fillRect(r.x, ry + r.h - 4, r.w, 4);
-    }
-  }
-
-  function drawChar() {
-    // surfboard
-    ctx.fillStyle = '#ff7043';
-    ctx.beginPath();
-    ctx.moveTo(charX - 8, charY + CHAR_H);
-    ctx.lineTo(charX + CHAR_W + 8, charY + CHAR_H);
-    ctx.lineTo(charX + CHAR_W + 4, charY + CHAR_H - 6);
-    ctx.lineTo(charX - 4, charY + CHAR_H - 6);
-    ctx.closePath();
-    ctx.fill();
-
-    // character body on board
-    ctx.fillStyle = '#fff9c4';
-    ctx.fillRect(charX + 8, charY, 20, CHAR_H - 6);
-    // helmet
-    ctx.fillStyle = '#ef5350';
-    ctx.fillRect(charX + 6, charY - 10, 24, 14);
-    // visor
-    ctx.fillStyle = '#1a237e';
-    ctx.fillRect(charX + 10, charY - 6, 16, 7);
-    // arms out for balance
-    ctx.fillStyle = '#fff9c4';
-    ctx.fillRect(charX - 2, charY + 4, 10, 6);
-    ctx.fillRect(charX + CHAR_W - 8, charY + 4, 10, 6);
+  function drawReleaseBtn() {
+    if (phase !== 'AIM') return;
+    ctx.save(); ctx.shadowColor = '#33e1ff'; ctx.shadowBlur = 14;
+    roundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 10);
+    ctx.fillStyle = '#10304a'; ctx.fill();
+    ctx.strokeStyle = '#33e1ff'; ctx.lineWidth = 2;
+    roundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 10); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('RELEASE', BTN_X + BTN_W / 2, BTN_Y + BTN_H / 2);
+    ctx.restore();
   }
 
   function drawHUD() {
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 26px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('SCORE ' + score, 16, 38);
-    ctx.textAlign = 'right';
-    ctx.fillText('BEST ' + best, VW - 16, 38);
+    ctx.fillStyle = '#7df'; ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('ICE CURLING', VW / 2, 16);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Arial';
+    ctx.fillText(String(score), VW / 2, 40);
+    ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.textAlign = 'left'; ctx.fillText('Stones: ' + stonesLeft, 18, 78);
+    ctx.textAlign = 'right'; ctx.fillText('Best: ' + _best, VW - 18, 78);
+    var i;
+    for (i = 0; i < 3; i++) {
+      ctx.font = '18px Arial'; ctx.textAlign = 'left';
+      ctx.fillStyle = i < lives ? '#ff3b6b' : 'rgba(255,255,255,0.22)';
+      ctx.fillText(i < lives ? '♥' : '♡', VW / 2 - 28 + i * 22, 78);
+    }
+    if (phase === 'RESULT' && lastPts > 0 && stonesLeft > 0) {
+      ctx.save(); ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 22;
+      ctx.fillStyle = '#ffd700'; ctx.font = 'bold 38px Arial';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('+' + lastPts, VW / 2, VH - 120);
+      ctx.restore();
+    }
   }
 
   function drawMenu() {
     drawBg();
-    drawLava();
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(0, 0, VW, VH);
-
-    ctx.fillStyle = '#ff7043';
-    ctx.font = 'bold 56px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('LAVA', VW / 2, 310);
-    ctx.fillText('SURF', VW / 2, 375);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 26px monospace';
-    ctx.fillText('TAP TO PLAY', VW / 2, 470);
-
-    if (best > 0) {
-      ctx.fillStyle = '#ffeb3b';
-      ctx.font = '22px monospace';
-      ctx.fillText('BEST: ' + best, VW / 2, 520);
+    var float = Math.sin(t * 1.4) * 6;
+    ctx.save();
+    ctx.shadowColor = '#33e1ff'; ctx.shadowBlur = 26;
+    ctx.fillStyle = '#33e1ff'; ctx.font = 'bold 56px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('ICE', VW / 2, 305 + float);
+    ctx.fillStyle = '#7df';
+    ctx.fillText('CURLING', VW / 2, 366 + float);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.font = '19px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Tap left/right to aim', VW / 2, 452);
+    ctx.fillText('Press RELEASE to launch', VW / 2, 480);
+    ctx.fillText('6 stones - hit the bullseye!', VW / 2, 508);
+    var pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 2.2));
+    ctx.save(); ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial';
+    ctx.fillText('TAP TO PLAY', VW / 2, 622);
+    ctx.restore();
+    if (_best > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.52)'; ctx.font = '17px Arial';
+      ctx.fillText('BEST ' + _best, VW / 2, 676);
     }
+    ctx.save(); ctx.translate(0, -192); drawTarget(); ctx.restore();
   }
 
   function drawDead() {
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(0, 0, VW, VH);
-
-    ctx.fillStyle = '#ff7043';
-    ctx.font = 'bold 52px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('BURNED!', VW / 2, 340);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 28px monospace';
-    ctx.fillText('SCORE: ' + score, VW / 2, 410);
-
-    ctx.fillStyle = '#ffeb3b';
-    ctx.font = '24px monospace';
-    ctx.fillText('BEST: ' + best, VW / 2, 450);
-
-    ctx.fillStyle = '#80cbc4';
-    ctx.font = 'bold 26px monospace';
+    ctx.save(); ctx.fillStyle = 'rgba(0,8,20,0.74)'; ctx.fillRect(0, 0, VW, VH);
+    var pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 2.2));
+    ctx.shadowColor = '#33e1ff'; ctx.shadowBlur = 22;
+    ctx.fillStyle = '#33e1ff'; ctx.font = 'bold 46px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('GAME OVER', VW / 2, 300);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = 'bold 28px Arial';
+    ctx.fillText('Score: ' + score, VW / 2, 370);
+    ctx.font = '20px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    ctx.fillText('Best: ' + _best, VW / 2, 415);
+    ctx.globalAlpha = pulse; ctx.fillStyle = '#fff'; ctx.font = 'bold 24px Arial';
     ctx.fillText('TAP TO RETRY', VW / 2, 530);
+    ctx.restore();
   }
 
   function draw() {
-    ctx.clearRect(0, 0, VW, VH);
-    if (state === 'MENU') {
-      drawMenu();
-      return;
-    }
     drawBg();
-    drawLava();
-    drawRocks();
-    drawChar();
-    drawHUD();
-    if (state === 'DEAD') {
-      drawDead();
-    }
+    if (state === 'MENU') { drawMenu(); return; }
+    drawLane(); drawTarget(); drawAimGuide(); drawPlaced();
+    if (stone) drawStone(stone.x, stone.y, '#8edfff', 1.0);
+    drawReleaseBtn(); drawHUD();
+    if (state === 'DEAD') drawDead();
   }
 
-  function getBest() { return best; }
-
-  return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
+  return { init: init, update: update, draw: draw, tap: tap,
+           getScore: getScore, getState: getState, getBest: getBest };
 })();
+
+if (typeof module !== 'undefined' && module.exports) { module.exports = LavaSurf; }

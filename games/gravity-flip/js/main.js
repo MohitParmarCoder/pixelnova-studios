@@ -70,14 +70,6 @@
     _paused = true;
     document.getElementById('settingsOverlay').classList.remove('hidden');
     _updateMuteUI();
-  (function () {
-    var elI = document.getElementById('btnInfo');
-    var elIO = document.getElementById('infoOverlay');
-    var elIC = document.getElementById('btnInfoClose');
-    if (elI) elI.addEventListener('click', function () { if (elIO) elIO.classList.remove('hidden'); });
-    if (elIC) elIC.addEventListener('click', function () { if (elIO) elIO.classList.add('hidden'); });
-    if (elIO) elIO.addEventListener('click', function (e) { if (e.target === this) elIO.classList.add('hidden'); });
-  })();
     if (_logoRaf) cancelAnimationFrame(_logoRaf);
     _drawLogo();
   }
@@ -137,4 +129,13 @@
   requestAnimationFrame((ts) => { prev = ts; requestAnimationFrame(loop); });
 
   document.addEventListener('visibilitychange', () => { if (!document.hidden) prev = performance.now(); });
+  (function () {
+    var elI = document.getElementById('btnInfo');
+    var elIO = document.getElementById('infoOverlay');
+    var elIC = document.getElementById('btnInfoClose');
+    if (elI) elI.addEventListener('click', function () { if (elIO) elIO.classList.remove('hidden'); });
+    if (elIC) elIC.addEventListener('click', function () { if (elIO) elIO.classList.add('hidden'); });
+    if (elIO) elIO.addEventListener('click', function (e) { if (e.target === this) elIO.classList.add('hidden'); });
+  })();
+
 })();
