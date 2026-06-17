@@ -3,145 +3,199 @@ var LeafFall = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, lives, items, particles, spawnTimer, spawnInterval, speed, wind, windTimer;
-  var basket = { x: 195, w: 72, h: 24, y: VH - 80 };
-  var dragX = null;
-  var LEAF_COLORS = ['#E8A838', '#D4522A', '#C13B1B', '#E8C85A', '#8B4513'];
+  var score, lives, bugs, particles, spawnTimer, spawnInterval, baseSpeed;
+  var MAX_BUGS = 8;
 
-  function init(canvas, bestScore) { c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU'; }
+  function init(canvas, bestScore) {
+    c = canvas; ctx = c.getContext('2d'); best = bestScore || 0;
+    state = 'MENU';
+  }
+
+  function makeBug() {
+    var gold = Math.random() < 0.15;
+    var r = gold ? 18 : 12;
+    var pts = gold ? 5 : 1;
+    var color = gold ? '#ffd700' : (['#ff6b6b','#6bcb77','#4d96ff','#c77dff','#ff9f43'])[Math.floor(Math.random() * 5)];
+    var fromLeft = Math.random() < 0.5;
+    var speed = baseSpeed + Math.random() * 60;
+    return {
+      x: fromLeft ? -r - 10 : VW + r + 10,
+      y: 100 + Math.random() * (VH - 200),
+      r: r, pts: pts, color: color,
+      speed: speed,
+      dir: fromLeft ? 1 : -1,
+      sinOffset: Math.random() * Math.PI * 2,
+      sinAmp: 30 + Math.random() * 50,
+      sinFreq: 1.5 + Math.random() * 1.5,
+      baseY: 0,
+      t: 0,
+      gold: gold
+    };
+  }
 
   function startGame() {
-    score = 0; lives = 3; items = []; particles = [];
-    spawnTimer = 0; spawnInterval = 0.8; speed = 140; wind = 0; windTimer = 3;
-    basket.x = VW / 2; dragX = null; state = 'PLAYING';
+    score = 0; lives = 3; bugs = []; particles = [];
+    spawnTimer = 0; spawnInterval = 1.2; baseSpeed = 80;
+    state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
   }
 
-  function spawnItem() {
-    var isThorn = Math.random() < 0.14 + score * 0.003;
-    var isAcorn = Math.random() < 0.1;
-    items.push({
-      x: 20 + Math.random() * (VW - 40), y: -20,
-      r: 13 + Math.random() * 5, vx: wind * 0.5,
-      thorn: isThorn, acorn: !isThorn && isAcorn,
-      color: isThorn ? '#4a4a00' : (isAcorn ? '#8B4513' : LEAF_COLORS[Math.floor(Math.random() * LEAF_COLORS.length)]),
-      rot: Math.random() * Math.PI, rotSpd: (Math.random() - 0.5) * 3
-    });
-  }
-
   function addParticles(x, y, color) {
-    for (var i = 0; i < 8; i++) {
-      var a = Math.random() * Math.PI * 2;
-      particles.push({ x: x, y: y, vx: Math.cos(a) * 60 + wind * 20, vy: Math.sin(a) * 60, life: 0.55, maxLife: 0.55, color: color });
+    var i, a;
+    for (i = 0; i < 12; i++) {
+      a = (i / 12) * Math.PI * 2;
+      particles.push({ x: x, y: y,
+        vx: Math.cos(a) * (50 + Math.random() * 70),
+        vy: Math.sin(a) * (50 + Math.random() * 70),
+        life: 0.6, maxLife: 0.6, color: color });
     }
   }
 
   function update(dt) {
     if (state !== 'PLAYING') return;
-    if (dragX !== null) basket.x += (dragX - basket.x) * 0.28;
-    basket.x = Math.max(basket.w / 2, Math.min(VW - basket.w / 2, basket.x));
+    var i, b, p;
+    spawnTimer += dt;
+    spawnInterval = Math.max(0.5, 1.2 - score * 0.01);
+    baseSpeed = 80 + score * 2;
+    if (spawnTimer >= spawnInterval && bugs.length < MAX_BUGS) {
+      spawnTimer = 0;
+      var nb = makeBug();
+      nb.baseY = nb.y;
+      bugs.push(nb);
+    }
 
-    windTimer -= dt;
-    if (windTimer <= 0) { wind = (Math.random() - 0.5) * 80; windTimer = 3 + Math.random() * 2; }
-
-    spawnTimer += dt; speed = 140 + score * 2.5;
-    spawnInterval = Math.max(0.35, 0.8 - score * 0.008);
-    if (spawnTimer >= spawnInterval) { spawnTimer = 0; spawnItem(); }
-
-    for (var i = items.length - 1; i >= 0; i--) {
-      var it = items[i];
-      it.y += speed * dt; it.x += (it.vx + wind * 0.3) * dt; it.rot += it.rotSpd * dt;
-      var hit = it.y > basket.y - 10 && it.y < basket.y + basket.h &&
-          it.x > basket.x - basket.w / 2 - it.r && it.x < basket.x + basket.w / 2 + it.r;
-      if (hit) {
-        if (it.thorn) { lives--; addParticles(it.x, it.y, '#888'); try { Audio.play('crash'); } catch(e) {} }
-        else { score += it.acorn ? 3 : 1; if (score > best) best = score; addParticles(it.x, it.y, it.color); try { Audio.play(it.acorn ? 'gem' : 'land'); } catch(e) {} }
-        items.splice(i, 1);
-        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-      } else if (it.y > VH + 20 || it.x < -40 || it.x > VW + 40) {
-        if (!it.thorn) { lives--; try { Audio.play('lose'); } catch(e) {}
-          if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+    for (i = bugs.length - 1; i >= 0; i--) {
+      b = bugs[i];
+      b.t += dt;
+      b.x += b.speed * b.dir * dt;
+      b.y = b.baseY + Math.sin(b.sinOffset + b.t * b.sinFreq) * b.sinAmp;
+      if (b.x < -b.r - 30 || b.x > VW + b.r + 30) {
+        if (b.gold) {
+          lives--;
+          try { Audio.play('lose'); } catch(e) {}
+          if (lives <= 0) {
+            lives = 0; state = 'DEAD';
+            try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+            return;
+          }
         }
-        items.splice(i, 1);
+        bugs.splice(i, 1);
       }
     }
-    for (var j = particles.length - 1; j >= 0; j--) {
-      var p = particles[j]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 150 * dt; p.life -= dt;
-      if (p.life <= 0) particles.splice(j, 1);
+
+    for (i = particles.length - 1; i >= 0; i--) {
+      p = particles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += 180 * dt; p.life -= dt;
+      if (p.life <= 0) particles.splice(i, 1);
     }
   }
 
-  function drawLeaf(it) {
-    ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(it.rot);
-    if (it.thorn) {
-      ctx.fillStyle = '#4a4a00'; ctx.shadowBlur = 6; ctx.shadowColor = '#888';
-      ctx.beginPath(); ctx.moveTo(0, -it.r); ctx.lineTo(it.r * 0.4, it.r); ctx.lineTo(-it.r * 0.4, it.r); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#666'; ctx.lineWidth = 1.5; ctx.stroke();
-    } else if (it.acorn) {
-      ctx.fillStyle = '#8B4513'; ctx.shadowBlur = 8; ctx.shadowColor = '#FFD700';
-      ctx.beginPath(); ctx.ellipse(0, 2, it.r * 0.6, it.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#5C2E00';
-      ctx.beginPath(); ctx.ellipse(0, -it.r * 0.3, it.r * 0.7, it.r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
-    } else {
-      ctx.fillStyle = it.color; ctx.shadowBlur = 8; ctx.shadowColor = it.color;
-      ctx.beginPath(); ctx.ellipse(0, 0, it.r * 0.5, it.r, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,200,0.4)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, -it.r); ctx.lineTo(0, it.r); ctx.stroke();
+  function drawBug(b) {
+    ctx.save();
+    ctx.fillStyle = b.color;
+    ctx.shadowBlur = b.gold ? 18 : 8;
+    ctx.shadowColor = b.color;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = b.gold ? '#333' : '#222'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(b.x - 4, b.y - b.r);
+    ctx.lineTo(b.x - 8, b.y - b.r - 10);
+    ctx.moveTo(b.x + 4, b.y - b.r);
+    ctx.lineTo(b.x + 8, b.y - b.r - 10);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(b.x - b.r, b.y - 4); ctx.lineTo(b.x - b.r - 12, b.y - 8);
+    ctx.moveTo(b.x - b.r, b.y + 4); ctx.lineTo(b.x - b.r - 10, b.y + 8);
+    ctx.moveTo(b.x + b.r, b.y - 4); ctx.lineTo(b.x + b.r + 12, b.y - 8);
+    ctx.moveTo(b.x + b.r, b.y + 4); ctx.lineTo(b.x + b.r + 10, b.y + 8);
+    ctx.stroke();
+    if (b.gold) {
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('5', b.x, b.y);
+      ctx.textBaseline = 'alphabetic';
     }
     ctx.restore();
   }
 
-  function draw() {
-    var bg = ctx.createLinearGradient(0, 0, 0, VH);
-    bg.addColorStop(0, '#0f0800'); bg.addColorStop(1, '#1a0a00');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, VW, VH);
+  function drawBg() {
+    var g = ctx.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, '#0f2027'); g.addColorStop(1, '#203a43');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+  }
 
+  function draw() {
+    var i, p, a, hearts, h;
+    drawBg();
     if (state === 'MENU') {
-      ctx.fillStyle = '#E8A838'; ctx.font = 'bold 52px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 22; ctx.shadowColor = '#E8A838'; ctx.fillText('LEAF FALL', VW / 2, 270);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '19px system-ui';
-      ctx.fillText('Collect leaves, avoid thorns!', VW / 2, 340); ctx.fillText('TAP TO PLAY', VW / 2, 400);
-      ctx.fillStyle = '#a8edea'; ctx.font = '18px system-ui'; ctx.fillText('BEST: ' + best, VW / 2, 460);
+      ctx.fillStyle = '#6bcb77'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#6bcb77';
+      ctx.fillText('BUG CATCHER', VW / 2, 300);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
+      ctx.fillText('Tap bugs to catch them!', VW / 2, 370);
+      ctx.fillStyle = '#ffd700'; ctx.font = '20px system-ui';
+      ctx.fillText('Gold bugs = 5pts (dont miss!)', VW / 2, 408);
+      ctx.fillStyle = '#a8edea'; ctx.font = '20px system-ui';
+      ctx.fillText('BEST: ' + best, VW / 2, 456);
+      ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
+      ctx.fillText('TAP TO PLAY', VW / 2, 520);
+      ctx.textAlign = 'left';
       return;
     }
-
-    // wind indicator
-    ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.font = '14px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText('Wind: ' + (wind > 10 ? '>>>' : wind < -10 ? '<<<' : '--'), VW / 2, 65);
-
-    items.forEach(drawLeaf);
-    particles.forEach(function (p) {
-      ctx.globalAlpha = p.life / p.maxLife; ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill();
-    });
+    for (i = 0; i < bugs.length; i++) drawBug(bugs[i]);
+    for (i = 0; i < particles.length; i++) {
+      p = particles[i];
+      a = p.life / p.maxLife;
+      ctx.globalAlpha = a; ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5 * a, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.globalAlpha = 1;
-
-    var bx = basket.x - basket.w / 2;
-    ctx.strokeStyle = '#E8A838'; ctx.lineWidth = 3; ctx.fillStyle = 'rgba(232,168,56,0.12)';
-    ctx.beginPath(); ctx.moveTo(bx, basket.y); ctx.lineTo(bx + basket.w, basket.y);
-    ctx.lineTo(bx + basket.w - 6, basket.y + basket.h); ctx.lineTo(bx + 6, basket.y + basket.h);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-
-    ctx.shadowBlur = 0; ctx.fillStyle = '#E8A838'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
-    ctx.fillText('Score: ' + score, 16, 44); ctx.fillStyle = '#f87171'; ctx.textAlign = 'right'; ctx.font = '22px system-ui';
-    ctx.fillText('♥ '.repeat(lives), VW - 16, 44);
-
+    ctx.fillStyle = '#6bcb77'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('Score: ' + score, 16, 44);
+    ctx.fillStyle = '#f87171'; ctx.textAlign = 'right';
+    hearts = '';
+    for (h = 0; h < lives; h++) hearts += '♥';
+    for (h = lives; h < 3; h++) hearts += '♡';
+    ctx.fillText(hearts, VW - 16, 44);
     if (state === 'DEAD') {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, VW, VH);
-      ctx.fillStyle = '#f87171'; ctx.font = 'bold 44px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 18; ctx.shadowColor = '#f87171'; ctx.fillText('GAME OVER', VW / 2, 310);
-      ctx.shadowBlur = 0; ctx.fillStyle = '#E8A838'; ctx.font = 'bold 30px system-ui';
-      ctx.fillText('Score: ' + score, VW / 2, 380); ctx.fillStyle = '#a8edea'; ctx.font = '22px system-ui';
-      ctx.fillText('Best: ' + best, VW / 2, 425); ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
-      ctx.fillText('TAP TO RETRY', VW / 2, 495);
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, VW, VH);
+      ctx.fillStyle = '#f87171'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#f87171';
+      ctx.fillText('GAME OVER', VW / 2, 320);
+      ctx.shadowBlur = 0; ctx.fillStyle = '#ffd700'; ctx.font = 'bold 32px system-ui';
+      ctx.fillText('Score: ' + score, VW / 2, 390);
+      ctx.fillStyle = '#a8edea'; ctx.font = '22px system-ui';
+      ctx.fillText('Best: ' + best, VW / 2, 430);
+      ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
+      ctx.fillText('TAP TO RETRY', VW / 2, 500);
     }
     ctx.textAlign = 'left';
   }
 
   function tap(x, y) {
-    if (state === 'MENU' || state === 'DEAD') { startGame(); return; }
-    dragX = x;
+    if (state === 'MENU') { startGame(); return; }
+    if (state === 'DEAD') { startGame(); return; }
+    if (state !== 'PLAYING') return;
+    var i, b, dx, dy, dist;
+    for (i = bugs.length - 1; i >= 0; i--) {
+      b = bugs[i];
+      dx = x - b.x; dy = y - b.y;
+      dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < b.r + 10) {
+        score += b.pts;
+        if (score > best) best = score;
+        addParticles(b.x, b.y, b.color);
+        try { Audio.play('gem'); } catch(e) {}
+        bugs.splice(i, 1);
+        return;
+      }
+    }
   }
+
   function getBest() { return best; }
+
+  c = null;
   return { init: init, update: update, draw: draw, tap: tap, getBest: getBest };
 })();
