@@ -118,14 +118,14 @@ const ReflexTap = (() => {
     if (_state === 'MENU') {
       _resetRound();
       _state = 'PLAYING';
-      AdManager.gameplayStart();
+      try { AdManager.gameplayStart(); } catch(e) {}
       return;
     }
 
     if (_state === 'DEAD') {
       _resetRound();
       _state = 'PLAYING';
-      AdManager.gameplayStart();
+      try { AdManager.gameplayStart(); } catch(e) {}
       return;
     }
 
@@ -166,9 +166,9 @@ const ReflexTap = (() => {
 
       if (_lives <= 0) {
         _state = 'DEAD';
-        AdManager.gameplayStop();
-        AdManager.onRunEnd();
-        AdManager.showInterstitial(() => {});
+        try { AdManager.gameplayStop(); } catch(e) {}
+        try { AdManager.onRunEnd(); } catch(e) {}
+        try { AdManager.showInterstitial(() => {}); } catch(e) {}
         try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'reflextap_best'); } catch(e) {}
       }
     }
