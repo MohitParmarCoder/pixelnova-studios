@@ -5,7 +5,8 @@ var CaveRunner = (function () {
   var grid, playerRow, playerCol, depth;
   var particles, flashText, flashTimer;
 
-  var COLS = 7, ROWS = 12;
+  var COLS = 7;
+  var ROWS = 12; // grows dynamically
   var CELL_W = 50, CELL_H = 60;
   var GRID_X = 20, GRID_Y = 80;
 
@@ -31,7 +32,25 @@ var CaveRunner = (function () {
     }
   }
 
+  function makeNewRows(count) {
+    for (var r = 0; r < count; r++) {
+      var newRow = [];
+      for (var c2 = 0; c2 < COLS; c2++) {
+        var rr = Math.random();
+        var t;
+        if (rr < 0.60) t = TYPE_ROCK;
+        else if (rr < 0.85) t = TYPE_GEM;
+        else if (rr < 0.95) t = TYPE_GOLD;
+        else t = TYPE_BOMB;
+        newRow[c2] = t;
+      }
+      grid.push(newRow);
+      ROWS = grid.length;
+    }
+  }
+
   function makeGrid() {
+    ROWS = 12;
     grid = [];
     for (var row = 0; row < ROWS; row++) {
       grid[row] = [];
@@ -116,6 +135,11 @@ var CaveRunner = (function () {
     if (flashTimer > 0) flashTimer -= dt;
 
     if (state !== 'PLAYING') return;
+
+    // Extend grid when player nears the bottom
+    if (playerRow >= ROWS - 3) {
+      makeNewRows(4);
+    }
 
     // Check if any moves remain
     if (!hasAnyReachable()) {

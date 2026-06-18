@@ -26,7 +26,9 @@ var PulseDodge = (function () {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       spawnTimer = Math.max(0.5, 1.2 - t * 0.02);
-      waves.push({ r: 20, speed: 200 + t * 2, from: Math.random() < 0.5 ? 'center' : 'edge' });
+      var spx = CX + Math.cos(player.angle) * player.dist;
+      var wSrc = Math.random() < 0.5 ? { x: CX, y: CY } : { x: spx > CX ? -30 : VW+30, y: CY };
+      waves.push({ r: 20, speed: 200 + t * 2, src: wSrc });
     }
 
     for (var i = waves.length - 1; i >= 0; i--) {
@@ -36,7 +38,7 @@ var PulseDodge = (function () {
       var px = CX + Math.cos(player.angle) * player.dist;
       var py = CY + Math.sin(player.angle) * player.dist;
       var wr = waves[i].r;
-      var src = waves[i].from === 'center' ? { x: CX, y: CY } : { x: px > CX ? -30 : VW+30, y: CY };
+      var src = waves[i].src;
       var dx = px - src.x, dy = py - src.y;
       var dist = Math.sqrt(dx*dx + dy*dy);
       if (Math.abs(dist - wr) < player.r + 4) {
@@ -69,7 +71,7 @@ var PulseDodge = (function () {
     }
 
     waves.forEach(function(w) {
-      var src = w.from === 'center' ? { x: CX, y: CY } : { x: CX < VW/2 ? -30 : VW+30, y: CY };
+      var src = w.src;
       var alpha = Math.max(0, 1 - w.r / 350);
       ctx.strokeStyle = 'rgba(200,100,255,' + alpha + ')';
       ctx.lineWidth = 4;

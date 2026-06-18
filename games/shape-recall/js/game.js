@@ -209,7 +209,10 @@ var ShapeRecall = (function () {
 
     // Check silhouette placement
     if (selectedPiece >= 0) {
-      if (pointInSilhouette(vx, vy)) {
+      var slot = currentPuzzle.pieces[selectedPiece].slot;
+      var sdx = vx - slot.x, sdy = vy - slot.y;
+      var nearSlot = sdx*sdx + sdy*sdy <= 45*45;
+      if (pointInSilhouette(vx, vy) && nearSlot) {
         // Correct placement — snap piece to its slot
         placedPieces[selectedPiece] = true;
         snd('gem');

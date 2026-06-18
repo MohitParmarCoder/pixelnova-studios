@@ -27,6 +27,7 @@ var ShadowSlide = (function () {
   var _ctx = null;
   var _state = 'MENU';    // 'MENU' | 'PLAYING' | 'DEAD'
   var _best = 0;
+  var _lives = 3;
 
   // player
   var _py = 0;            // player y (center)
@@ -113,6 +114,7 @@ var ShadowSlide = (function () {
   function _startGame() {
     _scrollX = 0;
     _score = 0;
+    _lives = 3;
     _speed = SCROLL_SPEED;
     _seedPlatforms();
     // Place player on first platform
@@ -129,6 +131,18 @@ var ShadowSlide = (function () {
   // ── Death ─────────────────────────────────────────────────────────────────────
   function _die() {
     if (_state !== 'PLAYING') { return; }
+    _lives--;
+    try { Audio.play('crash'); } catch (e) {}
+    if (_lives > 0) {
+      // Respawn on a new platform
+      _seedPlatforms();
+      var fp = _platforms[0];
+      _py = fp.y - PLAYER_R;
+      _vy = 0;
+      _onGround = true;
+      _jumpReady = true;
+      return;
+    }
     _state = 'DEAD';
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
@@ -366,7 +380,7 @@ var ShadowSlide = (function () {
     // Darkness overlay — applied after world is drawn
     _drawDarknessOverlay();
 
-    // Score (drawn AFTER darkness so it stays visible)
+    // Score and lives HUD (drawn AFTER darkness so it stays visible)
     ctx.save();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -375,6 +389,13 @@ var ShadowSlide = (function () {
     ctx.shadowBlur = 12;
     ctx.fillStyle = '#fff';
     ctx.fillText(_score, 20, 20);
+    ctx.shadowBlur = 0;
+    ctx.font = '22px Arial, sans-serif';
+    ctx.fillStyle = '#f87171';
+    var hStr = '';
+    for (var hi = 0; hi < 3; hi++) hStr += (hi < _lives ? '♥' : '♡');
+    ctx.textAlign = 'right';
+    ctx.fillText(hStr, VW - 20, 20);
     ctx.restore();
   }
 

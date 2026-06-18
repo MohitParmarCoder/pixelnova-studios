@@ -184,17 +184,18 @@ var BilliardAim = (function () {
       return;
     }
 
-    // Move balls
+    // Move balls (dt-scaled to stay framerate-independent)
+    var fric = Math.pow(FRICTION, dt * 60);
     var allBalls = [cueBall].concat(targetBalls);
     for (var i = 0; i < allBalls.length; i++) {
       var b = allBalls[i];
       if (b.pocketed) continue;
-      b.vx *= FRICTION;
-      b.vy *= FRICTION;
+      b.vx *= fric;
+      b.vy *= fric;
       if (Math.abs(b.vx) < MIN_SPEED * 0.1) b.vx = 0;
       if (Math.abs(b.vy) < MIN_SPEED * 0.1) b.vy = 0;
-      b.x += b.vx;
-      b.y += b.vy;
+      b.x += b.vx * dt * 60;
+      b.y += b.vy * dt * 60;
       bounceBall(b);
     }
 
