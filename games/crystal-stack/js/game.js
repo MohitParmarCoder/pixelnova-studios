@@ -280,19 +280,27 @@ var CrystalStack = (function () {
         if (state !== 'PLAYING') { return; }
         if (winFlash) { return; }
 
-        // Find which tube was tapped
+        // Find which tube was tapped.
+        // Use a generous hit zone: a tall vertical band covering the tubes,
+        // and snap horizontally to the nearest tube column (gaps count toward
+        // the closer tube). This makes tapping forgiving for players.
         var ty = tubeY();
+        var bandTop = ty - TUBE_H - 60;
+        var bandBot = ty + 60;
         var tappedTube = -1;
-        for (var i = 0; i < NUM_TUBES; i++) {
-            var tx = tubeX(i);
-            if (x >= tx && x <= tx + TUBE_W && y >= ty - TUBE_H && y <= ty) {
-                tappedTube = i;
-                break;
+        if (y >= bandTop && y <= bandBot) {
+            var bestDist = 1e9;
+            for (var i = 0; i < NUM_TUBES; i++) {
+                var cx = tubeX(i) + TUBE_W / 2;
+                var d = Math.abs(x - cx);
+                if (d < bestDist) { bestDist = d; tappedTube = i; }
             }
+            // Reject taps that are far outside the tube spread
+            if (bestDist > TUBE_W / 2 + 18) { tappedTube = -1; }
         }
 
         if (tappedTube === -1) {
-            // Tapped outside — deselect
+            // Tapped well outside the tubes — deselect
             selectedTube = -1;
             return;
         }

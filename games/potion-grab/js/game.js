@@ -184,12 +184,13 @@ var PotionGrab = (function () {
     for (h = lives; h < 3; h++) hearts += '♡';
     ctx.fillText(hearts, VW - 16, VH - 90);
 
-    ctx.fillStyle = '#fff'; ctx.font = '18px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText('TAP CIRCLE TO SUBMIT', VW / 2, VH - 30);
     ctx.fillStyle = acc >= 0.9 ? '#6bcb77' : '#aaa';
     ctx.shadowBlur = acc >= 0.9 ? 14 : 0; ctx.shadowColor = '#6bcb77';
-    ctx.beginPath(); ctx.arc(VW / 2, VH - 50, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(VW / 2, VH - 52, 16, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '15px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('TAP CIRCLE TO SUBMIT', VW / 2, VH - 18);
 
     if (state === 'DEAD') {
       ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, VW, VH);
@@ -212,8 +213,8 @@ var PotionGrab = (function () {
     if (state !== 'PLAYING') return;
     var i, sx, dy;
     var submitDx = x - VW / 2;
-    var submitDy = y - (VH - 50);
-    if (Math.sqrt(submitDx * submitDx + submitDy * submitDy) < 22) {
+    var submitDy = y - (VH - 52);
+    if (Math.sqrt(submitDx * submitDx + submitDy * submitDy) < 26) {
       endRound(false);
       return;
     }

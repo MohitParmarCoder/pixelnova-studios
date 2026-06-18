@@ -14,8 +14,9 @@ var SpikeField = (function () {
     var MAX_VX = 400;
 
     // Camera
-    var worldY; // how far camera has scrolled up (increases as ball rises)
-    var maxWorldY; // highest worldY reached
+    var worldY; // camera world position (decreases as ball rises)
+    var maxWorldY; // highest (smallest) worldY reached
+    var startWorldY; // camera position at start, used as score baseline
 
     // Platforms
     var platforms; // [{x, y, w, h, hasSpike, hasGem, gemCollected}]
@@ -89,27 +90,29 @@ var SpikeField = (function () {
     function startGame() {
         score = 0;
         lives = 3;
-        worldY = 0;
-        maxWorldY = 0;
         particles = [];
         trail = [];
         deathFlash = 0;
         gemFlash = 0;
         platforms = [];
         gems = [];
-        genY = VH / 2 + 200; // start below screen center in world coords
-
-        // Starting platform
-        platforms.push({x: VW / 2 - 70, y: VH / 2 + 180, w: 140, h: PLAT_H, hasSpike: false, hasGem: false, gemCollected: false});
-        lastSafeX = VW / 2;
-        lastSafeY = VH / 2 + 180 - BALL_R;
-        genY = VH / 2 + 80;
-        generatePlatformsAround(worldY - VH);
 
         ballX = VW / 2;
         ballY = VH / 2 + 180 - BALL_R;
         ballVX = 150;
         ballVY = 0;
+
+        // Center the camera on the ball so it is visible at start.
+        worldY = ballY;
+        maxWorldY = worldY;
+        startWorldY = worldY;
+
+        // Starting platform (directly under the ball)
+        platforms.push({x: VW / 2 - 70, y: VH / 2 + 180, w: 140, h: PLAT_H, hasSpike: false, hasGem: false, gemCollected: false});
+        lastSafeX = VW / 2;
+        lastSafeY = VH / 2 + 180 - BALL_R;
+        genY = VH / 2 + 80;
+        generatePlatformsAround(worldY - VH);
 
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
@@ -227,8 +230,8 @@ var SpikeField = (function () {
         }
         if (worldY < maxWorldY) maxWorldY = worldY;
 
-        // Score based on height
-        var heightScore = Math.floor(-worldY / 10);
+        // Score based on height climbed since start
+        var heightScore = Math.floor((startWorldY - worldY) / 10);
         if (heightScore > score) score = heightScore;
         if (score > best) best = score;
 

@@ -33,6 +33,35 @@ var CandyRain = (function () {
     };
   }
 
+  function hasValidPair() {
+    var i, j;
+    for (i = 0; i < numbers.length; i++) {
+      for (j = i + 1; j < numbers.length; j++) {
+        if (numbers[i].val + numbers[j].val === target) return true;
+      }
+    }
+    return false;
+  }
+
+  function ensureValidPair() {
+    // Guarantee at least one pair on the board sums to the target so the
+    // round is always solvable (avoids a dead board / forced life loss).
+    if (hasValidPair()) return;
+    var a = 1 + Math.floor(Math.random() * 9);
+    var b = target - a;
+    // Clamp so both values stay in the legal 1..9 range.
+    if (b < 1) { b = 1; a = target - b; }
+    if (b > 9) { b = 9; a = target - b; }
+    if (a < 1) a = 1;
+    if (a > 9) a = 9;
+    // If the target can't be made from two 1..9 candies, retarget instead.
+    if (a + b !== target) { target = a + b; return; }
+    var i = Math.floor(Math.random() * numbers.length);
+    var j = (i + 1 + Math.floor(Math.random() * (numbers.length - 1))) % numbers.length;
+    numbers[i].val = a;
+    numbers[j].val = b;
+  }
+
   function startGame() {
     score = 0; lives = 3; numbers = []; pairsThisTarget = 0; selected = -1;
     target = randomTarget();
@@ -41,6 +70,7 @@ var CandyRain = (function () {
       numbers.push({});
       spawnNumber(i);
     }
+    ensureValidPair();
     state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
   }
@@ -156,6 +186,7 @@ var CandyRain = (function () {
               pairsThisTarget = 0;
               target = randomTarget();
             }
+            ensureValidPair();
           } else {
             lives--;
             try { Audio.play('crash'); } catch(e) {}

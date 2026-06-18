@@ -194,7 +194,7 @@ var NinjaRun = (function () {
 
     if (state === 'MENU') {
       ctx.fillStyle = '#a8edea';
-      ctx.font = 'bold 56px system-ui';
+      ctx.font = 'bold 46px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 24;

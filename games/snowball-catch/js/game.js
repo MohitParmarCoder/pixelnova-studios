@@ -169,8 +169,8 @@ var SnowballCatch = (function () {
     var i, hearts, h;
     drawBg();
     if (state === 'MENU') {
-      ctx.fillStyle = '#1a6b9e'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 20; ctx.shadowColor = '#4d96ff';
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 24; ctx.shadowColor = '#003a5c';
       ctx.fillText('FISHING DERBY', VW / 2, 180);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
       ctx.fillText('Tap to cast the line', VW / 2, 240);

@@ -282,7 +282,7 @@ var SpaceRunner = (function () {
 
     if (state === 'MENU') {
       ctx.textAlign = 'center';
-      ctx.font = 'bold 48px system-ui';
+      ctx.font = 'bold 40px system-ui';
       ctx.fillStyle = '#60a5fa';
       ctx.shadowBlur = 28;
       ctx.shadowColor = '#60a5fa';

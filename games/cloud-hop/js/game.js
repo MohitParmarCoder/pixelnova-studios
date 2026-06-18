@@ -402,10 +402,14 @@ var CloudHop = (function () {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText(dist + 'm', VW - 16, 64);
 
-    ctx.font      = '13px monospace';
+    ctx.font      = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = isHolding ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)';
-    ctx.fillText(isHolding ? 'HOLDING' : 'TAP = CLIMB', VW / 2, VH - 20);
+    var hint = isHolding ? 'HOLDING' : 'TAP = CLIMB';
+    var hw = ctx.measureText(hint).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(VW / 2 - hw / 2 - 10, VH - 36, hw + 20, 24);
+    ctx.fillStyle = isHolding ? 'rgba(120,255,160,0.95)' : 'rgba(255,255,255,0.9)';
+    ctx.fillText(hint, VW / 2, VH - 20);
     ctx.textAlign = 'left';
   }
 

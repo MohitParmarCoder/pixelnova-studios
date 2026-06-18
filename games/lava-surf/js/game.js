@@ -29,7 +29,7 @@ var LavaSurf = (function () {
   var AIM_STEP = 0.055, AIM_MAX = 0.44;
 
   // Physics
-  var STONE_SPD = 560;
+  var STONE_SPD = 760;
   var FRICTION  = 0.97;
   var MIN_SPD   = 2;
 

@@ -192,15 +192,15 @@ var EggDrop = (function () {
       return;
     }
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(0, 0, VW, 96);
+    ctx.fillRect(0, 0, VW, 130);
     ctx.fillStyle = '#ff9f43'; ctx.font = 'bold 18px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText('Recipe:', VW / 2, 22);
+    ctx.fillText('Recipe:', VW / 2, 24);
     rx = VW / 2 - (recipe.length - 1) * 28;
     for (i = 0; i < recipe.length; i++) {
       var rc = recipe[i];
       var col = rc === 'egg' ? '#ffd700' : (rc === 'tomato' ? '#ff6b6b' : '#ff9f43');
       ctx.fillStyle = i < recipeIdx ? 'rgba(255,255,255,0.3)' : col;
-      ctx.beginPath(); ctx.arc(rx + i * 56, 50, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(rx + i * 56, 54, 16, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = i === recipeIdx ? '#fff' : 'rgba(255,255,255,0.3)';
       ctx.lineWidth = i === recipeIdx ? 3 : 1;
       ctx.stroke();
@@ -214,13 +214,13 @@ var EggDrop = (function () {
     }
     ctx.globalAlpha = 1;
     drawPan();
-    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
-    ctx.fillText('Score: ' + score, 16, 88);
+    ctx.fillStyle = '#ffd700'; ctx.font = 'bold 26px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('Score: ' + score, 16, 118);
     ctx.fillStyle = '#f87171'; ctx.textAlign = 'right';
     hearts = '';
     for (h = 0; h < lives; h++) hearts += '♥';
     for (h = lives; h < 3; h++) hearts += '♡';
-    ctx.fillText(hearts, VW - 16, 88);
+    ctx.fillText(hearts, VW - 16, 118);
     if (state === 'DEAD') {
       ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(0, 0, VW, VH);
       ctx.fillStyle = '#f87171'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
