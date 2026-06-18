@@ -186,17 +186,13 @@ var PoolShots = (function () {
   function drawHUD() {
     ctx.font = 'bold 26px system-ui';
     ctx.textAlign = 'left';
-    var heartsStr = '';
-    for (var i = 0; i < 3; i++) {
-      heartsStr += (i < lives) ? '♥' : '♡';
-    }
-    ctx.fillStyle = '#f87171';
-    ctx.fillText(heartsStr, 14, 44);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('Score: ' + score, 14, 44);
 
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 26px system-ui';
-    ctx.fillText(score, VW - 14, 44);
+    ctx.fillStyle = '#a8edea';
+    ctx.font = '18px system-ui';
+    ctx.fillText('Best: ' + best, VW - 14, 44);
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fde68a';

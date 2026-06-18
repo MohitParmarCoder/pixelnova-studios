@@ -47,12 +47,17 @@ var GravityMaze = (function () {
     walls = [];
     passages = [];
 
-    var usedRows = [];
     var spacing = (VH - 200) / (numWalls + 1);
 
     for (var i = 0; i < numWalls; i++) {
       var wy = 180 + spacing * (i + 1);
-      var px = 40 + Math.random() * (VW - passageW - 80);
+      // Passage must always include VW/2 (ball's fixed x) so the level is beatable.
+      // Offset the passage center by up to (passageW/2 - BALL_R - 8) from center.
+      var maxOff = passageW / 2 - BALL_R - 8;
+      if (maxOff < 0) maxOff = 0;
+      var offset = (Math.random() * 2 - 1) * maxOff;
+      var px = VW / 2 - passageW / 2 + offset;
+      px = Math.max(10, Math.min(VW - passageW - 10, px));
       passages.push({ x: px, w: passageW, y: wy });
       walls.push({ x: 0, y: wy - 8, w: VW, h: 16, px: px, pw: passageW });
     }
