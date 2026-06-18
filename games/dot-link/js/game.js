@@ -115,12 +115,6 @@ var DotLink = (function () {
     return false;
   }
 
-  function _isAdjacent(a, b) {
-    var dr = Math.abs(a.r - b.r);
-    var dc = Math.abs(a.c - c);
-    return (dr + dc === 1);
-  }
-
   // Check if cell (r,c) is the start-dot of a given color
   function _isStartDot(colorKey, r, c) {
     // Convention: dots come in pairs; first occurrence is "start"

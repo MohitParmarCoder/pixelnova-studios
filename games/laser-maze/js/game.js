@@ -25,7 +25,6 @@ var LaserMaze = (function () {
     var winFlash = 0;
     var deathFlash = 0;
     var puzzlesSolved = 0;
-    var pendingNextPuzzle = false;
 
     // Pre-designed puzzles: each has mirrors [{col,row,type}] and walls [{col,row}]
     // Laser source at (0,0) going RIGHT, target at (5,8)
@@ -149,44 +148,9 @@ var LaserMaze = (function () {
         puzzlesSolved = 0;
         deathFlash = 0;
         winFlash = 0;
-        pendingNextPuzzle = false;
         loadPuzzle();
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
-    }
-
-    function update(dt) {
-        if (state !== 'PLAYING') return;
-        if (winFlash > 0) {
-            winFlash -= dt;
-            if (winFlash <= 0 && pendingNextPuzzle) {
-                pendingNextPuzzle = false;
-                loadPuzzle();
-            }
-            return;
-        }
-        if (deathFlash > 0) {
-            deathFlash -= dt;
-            if (deathFlash <= 0) {
-                if (lives <= 0) {
-                    state = 'DEAD';
-                    if (score > best) best = score;
-                    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
-                } else {
-                    loadPuzzle();
-                }
-            }
-            return;
-        }
-        puzzleTimer -= dt;
-        if (puzzleTimer <= 0) {
-            lives--;
-            try { Audio.play('crash'); } catch (e) {}
-            deathFlash = 0.6;
-            if (lives <= 0) {
-                try { Audio.play('lose'); } catch (e) {}
-            }
-        }
     }
 
     function drawGrid() {
@@ -445,15 +409,12 @@ var LaserMaze = (function () {
                     try { Audio.play('gem'); } catch (e) {}
                     winFlash = 0.5;
                     puzzleIndex++;
-                    pendingNextPuzzle = true;
                 }
             }
         }
     }
 
-    // In update(), after winFlash expires load next puzzle
-    var _origUpdate = update;
-    update = function (dt) {
+    function update(dt) {
         if (state !== 'PLAYING') return;
         if (winFlash > 0) {
             winFlash -= dt;
@@ -484,7 +445,7 @@ var LaserMaze = (function () {
                 try { Audio.play('lose'); } catch (e) {}
             }
         }
-    };
+    }
 
     function getBest() { return best; }
 
