@@ -87,31 +87,39 @@ var HexFlip = (function () {
   }
 
   function checkMatches() {
-    var matched = {};
+    var visited = {};
+    var matchList = [];
 
     for (var i = 0; i < hexes.length; i++) {
       if (hexes[i].flashing) continue;
-      var neighbors = getNeighborIndices(i);
-      for (var n = 0; n < neighbors.length; n++) {
-        var ni = neighbors[n];
-        if (hexes[ni].flashing) continue;
-        if (hexes[ni].color !== hexes[i].color) continue;
-        // Check for third in line
-        for (var n2 = n + 1; n2 < neighbors.length; n2++) {
-          var n2i = neighbors[n2];
-          if (hexes[n2i].flashing) continue;
-          if (hexes[n2i].color !== hexes[i].color) continue;
-          // Found 3 same color touching i
-          matched[i] = true;
-          matched[ni] = true;
-          matched[n2i] = true;
+      if (visited[i]) continue;
+
+      // Flood-fill connected same-color hexes starting from i
+      var color = hexes[i].color;
+      var group = [];
+      var stack = [i];
+      visited[i] = true;
+
+      while (stack.length > 0) {
+        var cur = stack.pop();
+        group.push(cur);
+        var neighbors = getNeighborIndices(cur);
+        for (var n = 0; n < neighbors.length; n++) {
+          var ni = neighbors[n];
+          if (visited[ni]) continue;
+          if (hexes[ni].flashing) continue;
+          if (hexes[ni].color !== color) continue;
+          visited[ni] = true;
+          stack.push(ni);
         }
       }
-    }
 
-    var matchList = [];
-    for (var key in matched) {
-      matchList.push(parseInt(key, 10));
+      // Groups of 3 or more count as a match
+      if (group.length >= 3) {
+        for (var g = 0; g < group.length; g++) {
+          matchList.push(group[g]);
+        }
+      }
     }
 
     if (matchList.length > 0) {

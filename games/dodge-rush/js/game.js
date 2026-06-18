@@ -64,8 +64,14 @@ const DodgeRush = (() => {
     setPlayerX(_playerX + dx);
   }
 
-  function tap() {
+  function tap(x, y) {
     if (_state === 'MENU') { _reset(); _state = 'PLAYING'; AdManager.gameplayStart(); _snd('button'); }
+    else if (_state === 'PLAYING') {
+      // Move player toward the tapped X position.
+      if (x != null && !isNaN(x)) {
+        setPlayerX(x);
+      }
+    }
     else if (_state === 'DEAD') {
       AdManager.showInterstitial(() => { _reset(); _state = 'PLAYING'; AdManager.gameplayStart(); });
     }

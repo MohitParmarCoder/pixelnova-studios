@@ -309,7 +309,7 @@ var NinjaRun = (function () {
       if (!flying) {
         flying = true;
       } else {
-        bestDistSq = 120 * 120;
+        bestDistSq = 60 * 60;
         bestJ = -1;
         for (j = 0; j < anchors.length; j++) {
           if (j === anchorIdx) continue;

@@ -392,9 +392,6 @@ var PinballLite = (function () {
             handleDrain();
         }
 
-        // Release flippers each frame (tap holds for one frame then releases)
-        leftFlipper.active  = false;
-        rightFlipper.active = false;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -768,9 +765,9 @@ var PinballLite = (function () {
 
         if (state === STATE_PLAYING) {
             if (x < VW / 2) {
-                leftFlipper.active  = true;
+                leftFlipper.active  = !leftFlipper.active;
             } else {
-                rightFlipper.active = true;
+                rightFlipper.active = !rightFlipper.active;
             }
             try { Audio.play('tap'); } catch (e) {}
         }

@@ -70,6 +70,14 @@ var PotionGrab = (function () {
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
         return;
       }
+    } else if (!timedOut && acc < 0.7) {
+      lives--;
+      try { Audio.play('crash'); } catch(e) {}
+      if (lives <= 0) {
+        lives = 0; state = 'DEAD';
+        try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        return;
+      }
     } else if (acc >= 0.9) {
       var pts = Math.round(1000 * acc);
       score += pts;
