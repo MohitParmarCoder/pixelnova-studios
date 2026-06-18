@@ -92,6 +92,13 @@ var BlockBlast = (function () {
   }
 
   function addNewRow() {
+    // check if top row is occupied BEFORE shifting — if so, game over
+    for (var cc = 0; cc < COLS; cc++) {
+      if (grid[0][cc] !== -1) {
+        killPlayer();
+        return;
+      }
+    }
     // shift everything up
     for (var r = 0; r < ROWS - 1; r++) {
       grid[r] = grid[r + 1].slice();
@@ -99,13 +106,6 @@ var BlockBlast = (function () {
     grid[ROWS - 1] = [];
     for (var c = 0; c < COLS; c++) {
       grid[ROWS - 1][c] = Math.floor(Math.random() * COLORS.length);
-    }
-    // check if top row has blocks
-    for (var cc = 0; cc < COLS; cc++) {
-      if (grid[0][cc] !== -1) {
-        killPlayer();
-        return;
-      }
     }
   }
 
@@ -366,7 +366,7 @@ var BlockBlast = (function () {
       var colorIdx = grid[row][col];
       var visited = {};
       var cells = floodFill(row, col, colorIdx, visited);
-      if (cells.length < 1) return;
+      if (cells.length < 2) return;
       blastCells(cells);
       applyGravity();
       if (checkTopRowDead()) {

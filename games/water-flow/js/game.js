@@ -109,12 +109,16 @@ var WaterFlow = (function () {
   var _state;
   var _best;
   var _score;
+  var _lives;
+  var _movesLeft;   // rotations allowed before losing a life
   var _puzzleIdx;
   var _grid;        // 5x5 array of pipe types (current rotation state)
   var _solved;      // is current puzzle solved?
   var _solvedTimer; // countdown after solving before loading next puzzle
   var _flowPath;    // array of {r,c} cells in water flow path (when solved)
   var _flowAnim;    // 0..1 animation fraction for water flow
+
+  var MOVES_PER_PUZZLE = 20;
 
   /* ---- grid / puzzle helpers ---- */
   var GRID_SIZE = 5;
@@ -225,6 +229,10 @@ var WaterFlow = (function () {
     _flowAnim = 0;
   }
 
+  function _checkSolvedSilent() {
+    return !!_findPath(_grid);
+  }
+
   function _checkSolved() {
     var path = _findPath(_grid);
     if (path) {
@@ -240,11 +248,30 @@ var WaterFlow = (function () {
   }
 
   /* ---- public API ---- */
+  function _startGame() {
+    _score = 0;
+    _lives = 3;
+    _puzzleIdx = 0;
+    _movesLeft = MOVES_PER_PUZZLE;
+    _loadPuzzle(0);
+    _state = 'PLAYING';
+    try { AdManager.gameplayStart(); } catch(e) {}
+  }
+
+  function _endGame() {
+    if (_score > _best) _best = _score;
+    _state = 'DEAD';
+    try { Audio.play('lose'); } catch(e) {}
+    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+  }
+
   function init(canvas, bestScore) {
     _canvas = canvas;
     _ctx = canvas.getContext('2d');
     _best = bestScore || 0;
     _score = 0;
+    _lives = 3;
+    _movesLeft = MOVES_PER_PUZZLE;
     _puzzleIdx = 0;
     _loadPuzzle(0);
     _state = 'MENU';
@@ -258,8 +285,8 @@ var WaterFlow = (function () {
         if (_solvedTimer <= 0) {
           _score += 1;
           if (_score > _best) { _best = _score; }
+          _movesLeft = MOVES_PER_PUZZLE;
           _loadPuzzle(_puzzleIdx + 1);
-          try { AdManager.gameplayStart(); } catch(e) {}
         }
       }
     }
@@ -267,17 +294,11 @@ var WaterFlow = (function () {
 
   function tap(x, y) {
     if (_state === 'MENU') {
-      _state = 'PLAYING';
-      _score = 0;
-      _loadPuzzle(0);
-      try { AdManager.gameplayStart(); } catch(e) {}
+      _startGame();
       return;
     }
     if (_state === 'DEAD') {
-      _state = 'PLAYING';
-      _score = 0;
-      _loadPuzzle(0);
-      try { AdManager.gameplayStart(); } catch(e) {}
+      _startGame();
       return;
     }
     if (_state === 'PLAYING') {
@@ -287,6 +308,15 @@ var WaterFlow = (function () {
       /* rotate the pipe */
       _grid[cell.r][cell.c] = rotatePipe(_grid[cell.r][cell.c]);
       try { Audio.play('tap'); } catch(e) {}
+      _movesLeft--;
+      if (_movesLeft <= 0 && !_checkSolvedSilent()) {
+        _lives--;
+        try { Audio.play('crash'); } catch(e) {}
+        if (_lives <= 0) { _endGame(); return; }
+        _movesLeft = MOVES_PER_PUZZLE;
+        _loadPuzzle(_puzzleIdx); // retry same puzzle
+        return;
+      }
       _checkSolved();
     }
   }
@@ -560,8 +590,15 @@ var WaterFlow = (function () {
 
   function _drawHUD() {
     var ctx = _ctx;
-    /* score */
+    /* lives */
     ctx.save();
+    ctx.font = '22px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#f87171';
+    var hearts = '';
+    for (var h = 0; h < 3; h++) hearts += (h < _lives ? '♥' : '♡');
+    ctx.fillText(hearts, 14, 44);
+    /* score */
     ctx.textAlign = 'center';
     ctx.font = 'bold 28px Arial, sans-serif';
     ctx.fillStyle = '#4ecdc4';
@@ -569,14 +606,11 @@ var WaterFlow = (function () {
     ctx.font = '18px Arial, sans-serif';
     ctx.fillStyle = '#8aa8c0';
     ctx.fillText('BEST: ' + _best, VW / 2, 90);
-    ctx.restore();
-
-    /* instruction */
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.font = '16px Arial, sans-serif';
-    ctx.fillStyle = '#5a8090';
-    ctx.fillText('TAP PIPE TO ROTATE', VW / 2, 118);
+    /* moves remaining */
+    ctx.textAlign = 'right';
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillStyle = _movesLeft <= 5 ? '#f87171' : '#fde68a';
+    ctx.fillText('Moves: ' + _movesLeft, VW - 14, 44);
     ctx.restore();
 
     /* solved banner */

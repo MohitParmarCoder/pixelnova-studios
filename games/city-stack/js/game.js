@@ -71,6 +71,13 @@ var CityStack = (function () {
     return n;
   }
 
+  function hasAnyTappable() {
+    for (var r = 0; r < ROWS - 1; r++) {
+      if (countPresent(r) > 0) return true;
+    }
+    return false;
+  }
+
   function isTappable(row) {
     // Can only pull from rows 0-6 (not the top row 7)
     // and the row must have at least one block
@@ -163,6 +170,11 @@ var CityStack = (function () {
     } else {
       wobbleAmt  = 0;
       wobbleTime = 0;
+    }
+
+    // All blocks exhausted — game over
+    if (crashFlash <= 0 && !hasAnyTappable()) {
+      triggerCollapse();
     }
 
     // Crash flash counts down to DEAD

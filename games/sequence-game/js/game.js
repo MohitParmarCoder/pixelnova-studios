@@ -217,7 +217,6 @@ var SequenceGame = (function () {
             ctx.beginPath();
             ctx.arc(fx, fy, 5, 0, Math.PI * 2);
             ctx.fillStyle = 'transparent';
-            ctx.stroke();
             ctx.strokeStyle = '#ddd';
             ctx.lineWidth = 2;
             ctx.stroke();

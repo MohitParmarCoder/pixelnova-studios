@@ -28,6 +28,7 @@ var BunnyHop = (function () {
 
   var score;
   var scoreBase;
+  var carrotBonus;
 
   var GEN_AHEAD = 950;
   var worldTopY; // highest platform world-y generated so far (lower number = higher up)
@@ -69,6 +70,7 @@ var BunnyHop = (function () {
     platformSpeed = 60;
     score = 0;
     scoreBase = 0;
+    carrotBonus = 0;
     bx = VW / 2 - BW / 2;
     by = VH - 200 - BH;
     bvx = 0;
@@ -141,19 +143,18 @@ var BunnyHop = (function () {
       if (!c2.collected) {
         if (bx < c2.x + 20 && bx + BW > c2.x && by < c2.y + 20 && by + BH > c2.y) {
           c2.collected = true;
-          score += 5;
+          carrotBonus += 5;
           try { Audio.play('gem'); } catch (e) {}
         }
       }
     }
 
-    // score from height
+    // score from height + collected carrots
     var heightScore = Math.floor(scrollY / 50);
     if (heightScore > scoreBase) {
       scoreBase = heightScore;
-      score = scoreBase + (score - Math.floor(scrollY / 50));
     }
-    score = Math.max(score, heightScore);
+    score = scoreBase + carrotBonus;
 
     genPlatforms();
     cullBelow();

@@ -89,7 +89,7 @@ var LavaSurf = (function () {
     for (i = 0; i < RING_R.length; i++) {
       if (dist <= RING_R[i]) return RING_PTS[i];
     }
-    return 1;
+    return 0;
   }
 
   function stopStone() {
@@ -98,7 +98,17 @@ var LavaSurf = (function () {
     score += pts;
     placedStones.push({ x: stone.x, y: stone.y, pts: pts });
     stonesLeft--;
-    snd(pts >= 8 ? 'gem' : 'tap');
+    if (pts === 0) {
+      lives--;
+      snd('lose');
+      if (lives <= 0) {
+        phase = 'RESULT'; phaseTimer = 0.1;
+        stonesLeft = 0;
+        return;
+      }
+    } else {
+      snd(pts >= 8 ? 'gem' : 'tap');
+    }
     phase = 'RESULT';
     phaseTimer = stonesLeft <= 0 ? 2.2 : 1.3;
   }

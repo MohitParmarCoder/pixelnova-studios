@@ -5,6 +5,7 @@ var SpikeField = (function () {
     var state = 'MENU';
     var best = 0;
     var score = 0;
+    var gemBonus = 0;
     var lives = 3;
 
     // Ball
@@ -89,6 +90,7 @@ var SpikeField = (function () {
 
     function startGame() {
         score = 0;
+        gemBonus = 0;
         lives = 3;
         particles = [];
         trail = [];
@@ -215,7 +217,7 @@ var SpikeField = (function () {
             var dy = ballY - g.wy;
             if (dx * dx + dy * dy < (BALL_R + g.r) * (BALL_R + g.r)) {
                 g.collected = true;
-                score += 10;
+                gemBonus += 10;
                 if (score > best) best = score;
                 gemFlash = 0.3;
                 try { Audio.play('gem'); } catch (e) {}
@@ -232,7 +234,7 @@ var SpikeField = (function () {
 
         // Score based on height climbed since start
         var heightScore = Math.floor((startWorldY - worldY) / 10);
-        if (heightScore > score) score = heightScore;
+        score = Math.max(score, heightScore + gemBonus);
         if (score > best) best = score;
 
         // Generate more platforms
@@ -388,8 +390,8 @@ var SpikeField = (function () {
             ctx.shadowColor = '#4488ff';
             ctx.shadowBlur = 28;
             ctx.font = 'bold 52px monospace';
-            ctx.fillText('BOUNCE', VW / 2, VH / 2 - 80);
-            ctx.fillText('HERO', VW / 2, VH / 2 - 14);
+            ctx.fillText('SPIKE', VW / 2, VH / 2 - 80);
+            ctx.fillText('FIELD', VW / 2, VH / 2 - 14);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px monospace';

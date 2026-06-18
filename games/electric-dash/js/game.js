@@ -41,23 +41,154 @@ var ElectricDash = (function () {
         return { type: type, rot: rot, fixed: false };
     }
 
-    function buildPuzzle() {
-        grid = [];
-        var r, c;
-        for (r = 0; r < ROWS; r++) {
-            grid[r] = [];
-            for (c = 0; c < COLS; c++) {
-                if (r === 0 && c === 0) {
-                    grid[r][c] = { type: 'SOURCE', rot: 0, fixed: true };
-                } else if (r === ROWS - 1 && c === COLS - 1) {
-                    grid[r][c] = { type: 'SINK', rot: 0, fixed: true };
-                } else {
-                    var tp = WIRE_TYPES[Math.floor(Math.random() * WIRE_TYPES.length)];
-                    var ro = Math.floor(Math.random() * 4);
-                    grid[r][c] = makeCell(tp, ro);
+    // Given a wire type's base connections and a rotation, return rotated connections.
+    // Then check if directions `need` (array of direction indices) are all open.
+    function wireMatchesNeeds(type, rot, needs) {
+        var c = rotateConns(WIRE_DEFS[type], rot);
+        for (var i = 0; i < needs.length; i++) {
+            if (!c[needs[i]]) return false;
+        }
+        return true;
+    }
+
+    // Pick a wire type + rotation that has open connections in all directions in `needs`
+    // and is NOT open in the direction `block` (so it doesn't leak backward, optional -1).
+    function pickWire(needs, block) {
+        // Shuffle types and rotations to avoid bias
+        var types = WIRE_TYPES.slice();
+        for (var i = types.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = types[i]; types[i] = types[j]; types[j] = tmp;
+        }
+        var rots = [0, 1, 2, 3];
+        for (var a = rots.length - 1; a > 0; a--) {
+            var b = Math.floor(Math.random() * (a + 1));
+            var t2 = rots[a]; rots[a] = rots[b]; rots[b] = t2;
+        }
+        for (var ti = 0; ti < types.length; ti++) {
+            for (var ri = 0; ri < rots.length; ri++) {
+                if (wireMatchesNeeds(types[ti], rots[ri], needs)) {
+                    var c2 = rotateConns(WIRE_DEFS[types[ti]], rots[ri]);
+                    // If block direction specified, prefer wires that don't open that side
+                    if (block >= 0 && c2[block]) continue;
+                    return { type: types[ti], rot: rots[ri] };
                 }
             }
         }
+        // Fallback: any match ignoring block constraint
+        for (var ti2 = 0; ti2 < types.length; ti2++) {
+            for (var ri2 = 0; ri2 < rots.length; ri2++) {
+                if (wireMatchesNeeds(types[ti2], rots[ri2], needs)) {
+                    return { type: types[ti2], rot: rots[ri2] };
+                }
+            }
+        }
+        // Should never reach here; return CROSS as last resort
+        return { type: 'CROSS', rot: 0 };
+    }
+
+    function buildPuzzle() {
+        grid = [];
+        var r, c;
+
+        // Initialize grid with random filler cells
+        for (r = 0; r < ROWS; r++) {
+            grid[r] = [];
+            for (c = 0; c < COLS; c++) {
+                var tp = WIRE_TYPES[Math.floor(Math.random() * WIRE_TYPES.length)];
+                var ro = Math.floor(Math.random() * 4);
+                grid[r][c] = makeCell(tp, ro);
+            }
+        }
+
+        // Place fixed SOURCE and SINK
+        grid[0][0] = { type: 'SOURCE', rot: 0, fixed: true };
+        grid[ROWS - 1][COLS - 1] = { type: 'SINK', rot: 0, fixed: true };
+
+        // Generate a random walk path from SOURCE (0,0) to SINK (ROWS-1, COLS-1).
+        // Directions: 0=N,1=E,2=S,3=W
+        var dirs = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+        var opposite = [2, 3, 0, 1];
+        var path = [{ r: 0, c: 0 }];
+        var visited = [];
+        for (r = 0; r < ROWS; r++) {
+            visited[r] = [];
+            for (c = 0; c < COLS; c++) visited[r][c] = false;
+        }
+        visited[0][0] = true;
+
+        // Random walk with backtracking to guarantee reaching SINK
+        var maxSteps = ROWS * COLS * 4;
+        var steps = 0;
+        while (path.length > 0 && steps < maxSteps) {
+            steps++;
+            var cur = path[path.length - 1];
+            if (cur.r === ROWS - 1 && cur.c === COLS - 1) break; // reached SINK
+
+            // Shuffle available directions
+            var dOrder = [0, 1, 2, 3];
+            for (var i = dOrder.length - 1; i > 0; i--) {
+                var jj = Math.floor(Math.random() * (i + 1));
+                var tt = dOrder[i]; dOrder[i] = dOrder[jj]; dOrder[jj] = tt;
+            }
+
+            var moved = false;
+            for (var di = 0; di < 4; di++) {
+                var d = dOrder[di];
+                var nr = cur.r + dirs[d][0];
+                var nc = cur.c + dirs[d][1];
+                if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+                if (visited[nr][nc]) continue;
+                visited[nr][nc] = true;
+                path.push({ r: nr, c: nc });
+                moved = true;
+                break;
+            }
+            if (!moved) {
+                // Backtrack
+                visited[cur.r][cur.c] = false;
+                path.pop();
+            }
+        }
+
+        // If walk didn't reach SINK, fall back to a deterministic L-shaped path
+        if (path.length === 0 || path[path.length - 1].r !== ROWS - 1 || path[path.length - 1].c !== COLS - 1) {
+            path = [{ r: 0, c: 0 }];
+            for (c = 1; c < COLS; c++) path.push({ r: 0, c: c });
+            for (r = 1; r < ROWS; r++) path.push({ r: r, c: COLS - 1 });
+        }
+
+        // Assign wire types to intermediate path cells based on entry/exit directions
+        for (var pi = 1; pi < path.length - 1; pi++) {
+            var prev = path[pi - 1];
+            var next = path[pi + 1];
+            var here = path[pi];
+
+            // Direction from prev to here
+            var dr1 = here.r - prev.r, dc1 = here.c - prev.c;
+            var entryFrom = -1; // direction we came FROM (the side the wire must be open toward prev)
+            for (var dd = 0; dd < 4; dd++) {
+                if (dirs[dd][0] === dr1 && dirs[dd][1] === dc1) { entryFrom = dd; break; }
+            }
+            // Direction from here to next
+            var dr2 = next.r - here.r, dc2 = next.c - here.c;
+            var exitTo = -1;
+            for (var de = 0; de < 4; de++) {
+                if (dirs[de][0] === dr2 && dirs[de][1] === dc2) { exitTo = de; break; }
+            }
+
+            // The wire at `here` must be open toward opposite[entryFrom] (back to prev) and exitTo (toward next)
+            var needs = [opposite[entryFrom], exitTo];
+            // Block the opposite of exit to avoid accidental forward leak confusing the path
+            // (not strictly necessary, but keeps puzzles cleaner)
+            var blockDir = opposite[exitTo];
+            // Don't block the entryFrom side — it must stay open
+            if (blockDir === opposite[entryFrom]) blockDir = -1;
+
+            var chosen = pickWire(needs, blockDir);
+            grid[here.r][here.c] = makeCell(chosen.type, chosen.rot);
+        }
+
         rotCount = 0;
         powered = buildPowered();
     }

@@ -184,6 +184,7 @@ var PaintFill = (function () {
       var bx = btnStartX + i * (BTN_SIZE + BTN_GAP);
       var by = BTN_Y - BTN_SIZE / 2;
       if (vx >= bx && vx <= bx + BTN_SIZE && vy >= by && vy <= by + BTN_SIZE) {
+        if (i === grid[cellIndex(0, 0)]) return; // same color — no cost
         snd('tap');
         floodFill(i);
         movesLeft -= 1;

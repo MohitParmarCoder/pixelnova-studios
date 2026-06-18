@@ -39,7 +39,7 @@ var WordBlitz = (function () {
     if (timer <= 0) {
       lives--;
       try { Audio.play('lose'); } catch(e) {}
-      if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+      if (lives <= 0) { if (score > best) best = score; state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
       else newRound();
     }
     bubbles.forEach(function(b) {

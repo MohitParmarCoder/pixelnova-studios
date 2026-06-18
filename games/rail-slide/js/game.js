@@ -183,9 +183,6 @@ var RailSlide = (function () {
 
     // Update particles
     updateParticles(dt);
-
-    // Accumulate dist score separately
-    distScore += speed * dt / 60;
   }
 
   function draw() {

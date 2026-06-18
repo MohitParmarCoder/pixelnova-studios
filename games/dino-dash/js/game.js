@@ -4,6 +4,8 @@ var DinoDash = (function () {
   var canvas, ctx;
   var state; // MENU, PLAYING, DEAD
   var best;
+  var lives;
+  var invincTimer; // seconds remaining of invincibility after a hit
 
   var VW = 390;
   var VH = 844;
@@ -62,6 +64,8 @@ var DinoDash = (function () {
     scoreFrac = 0;
     obstacles = [];
     nextObstDist = 400;
+    lives = 3;
+    invincTimer = 0;
 
     dx = DINO_X;
     dy = GROUND_Y - DH;
@@ -127,25 +131,42 @@ var DinoDash = (function () {
       spawnObstacle();
     }
 
-    // collision
-    for (i = 0; i < obstacles.length; i++) {
-      var ob = obstacles[i];
-      var ox = ob.x;
-      var oy2, oh, ow;
-      oy2 = ob.type === 'bird' ? ob.oy : (GROUND_Y - ob.h);
-      oh = ob.h;
-      ow = ob.w;
-      if (rectOverlap(dx, dy, DW, DH, ox, oy2, ow, oh)) {
-        die();
-        return;
+    // invincibility countdown
+    if (invincTimer > 0) {
+      invincTimer -= dt;
+      if (invincTimer < 0) invincTimer = 0;
+    }
+
+    // collision (skip while invincible)
+    if (invincTimer <= 0) {
+      for (i = 0; i < obstacles.length; i++) {
+        var ob = obstacles[i];
+        var ox = ob.x;
+        var oy2, oh, ow;
+        oy2 = ob.type === 'bird' ? ob.oy : (GROUND_Y - ob.h);
+        oh = ob.h;
+        ow = ob.w;
+        if (rectOverlap(dx, dy, DW, DH, ox, oy2, ow, oh)) {
+          hit();
+          return;
+        }
       }
+    }
+  }
+
+  function hit() {
+    lives -= 1;
+    try { Audio.play('crash'); } catch (e) {}
+    if (lives <= 0) {
+      die();
+    } else {
+      invincTimer = 0.8; // 0.8 s of invincibility to recover
     }
   }
 
   function die() {
     state = 'DEAD';
     if (score > best) best = score;
-    try { Audio.play('crash'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
   }
 
@@ -276,6 +297,8 @@ var DinoDash = (function () {
   }
 
   function drawDino() {
+    // flash every ~0.1 s while invincible (alternate visible/invisible)
+    if (invincTimer > 0 && Math.floor(invincTimer * 10) % 2 === 0) return;
     // body
     ctx.fillStyle = '#6d4c41';
     ctx.fillRect(dx, dy, DW, DH);
@@ -308,6 +331,16 @@ var DinoDash = (function () {
     ctx.fillText('SCORE ' + score, 16, 38);
     ctx.textAlign = 'right';
     ctx.fillText('BEST ' + best, VW - 16, 38);
+
+    // hearts: ♥ filled for remaining lives, ♡ outline for lost lives
+    ctx.font = 'bold 26px monospace';
+    ctx.textAlign = 'left';
+    var hearts = '';
+    var i;
+    for (i = 0; i < lives; i++) hearts += '♥';
+    for (i = lives; i < 3; i++) hearts += '♡';
+    ctx.fillStyle = '#e17055';
+    ctx.fillText(hearts, 16, 70);
   }
 
   function drawMenu() {

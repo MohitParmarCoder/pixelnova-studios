@@ -30,28 +30,75 @@ var CrystalStack = (function () {
     }
 
     function generatePuzzle() {
-        // 4 colors x 4 balls = 16 balls, placed in 4 tubes (4 each, randomly shuffled)
-        // 5th tube starts empty
-        var allBalls = [];
+        // Build a guaranteed-solvable puzzle by starting from the solved state
+        // and applying 200 random valid moves (reverse-shuffle approach).
+        // A valid move: take the top ball from a non-empty tube and push it
+        // onto a tube that is (a) not full and (b) empty OR has the same color
+        // on top. Reversing any sequence of valid moves is itself a sequence of
+        // valid moves, so the resulting state is always solvable.
+
+        // Start from solved state: tube[0..3] each filled with one color, tube[4] empty.
+        tubes = [];
         for (var ci = 0; ci < 4; ci++) {
-            for (var bi = 0; bi < 4; bi++) {
-                allBalls.push(COLORS[ci]);
+            var tube = [];
+            for (var bi = 0; bi < MAX_BALLS; bi++) {
+                tube.push(COLORS[ci]);
+            }
+            tubes.push(tube);
+        }
+        tubes.push([]); // 5th tube empty
+
+        // Perform random valid moves to shuffle into a solvable state.
+        // 500 moves provides thorough mixing while still being instantaneous.
+        var SHUFFLE_MOVES = 500;
+        for (var m = 0; m < SHUFFLE_MOVES; m++) {
+            // Collect all valid (src, dst) pairs for this state.
+            var validMoves = [];
+            for (var src = 0; src < NUM_TUBES; src++) {
+                if (tubes[src].length === 0) { continue; }
+                var topBall = tubes[src][tubes[src].length - 1];
+                for (var dst = 0; dst < NUM_TUBES; dst++) {
+                    if (dst === src) { continue; }
+                    if (tubes[dst].length >= MAX_BALLS) { continue; }
+                    // Destination must be empty or have same top color
+                    if (tubes[dst].length === 0 ||
+                        tubes[dst][tubes[dst].length - 1] === topBall) {
+                        validMoves.push([src, dst]);
+                    }
+                }
+            }
+            if (validMoves.length === 0) { break; } // shouldn't happen, but guard
+            var pick = validMoves[Math.floor(Math.random() * validMoves.length)];
+            tubes[pick[1]].push(tubes[pick[0]].pop());
+        }
+
+        // If the shuffle happened to land on the solved state (rare but possible),
+        // force one extra move to ensure the player has something to do.
+        // A solved state has every non-empty tube filled with 4 of the same color.
+        var isSolved = true;
+        for (var s = 0; s < NUM_TUBES; s++) {
+            if (tubes[s].length === 0) { continue; }
+            if (tubes[s].length !== MAX_BALLS) { isSolved = false; break; }
+            var c0 = tubes[s][0];
+            for (var b = 1; b < tubes[s].length; b++) {
+                if (tubes[s][b] !== c0) { isSolved = false; break; }
+            }
+            if (!isSolved) { break; }
+        }
+        if (isSolved) {
+            // Find any non-empty tube with room on another tube and make one move
+            for (var fi = 0; fi < NUM_TUBES && isSolved; fi++) {
+                if (tubes[fi].length === 0) { continue; }
+                for (var fj = 0; fj < NUM_TUBES && isSolved; fj++) {
+                    if (fj === fi) { continue; }
+                    if (tubes[fj].length < MAX_BALLS) {
+                        tubes[fj].push(tubes[fi].pop());
+                        isSolved = false;
+                    }
+                }
             }
         }
-        // Fisher-Yates shuffle
-        for (var i = allBalls.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
-            var tmp = allBalls[i]; allBalls[i] = allBalls[j]; allBalls[j] = tmp;
-        }
-        tubes = [];
-        for (var t = 0; t < NUM_TUBES; t++) {
-            tubes.push([]);
-        }
-        // Fill first 4 tubes
-        for (var k = 0; k < 16; k++) {
-            tubes[Math.floor(k / 4)].push(allBalls[k]);
-        }
-        // 5th tube empty
+
         selectedTube = -1;
         moveCount = 0;
     }
