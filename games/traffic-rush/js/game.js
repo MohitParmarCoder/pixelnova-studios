@@ -161,7 +161,9 @@ var TrafficRush = (function () {
   }
 
   function _die() {
-    if (_score > _best) { _best = _score; }
+    var isNewBest = _score > _best;
+    if (isNewBest) { _best = _score; }
+    _isNewBest  = isNewBest;
     _state      = 'DEAD';
     _flashTimer = 0.25;
     try { Audio.play('crash'); } catch (e) {}
@@ -477,7 +479,7 @@ var TrafficRush = (function () {
     // Best
     ctx.font      = '22px sans-serif';
     ctx.fillStyle = '#f1c40f';
-    var bestLabel = (_score >= _best && _score > 0) ? 'NEW BEST: ' + _best : 'Best: ' + _best;
+    var bestLabel = (_isNewBest && _score > 0) ? 'NEW BEST: ' + _best : 'Best: ' + _best;
     ctx.fillText(bestLabel, VW / 2, VH / 2 + 25);
 
     // Pulsing retry prompt

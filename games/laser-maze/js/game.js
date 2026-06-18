@@ -153,36 +153,6 @@ var LaserMaze = (function () {
         try { AdManager.gameplayStart(); } catch (e) {}
     }
 
-    function update(dt) {
-        if (state !== 'PLAYING') return;
-        if (winFlash > 0) {
-            winFlash -= dt;
-            return;
-        }
-        if (deathFlash > 0) {
-            deathFlash -= dt;
-            if (deathFlash <= 0) {
-                if (lives <= 0) {
-                    state = 'DEAD';
-                    if (score > best) best = score;
-                    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
-                } else {
-                    loadPuzzle();
-                }
-            }
-            return;
-        }
-        puzzleTimer -= dt;
-        if (puzzleTimer <= 0) {
-            lives--;
-            try { Audio.play('crash'); } catch (e) {}
-            deathFlash = 0.6;
-            if (lives <= 0) {
-                try { Audio.play('lose'); } catch (e) {}
-            }
-        }
-    }
-
     function drawGrid() {
         ctx.save();
         for (var r = 0; r < ROWS; r++) {
@@ -439,24 +409,12 @@ var LaserMaze = (function () {
                     try { Audio.play('gem'); } catch (e) {}
                     winFlash = 0.5;
                     puzzleIndex++;
-                    // Schedule next puzzle after win flash
-                    var self = this;
-                    (function scheduleNext() {
-                        var check = function () {
-                            if (winFlash <= 0 && state === 'PLAYING') {
-                                loadPuzzle();
-                            }
-                        };
-                        // handled in update()
-                    })();
                 }
             }
         }
     }
 
-    // In update(), after winFlash expires load next puzzle
-    var _origUpdate = update;
-    update = function (dt) {
+    function update(dt) {
         if (state !== 'PLAYING') return;
         if (winFlash > 0) {
             winFlash -= dt;
@@ -487,7 +445,7 @@ var LaserMaze = (function () {
                 try { Audio.play('lose'); } catch (e) {}
             }
         }
-    };
+    }
 
     function getBest() { return best; }
 

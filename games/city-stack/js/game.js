@@ -12,7 +12,7 @@ var CityStack = (function () {
   var BLOCK_H      = 28;
   var BLOCK_GAP    = 4;
   var ROW_H        = BLOCK_H + BLOCK_GAP;
-  var TOWER_BASE_Y = VH - 120;    // y of bottom row top
+  var TOWER_BASE_Y = VH - 230;    // y of bottom row top
   var TOWER_CX     = 195;         // center x of tower
   var MAX_LIVES    = 3;
 
@@ -71,6 +71,13 @@ var CityStack = (function () {
     return n;
   }
 
+  function hasAnyTappable() {
+    for (var r = 0; r < ROWS - 1; r++) {
+      if (countPresent(r) > 0) return true;
+    }
+    return false;
+  }
+
   function isTappable(row) {
     // Can only pull from rows 0-6 (not the top row 7)
     // and the row must have at least one block
@@ -85,8 +92,11 @@ var CityStack = (function () {
       safeLeft--;
       return 'safe';
     }
-    // Probability of collapse grows with pulls
-    var pCollapse = pullCount * 0.08;
+    // Probability of collapse grows with pulls, but is capped so the run
+    // stays skill-based rather than a coin flip. Ramps slower and tops out
+    // well below 1.0 so a careful player can keep going.
+    var pCollapse = pullCount * 0.03;
+    if (pCollapse > 0.45) { pCollapse = 0.45; }
     var r = Math.random();
     if (r < pCollapse) {
       return 'collapse';
@@ -160,6 +170,11 @@ var CityStack = (function () {
     } else {
       wobbleAmt  = 0;
       wobbleTime = 0;
+    }
+
+    // All blocks exhausted — game over
+    if (crashFlash <= 0 && !hasAnyTappable()) {
+      triggerCollapse();
     }
 
     // Crash flash counts down to DEAD

@@ -40,7 +40,8 @@ var SpotIt = (function () {
     if (hardMode) {
       // same symbol, different color
       oddSymbol = SYMBOLS[commonSym];
-      var altColorIdx = (commonSym + 3 + Math.floor(Math.random() * (SYM_COLORS.length - 1))) % SYM_COLORS.length;
+      var altColorIdx;
+      do { altColorIdx = Math.floor(Math.random() * SYM_COLORS.length); } while (altColorIdx === commonSym);
       oddColor = SYM_COLORS[altColorIdx];
     } else {
       // different symbol

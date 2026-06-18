@@ -5,6 +5,7 @@ var PatternRepeat = (function () {
   var state = 'MENU';
   var score, sequence, playerSeq, showing, showIdx, showTimer, inputReady;
   var lives;
+  var _gen = 0;
 
   var COLORS = ['#FF6B6B','#4EC5F1','#6BCB77','#FFD700'];
   var ZONES = [
@@ -23,6 +24,7 @@ var PatternRepeat = (function () {
     score = 0; lives = 3; sequence = []; playerSeq = [];
     showing = false; inputReady = false; flash = -1;
     state = 'PLAYING';
+    _gen++;
     try { AdManager.gameplayStart(); } catch(e) {}
     addToSequence();
   }
@@ -136,7 +138,8 @@ var PatternRepeat = (function () {
       score++; if (score > best) best = score;
       try { Audio.play('gem'); } catch(e) {}
       inputReady = false;
-      setTimeout(function() { if (state === 'PLAYING') addToSequence(); }, 600);
+      var capturedGen = _gen;
+      setTimeout(function() { if (state === 'PLAYING' && _gen === capturedGen) addToSequence(); }, 600);
     }
   }
 

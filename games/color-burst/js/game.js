@@ -65,7 +65,14 @@ var ColorBurst = (function () {
 
     for (var j = rings.length - 1; j >= 0; j--) {
       rings[j].r += rings[j].speed * dt;
-      if (rings[j].r > rings[j].maxR) { rings.splice(j, 1); if (rings.length === 0) spawnRing(); }
+      if (rings[j].r > rings[j].maxR) {
+        rings.splice(j, 1);
+        lives--;
+        try { Audio.play('crash'); } catch(e) {}
+        addParticles(CX, CY, '#f87171');
+        if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
+        if (rings.length === 0) spawnRing();
+      }
     }
 
     for (var k = particles.length - 1; k >= 0; k--) {

@@ -154,12 +154,29 @@ const SkyHopper = (() => {
   }
 
   // ── Public input ────────────────────────────────────────────────────────────
-  function tap() {
+  function tap(x, y) {
     if (state === 'MENU') {
       sfx('button');
       reset();
       state = 'PLAYING';
       try { if (typeof AdManager !== 'undefined') AdManager.gameplayStart(); } catch (e) {}
+    } else if (state === 'PLAYING') {
+      // Move character toward tapped X position.
+      if (x != null && !isNaN(x)) {
+        const dx = x - ch.x;
+        ch.x += dx * 0.6;
+        ch.targetX = x;
+        if (dx > 1) ch.face = 1;
+        else if (dx < -1) ch.face = -1;
+      }
+      // Tap above the character gives an extra upward boost (optional jump).
+      if (y != null && !isNaN(y)) {
+        const screenY = ch.worldY - camY;
+        if (y < screenY && ch.vy > 0) {
+          ch.vy = BOUNCE_V;
+          sfx('hop');
+        }
+      }
     } else if (state === 'DEAD') {
       sfx('button');
       try {

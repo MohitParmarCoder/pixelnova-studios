@@ -267,7 +267,7 @@ const BlockBreaker = (() => {
 
     if (_state !== 'MENU') {
       _drawPaddle(ctx);
-      for (const b of _balls) _drawBall(ctx);
+      for (const b of _balls) _drawBall(ctx, b);
       _drawHud(ctx);
     }
 
@@ -297,15 +297,13 @@ const BlockBreaker = (() => {
     ctx.shadowBlur = 0;
   }
 
-  function _drawBall(ctx) {
-    for (const b of _balls) {
-      const fire = _effects.fireball > 0;
-      const col = fire ? '#FF8800' : '#ffffff';
-      ctx.shadowColor = col; ctx.shadowBlur = 14;
-      ctx.fillStyle = col;
-      ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-    }
+  function _drawBall(ctx, b) {
+    const fire = _effects.fireball > 0;
+    const col = fire ? '#FF8800' : '#ffffff';
+    ctx.shadowColor = col; ctx.shadowBlur = 14;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   function _drawPowerup(ctx, p) {

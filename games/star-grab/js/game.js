@@ -3,14 +3,20 @@ var StarGrab = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, stars, spawnTimer, spawnInterval, maxStars, particles;
+  var score, lives, stars, spawnTimer, spawnInterval, maxStars, particles;
 
   function init(canvas, bestScore) { c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU'; }
 
   function startGame() {
-    score = 0; stars = []; particles = []; spawnTimer = 0; spawnInterval = 0.8; maxStars = 3;
+    score = 0; lives = 3; stars = []; particles = []; spawnTimer = 0; spawnInterval = 0.8; maxStars = 3;
     state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
+  }
+
+  function endGame() {
+    if (score > best) best = score;
+    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    state = 'DEAD';
   }
 
   function spawnStar() {
@@ -50,18 +56,21 @@ var StarGrab = (function () {
     maxStars = Math.min(8, 3 + Math.floor(score / 10));
     if (spawnTimer >= spawnInterval && stars.length < maxStars) { spawnTimer = 0; spawnStar(); }
 
-    var dead = false;
     for (var i = stars.length - 1; i >= 0; i--) {
       var s = stars[i];
       s.life -= dt;
       if (s.growing) { s.scale = Math.min(1, s.scale + dt * 3); if (s.scale >= 1) s.growing = false; }
-      if (s.life <= 0) { stars.splice(i, 1); }
+      if (s.life <= 0) {
+        stars.splice(i, 1);
+        lives--;
+        try { Audio.play('crash'); } catch(e) {}
+        if (lives <= 0) { endGame(); return; }
+      }
     }
     for (var j = particles.length - 1; j >= 0; j--) {
       var p = particles[j]; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
       if (p.life <= 0) particles.splice(j, 1);
     }
-    if (stars.length === 0 && score === 0) dead = false;
   }
 
   function draw() {
@@ -104,6 +113,10 @@ var StarGrab = (function () {
 
     ctx.fillStyle = '#FFD700'; ctx.font = 'bold 28px system-ui'; ctx.textAlign = 'left';
     ctx.shadowBlur = 0; ctx.fillText('Score: ' + score, 16, 44);
+    ctx.fillStyle = '#f87171'; ctx.font = '22px system-ui'; ctx.textAlign = 'right';
+    var hearts = ''; for (var hi = 0; hi < 3; hi++) hearts += (hi < lives ? '♥' : '♡');
+    ctx.fillText(hearts, VW - 16, 44);
+    ctx.textAlign = 'left';
 
     if (state === 'DEAD') {
       ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, VW, VH);

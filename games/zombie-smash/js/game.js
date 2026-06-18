@@ -18,6 +18,8 @@ var ZombieSmash = (function () {
     ctx = canvas.getContext('2d');
     best = bestScore || 0;
     state = 'MENU';
+    zombies = [];
+    particles = [];
   }
 
   function startGame() {

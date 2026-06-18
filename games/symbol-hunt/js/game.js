@@ -100,8 +100,7 @@ var SymbolHunt = (function () {
       } else {
         ctx.fillStyle = 'rgba(255,255,255,0.05)';
         ctx.fillRect(GRID_X + cell.col*CELL+2, GRID_Y + cell.row*CELL+2, CELL-4, CELL-4);
-        var isTarget = cell.sym === target;
-        ctx.fillStyle = isTarget ? '#FFD700' : '#a8edea';
+        ctx.fillStyle = '#a8edea';
         ctx.font = '26px system-ui'; ctx.textAlign = 'center';
         ctx.fillText(cell.sym, cx, cy+9);
       }

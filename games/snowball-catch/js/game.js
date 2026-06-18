@@ -3,7 +3,7 @@ var SnowballCatch = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, lives, fish, hook, consecutiveMisses;
+  var score, lives, fish, hook, consecutiveMisses, _missAlreadyPenalized;
   var WATER_TOP = 300;
   var HOOK_START_Y = 200;
   var HOOK_MAX_Y = VH - 60;
@@ -41,7 +41,7 @@ var SnowballCatch = (function () {
   }
 
   function startGame() {
-    score = 0; lives = 3; consecutiveMisses = 0;
+    score = 0; lives = 3; consecutiveMisses = 0; _missAlreadyPenalized = false;
     fish = [];
     var i;
     for (i = 0; i < 4; i++) fish.push(makeFish());
@@ -74,23 +74,27 @@ var SnowballCatch = (function () {
       hook.waitTimer -= dt;
       if (hook.waitTimer <= 0) {
         hook.hookState = hookStates.RETRACTING;
-        consecutiveMisses++;
-        if (consecutiveMisses >= 3) {
-          consecutiveMisses = 0;
-          lives--;
-          try { Audio.play('lose'); } catch(e) {}
-          if (lives <= 0) {
-            lives = 0; state = 'DEAD';
-            try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
-            return;
+        if (!_missAlreadyPenalized) {
+          consecutiveMisses++;
+          if (consecutiveMisses >= 3) {
+            consecutiveMisses = 0;
+            lives--;
+            try { Audio.play('lose'); } catch(e) {}
+            if (lives <= 0) {
+              lives = 0; state = 'DEAD';
+              try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+              return;
+            }
           }
         }
+        _missAlreadyPenalized = false;
       }
     } else if (hook.hookState === hookStates.RETRACTING) {
       hook.y -= HOOK_SPEED * 1.5 * dt;
       if (hook.y <= HOOK_START_Y) {
         hook.y = HOOK_START_Y;
         hook.hookState = hookStates.IDLE;
+        _missAlreadyPenalized = false;
       }
     }
   }
@@ -107,6 +111,7 @@ var SnowballCatch = (function () {
         score += f.pts;
         if (score > best) best = score;
         consecutiveMisses = 0;
+        _missAlreadyPenalized = false;
         try { Audio.play('gem'); } catch(e) {}
         fish.splice(i, 1);
         fish.push(makeFish());
@@ -115,6 +120,7 @@ var SnowballCatch = (function () {
       }
     }
     hook.hookState = hookStates.RETRACTING;
+    _missAlreadyPenalized = true;
     consecutiveMisses++;
     if (consecutiveMisses >= 3) {
       consecutiveMisses = 0;
@@ -169,8 +175,8 @@ var SnowballCatch = (function () {
     var i, hearts, h;
     drawBg();
     if (state === 'MENU') {
-      ctx.fillStyle = '#1a6b9e'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
-      ctx.shadowBlur = 20; ctx.shadowColor = '#4d96ff';
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px system-ui'; ctx.textAlign = 'center';
+      ctx.shadowBlur = 24; ctx.shadowColor = '#003a5c';
       ctx.fillText('FISHING DERBY', VW / 2, 180);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '20px system-ui';
       ctx.fillText('Tap to cast the line', VW / 2, 240);

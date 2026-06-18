@@ -164,18 +164,7 @@ var FlashTap = (function () {
         return;
       }
     }
-    // Tapped empty space during waiting
-    if (roundPhase === 'waiting') {
-      lives--;
-      try { Audio.play('crash'); } catch (e) {}
-      if (lives <= 0) {
-        endGame();
-        return;
-      }
-      roundPhase = 'idle';
-      idleTimer = IDLE_DUR;
-      flashIndex = -1;
-    }
+    // Empty-space tap during waiting is a no-op (timer expiry already penalizes)
   }
 
   function draw() {

@@ -194,7 +194,7 @@ var NinjaRun = (function () {
 
     if (state === 'MENU') {
       ctx.fillStyle = '#a8edea';
-      ctx.font = 'bold 56px system-ui';
+      ctx.font = 'bold 46px system-ui';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 24;
@@ -309,7 +309,7 @@ var NinjaRun = (function () {
       if (!flying) {
         flying = true;
       } else {
-        bestDistSq = 120 * 120;
+        bestDistSq = 60 * 60;
         bestJ = -1;
         for (j = 0; j < anchors.length; j++) {
           if (j === anchorIdx) continue;

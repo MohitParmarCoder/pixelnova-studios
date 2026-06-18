@@ -150,6 +150,11 @@ var CannonLaunch = (function () {
 
         if (screenFlash > 0) screenFlash -= dt * 3;
         if (barrelFlash > 0) barrelFlash -= dt * 8;
+
+        // End game when last ball finishes and no shots remain
+        if (!ball && shotsLeft <= 0) {
+            endGame();
+        }
     }
 
     function updateClouds(dt) {
@@ -356,10 +361,6 @@ var CannonLaunch = (function () {
                 ctx.fillStyle = '#FFFF88';
                 ctx.fillRect(0, 0, VW, VH);
                 ctx.restore();
-            }
-            // Auto end game when last ball finishes and no shots remain
-            if (!ball && shotsLeft <= 0) {
-                endGame();
             }
         } else if (state === 'DEAD') {
             drawBackground();

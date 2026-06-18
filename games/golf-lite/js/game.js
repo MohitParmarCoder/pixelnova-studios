@@ -37,8 +37,15 @@ var GolfLite = (function () {
   function randomHolePos() {
     holeX = 60 + Math.random() * (VW - 120);
     holeY = 150 + Math.random() * (VH - 350);
-    // Keep away from ball start
+    // Keep away from ball start; cap iterations to prevent an infinite loop
+    var attempts = 0;
     while (Math.abs(holeX - ballX) < 80 && Math.abs(holeY - ballY) < 80) {
+      if (++attempts >= 100) {
+        // Fallback: place hole on the opposite side of the canvas from the ball
+        holeX = ballX < VW / 2 ? VW - 100 : 100;
+        holeY = ballY < VH / 2 ? VH - 250 : 200;
+        break;
+      }
       holeX = 60 + Math.random() * (VW - 120);
       holeY = 150 + Math.random() * (VH - 350);
     }

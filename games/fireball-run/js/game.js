@@ -103,7 +103,20 @@ var FireballRun = (function () {
     var dx = tx - ARROW_ORIGIN_X;
     var dy = ty - ARROW_ORIGIN_Y;
     var dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 1) return;
+    // Fix 1: tap too close to origin — play feedback sound and bail without firing
+    if (dist < 1) { snd('tap'); return; }
+    // Fix 2: tap to the left of (or on) the castle — clamp to a minimum rightward
+    // direction so arrows always fly toward enemies and never waste a shot firing left.
+    if (dx <= 0) {
+      dx = 1;                                  // minimum rightward offset
+      var dist2 = Math.sqrt(dx * dx + dy * dy);
+      var vx2 = (dx / dist2) * ARROW_SPEED;
+      var time2 = dx / vx2;
+      var vy2 = Math.abs(time2) < 0.01 ? -ARROW_SPEED : (dy - 0.5 * ARROW_GRAVITY * time2 * time2) / time2;
+      arrows.push({ x: ARROW_ORIGIN_X, y: ARROW_ORIGIN_Y, vx: vx2, vy: vy2, age: 0 });
+      snd('tap');
+      return;
+    }
     // Use fixed speed, compute time to reach, derive vy from parabola
     var vx = (dx / dist) * ARROW_SPEED;
     var time = dx / vx;

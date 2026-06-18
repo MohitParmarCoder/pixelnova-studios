@@ -5,6 +5,7 @@ var SpikeField = (function () {
     var state = 'MENU';
     var best = 0;
     var score = 0;
+    var gemBonus = 0;
     var lives = 3;
 
     // Ball
@@ -14,8 +15,9 @@ var SpikeField = (function () {
     var MAX_VX = 400;
 
     // Camera
-    var worldY; // how far camera has scrolled up (increases as ball rises)
-    var maxWorldY; // highest worldY reached
+    var worldY; // camera world position (decreases as ball rises)
+    var maxWorldY; // highest (smallest) worldY reached
+    var startWorldY; // camera position at start, used as score baseline
 
     // Platforms
     var platforms; // [{x, y, w, h, hasSpike, hasGem, gemCollected}]
@@ -88,28 +90,31 @@ var SpikeField = (function () {
 
     function startGame() {
         score = 0;
+        gemBonus = 0;
         lives = 3;
-        worldY = 0;
-        maxWorldY = 0;
         particles = [];
         trail = [];
         deathFlash = 0;
         gemFlash = 0;
         platforms = [];
         gems = [];
-        genY = VH / 2 + 200; // start below screen center in world coords
-
-        // Starting platform
-        platforms.push({x: VW / 2 - 70, y: VH / 2 + 180, w: 140, h: PLAT_H, hasSpike: false, hasGem: false, gemCollected: false});
-        lastSafeX = VW / 2;
-        lastSafeY = VH / 2 + 180 - BALL_R;
-        genY = VH / 2 + 80;
-        generatePlatformsAround(worldY - VH);
 
         ballX = VW / 2;
         ballY = VH / 2 + 180 - BALL_R;
         ballVX = 150;
         ballVY = 0;
+
+        // Center the camera on the ball so it is visible at start.
+        worldY = ballY;
+        maxWorldY = worldY;
+        startWorldY = worldY;
+
+        // Starting platform (directly under the ball)
+        platforms.push({x: VW / 2 - 70, y: VH / 2 + 180, w: 140, h: PLAT_H, hasSpike: false, hasGem: false, gemCollected: false});
+        lastSafeX = VW / 2;
+        lastSafeY = VH / 2 + 180 - BALL_R;
+        genY = VH / 2 + 80;
+        generatePlatformsAround(worldY - VH);
 
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
@@ -212,7 +217,7 @@ var SpikeField = (function () {
             var dy = ballY - g.wy;
             if (dx * dx + dy * dy < (BALL_R + g.r) * (BALL_R + g.r)) {
                 g.collected = true;
-                score += 10;
+                gemBonus += 10;
                 if (score > best) best = score;
                 gemFlash = 0.3;
                 try { Audio.play('gem'); } catch (e) {}
@@ -227,9 +232,9 @@ var SpikeField = (function () {
         }
         if (worldY < maxWorldY) maxWorldY = worldY;
 
-        // Score based on height
-        var heightScore = Math.floor(-worldY / 10);
-        if (heightScore > score) score = heightScore;
+        // Score based on height climbed since start
+        var heightScore = Math.floor((startWorldY - worldY) / 10);
+        score = Math.max(score, heightScore + gemBonus);
         if (score > best) best = score;
 
         // Generate more platforms
@@ -385,8 +390,8 @@ var SpikeField = (function () {
             ctx.shadowColor = '#4488ff';
             ctx.shadowBlur = 28;
             ctx.font = 'bold 52px monospace';
-            ctx.fillText('BOUNCE', VW / 2, VH / 2 - 80);
-            ctx.fillText('HERO', VW / 2, VH / 2 - 14);
+            ctx.fillText('SPIKE', VW / 2, VH / 2 - 80);
+            ctx.fillText('FIELD', VW / 2, VH / 2 - 14);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px monospace';

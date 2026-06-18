@@ -8,6 +8,7 @@ var SlingshotAim = (function () {
   var aimX = 80, aimY = 680;
   var phase = 'AIM';
   var ballX = 80, ballY = 680;
+  var lastTapX = null, lastTapY = null;
 
   function init(canvas, bestScore) {
     c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU';
@@ -103,21 +104,23 @@ var SlingshotAim = (function () {
     ctx.beginPath(); ctx.moveTo(60, VH - 60); ctx.lineTo(80, 680); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(100, VH - 60); ctx.lineTo(80, 680); ctx.stroke();
 
-    if (!ball && phase === 'AIM') {
-      var tx = targets.find(function(t) { return t.alive; });
-      if (tx) {
-        var dx = tx.x - ballX, dy = tx.y - ballY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        var vx0 = dx / 0.8, vy0 = dy / 0.8 - 0.5 * 400 * 0.8;
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([5, 8]);
-        ctx.beginPath(); ctx.moveTo(ballX, ballY);
-        for (var t2 = 0; t2 < 0.8; t2 += 0.05) {
-          var px = ballX + vx0 * t2;
-          var py = ballY + vy0 * t2 + 0.5 * 400 * t2 * t2;
-          ctx.lineTo(px, py);
-        }
-        ctx.stroke(); ctx.setLineDash([]);
+    if (!ball && phase === 'AIM' && lastTapX !== null) {
+      var tdx = lastTapX - ballX, tdy = lastTapY - ballY;
+      var power = 3.5;
+      var pvx = tdx * power, pvy = tdy * power;
+      var px = ballX, py = ballY;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([5, 8]);
+      ctx.beginPath(); ctx.moveTo(px, py);
+      var step = 1 / 60;
+      for (var si = 0; si < 60; si++) {
+        pvx *= 0.99;
+        pvy += 400 * step;
+        px += pvx * step;
+        py += pvy * step;
+        ctx.lineTo(px, py);
+        if (px < -20 || px > VW + 20 || py > VH + 20) break;
       }
+      ctx.stroke(); ctx.setLineDash([]);
     }
 
     if (ball) {
@@ -154,6 +157,7 @@ var SlingshotAim = (function () {
     if (state === 'MENU') { startGame(); return; }
     if (state === 'DEAD') { startGame(); return; }
     if (state === 'PLAYING' && !ball) {
+      lastTapX = x; lastTapY = y;
       var dx = x - ballX, dy = y - ballY;
       var power = 3.5;
       ball = { x: ballX, y: ballY, vx: dx * power, vy: dy * power };

@@ -21,6 +21,7 @@ var BombSquad = (function () {
     var numSafe;
     var elapsedTime;
     var flashTimer;
+    var winFlash;
 
     // ── Cell helpers ───────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ var BombSquad = (function () {
         score = 0;
         lives = 3;
         flashTimer = 0;
+        winFlash = 0;
         initBoard();
         state = 'PLAYING';
         try { AdManager.gameplayStart(); } catch (e) {}
@@ -115,7 +117,7 @@ var BombSquad = (function () {
         score += numSafe * 3 + timeBonus;
         if (score > best) best = score;
         try { Audio.play('gem'); } catch (e) {}
-        initBoard();
+        winFlash = 0.8;
     }
 
     function hitMine(col, row) {
@@ -141,6 +143,14 @@ var BombSquad = (function () {
     function update(dt) {
         if (state !== 'PLAYING') return;
         if (flashTimer > 0) flashTimer -= dt;
+        if (winFlash > 0) {
+            winFlash -= dt;
+            if (winFlash <= 0) {
+                winFlash = 0;
+                initBoard();
+            }
+            return;
+        }
         if (!firstTap) elapsedTime += dt;
     }
 
@@ -390,6 +400,23 @@ var BombSquad = (function () {
 
         drawHUD();
         drawFlagButton();
+
+        if (winFlash > 0) {
+            var alpha = Math.min(1, winFlash / 0.4);
+            ctx.fillStyle = 'rgba(0,0,0,' + (alpha * 0.6) + ')';
+            ctx.fillRect(0, 0, VW, VH);
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = 'bold 48px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#00ffcc';
+            ctx.shadowBlur = 28;
+            ctx.fillText('BOARD CLEAR!', VW / 2, VH / 2 - 40);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffdd00';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillText('+' + (numSafe * 3 + Math.max(0, 300 - Math.floor(elapsedTime * 2))), VW / 2, VH / 2 + 20);
+            ctx.textAlign = 'left';
+        }
 
         if (state === 'DEAD') {
             ctx.fillStyle = 'rgba(0,0,0,0.72)';

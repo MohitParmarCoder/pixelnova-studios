@@ -327,7 +327,7 @@ var OrbitTap = (function () {
     ctx.textAlign = 'center';
     ctx.shadowColor = '#FF4C4C';
     ctx.shadowBlur = 30;
-    ctx.fillText('DEAD', VW / 2, VH * 0.35);
+    ctx.fillText('GAME OVER', VW / 2, VH * 0.35);
     ctx.shadowBlur = 0;
 
     ctx.fillStyle = '#fff';
@@ -386,13 +386,7 @@ var OrbitTap = (function () {
         break;
       }
     }
-    if (!hit) {
-      // Miss tap on empty space = lose life
-      lives--;
-      shakeTime = 0.2;
-      try { Audio.play('crash'); } catch (e) {}
-      if (lives <= 0) { killPlayer(); }
-    }
+    // Empty-space tap: do nothing (no penalty)
   }
 
   function getBest() { return best; }

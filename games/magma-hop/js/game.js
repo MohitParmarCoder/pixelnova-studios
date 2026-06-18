@@ -298,11 +298,18 @@ var MagmaHop = (function () {
         ctx.fillRect(0, BOTTOM_SAFE_Y - LANE_HEIGHT / 2, VW, LANE_HEIGHT);
         ctx.fillStyle = '#2a5a18';
         ctx.fillRect(0, TOP_SAFE_Y - LANE_HEIGHT / 2, VW, LANE_HEIGHT);
-        // top safe text "HOME"
+    }
+
+    function drawHomeText() {
+        // Drawn after lanes so the top water lane never covers it.
+        ctx.fillStyle = '#2a5a18';
+        ctx.fillRect(0, TOP_SAFE_Y - LANE_HEIGHT / 2, VW, LANE_HEIGHT);
         ctx.fillStyle = '#55ee33';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('HOME', VW / 2, TOP_SAFE_Y + 8);
+        ctx.textBaseline = 'middle';
+        ctx.fillText('HOME', VW / 2, TOP_SAFE_Y);
+        ctx.textBaseline = 'alphabetic';
     }
 
     function drawFrog() {
@@ -391,6 +398,7 @@ var MagmaHop = (function () {
 
         drawSafeZones();
         drawLanes();
+        drawHomeText();
         drawFrog();
 
         // Particles

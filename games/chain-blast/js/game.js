@@ -256,8 +256,8 @@ var ChainBlast = (function () {
       if (b.soloStrikes >= 3) {
         lives--;
         try { Audio.play('lose'); } catch (e) {}
-        b.soloStrikes = 0;
         chainAnim.push({ count: -1, timer: 1.0, x: b.x, y: b.y - 40 });
+        bubbles.splice(hitIdx, 1);
         if (lives <= 0) {
           endGame();
           return;

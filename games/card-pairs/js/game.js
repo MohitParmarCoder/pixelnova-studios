@@ -87,9 +87,9 @@ var CardPairs = (function () {
       roundPhase = 'RESULT';
       resultTimer = 2.2;
       lives--;
-      if (lives <= 0 || chips <= 0) {
+      if (chips <= 0) {
         if (chips < 0) chips = 0;
-        endGame();
+        endGame(false);
       }
     } else if (total === 21) {
       doStand();
@@ -130,12 +130,12 @@ var CardPairs = (function () {
 
     if (chips >= 200) {
       resultMsg = 'YOU WIN! 200 chips!';
-      endGame();
+      endGame(true);
       return;
     }
-    if (chips <= 0 || lives <= 0) {
+    if (chips <= 0) {
       if (chips < 0) chips = 0;
-      endGame();
+      endGame(false);
       return;
     }
 
@@ -143,10 +143,10 @@ var CardPairs = (function () {
     resultTimer = 2.2;
   }
 
-  function endGame() {
+  function endGame(won) {
     if (chips > _best) _best = chips;
     score = chips;
-    snd('lose');
+    snd(won ? 'gem' : 'lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
     state = 'DEAD';

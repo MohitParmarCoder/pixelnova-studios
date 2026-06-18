@@ -401,6 +401,12 @@ const ColorSwitch = (() => {
     // Camera follows ball
     cameraY = ballWorldY;
 
+    // Death zone: if ball falls more than 400 units below start, it's gone
+    if (ballWorldY > 400) {
+      die();
+      return;
+    }
+
     // Rotate rings
     const rs = currentRotSpeed();
     for (const ring of rings) {

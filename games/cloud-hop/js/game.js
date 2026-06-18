@@ -30,6 +30,7 @@ var CloudHop = (function () {
   var kiteY, kiteVy;
   var worldX;
   var isHolding;
+  var holdTimer;
   var score;
   var lives;
   var scoreTimer;
@@ -53,6 +54,7 @@ var CloudHop = (function () {
     kiteVy     = 0;
     worldX     = 0;
     isHolding  = false;
+    holdTimer  = 0;
     score      = 0;
     lives      = MAX_LIVES;
     scoreTimer = 0;
@@ -109,6 +111,9 @@ var CloudHop = (function () {
   function update(dt) {
     if (state !== 'PLAYING') { return; }
     dt = clamp(dt, 0, 0.05);
+
+    holdTimer = Math.max(0, holdTimer - dt);
+    isHolding = holdTimer > 0;
 
     if (isHolding) {
       kiteVy -= CLIMB_ACC * dt;
@@ -236,7 +241,7 @@ var CloudHop = (function () {
       return;
     }
     if (state !== 'PLAYING') { return; }
-    isHolding = !isHolding;
+    holdTimer = 0.12;
     try { Audio.play('tap'); } catch (e) {}
   }
 
@@ -397,10 +402,14 @@ var CloudHop = (function () {
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText(dist + 'm', VW - 16, 64);
 
-    ctx.font      = '13px monospace';
+    ctx.font      = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = isHolding ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)';
-    ctx.fillText(isHolding ? 'HOLDING' : 'TAP = CLIMB', VW / 2, VH - 20);
+    var hint = isHolding ? 'HOLDING' : 'TAP = CLIMB';
+    var hw = ctx.measureText(hint).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(VW / 2 - hw / 2 - 10, VH - 36, hw + 20, 24);
+    ctx.fillStyle = isHolding ? 'rgba(120,255,160,0.95)' : 'rgba(255,255,255,0.9)';
+    ctx.fillText(hint, VW / 2, VH - 20);
     ctx.textAlign = 'left';
   }
 

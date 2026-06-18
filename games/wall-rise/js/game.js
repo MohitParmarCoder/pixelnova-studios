@@ -1,7 +1,7 @@
 'use strict';
 var WallRise = (function () {
   var VW = 390, VH = 844;
-  var ctx, best, state, score, time;
+  var ctx, best, state, score, time, bonusScore;
   var COLS = 6, COL_W, COL_PAD = 4;
   var BRICK_H = 44, TOP_MARGIN = 100, BOTTOM_MARGIN = 120;
   var PLAY_H, MAX_BRICKS;
@@ -20,6 +20,7 @@ var WallRise = (function () {
   function _startGame() {
     state = 'PLAYING';
     score = 0;
+    bonusScore = 0;
     time = 0;
     riseAcc = 0;
     riseInterval = 2.2;
@@ -96,7 +97,7 @@ var WallRise = (function () {
   function update(dt) {
     if (state !== 'PLAYING') return;
     time += dt;
-    score = Math.floor(time * 8);
+    score = Math.floor(time * 8) + bonusScore;
 
     riseAcc += dt;
     if (riseAcc >= riseInterval) {
@@ -152,7 +153,7 @@ var WallRise = (function () {
     var brick = columns[col].shift();
     var mult = brick.mult;
     var bonus = mult === 3 ? 150 : mult === 2 ? 60 : 10;
-    score += bonus;
+    bonusScore += bonus;
 
     var colX = COL_PAD + col * (COL_W + COL_PAD);
     var brickY = TOP_MARGIN + (MAX_BRICKS - columns[col].length - 1) * BRICK_H;

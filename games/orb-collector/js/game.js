@@ -43,7 +43,7 @@ var OrbCollector = (function () {
       else if (side === 2) { ox = Math.random()*VW; oy = VH+20; }
       else { ox = -20; oy = Math.random()*VH; }
       var spd = 80 + Math.random() * 60;
-      var dx = VW/2 - ox, dy = VH/2 - oy, dist = Math.sqrt(dx*dx+dy*dy);
+      var dx = player.x - ox, dy = player.y - oy, dist = Math.sqrt(dx*dx+dy*dy);
       orbs.push({ x:ox, y:oy, vx:(dx/dist)*spd, vy:(dy/dist)*spd, r:16, bad:bad,
         color: bad ? '#f87171' : ['#a8edea','#FFD700','#6BCB77','#CC5DE8'][Math.floor(Math.random()*4)] });
     }

@@ -121,7 +121,8 @@ var NumberOrder = (function () {
             if (flashTimer <= 0) {
                 flashIdx = -1;
                 flashTimer = 0;
-                // After flash, if we had a wrong answer we already advanced; nothing more
+                if (lives <= 0) { endGame(); return; }
+                nextQuestion(); // load next question after flash completes
             }
             return; // pause timer while flashing answer
         }
@@ -312,9 +313,7 @@ var NumberOrder = (function () {
                     score += pts;
                     if (score > best) { best = score; }
                     try { Audio.play('gem'); } catch (e) {}
-                    // Schedule next question after flash (handled in update when flashTimer expires)
-                    // We'll advance immediately but keep flash visible
-                    nextQuestion();
+                    // nextQuestion() will be called by update() when flashTimer expires
                 } else {
                     // Wrong
                     flashCorrect = false;
@@ -322,14 +321,11 @@ var NumberOrder = (function () {
                     lives--;
                     try { Audio.play('crash'); } catch (e) {}
                     if (lives <= 0) {
-                        // Show flash briefly then game over
+                        // Flash briefly, then update() will call endGame() after timer expires
                         flashTimer = 0.3;
-                        // endGame will be called when update sees lives <= 0
-                        // but we handle it in update after flash. Force it now:
-                        endGame();
                         return;
                     }
-                    nextQuestion();
+                    // nextQuestion() will be called by update() when flashTimer expires
                 }
                 return;
             }

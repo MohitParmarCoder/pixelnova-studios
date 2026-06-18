@@ -737,6 +737,20 @@ var TetroDrop = (function () {
     ctx.restore();
   }
 
+  function _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
   function _drawDead() {
     var ctx = _ctx;
     // Dark overlay
@@ -749,8 +763,7 @@ var TetroDrop = (function () {
     var pw = 300, ph = 280;
     var px = CX - pw / 2, py = CY - ph / 2;
     ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(px, py, pw, ph, 18);
+    _roundRect(ctx, px, py, pw, ph, 18);
     ctx.fillStyle = 'rgba(10, 18, 40, 0.97)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(100,150,255,0.5)';

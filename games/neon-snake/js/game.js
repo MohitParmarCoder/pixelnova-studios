@@ -534,5 +534,5 @@ const NeonSnake = (() => {
   function getScore() { return score; }
   function getState() { return state; }
   function getBest()  { return best; }
-  return { init, update: updatePublic, draw, swipe, getScore, getState, getBest };
+  return { init, update: updatePublic, draw, tap: swipe, swipe, getScore, getState, getBest };
 })();

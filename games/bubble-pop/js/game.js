@@ -434,8 +434,9 @@ var BubblePop = (function () {
         AdManager.showInterstitial(function () { startGame(); });
       } catch (e) { startGame(); }
     } else if (state === 'WIN') {
-      // allow tap-to-continue too
       nextLevel();
+    } else if (state === 'PLAYING') {
+      shoot(vx, vy);
     }
   }
 

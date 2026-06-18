@@ -577,11 +577,12 @@ const StarBlaster = (() => {
 
   function _drawHUD() {
     const ctx = _ctx;
-    // lives (ship icons, top-left)
-    for (let i = 0; i < _lives; i++) {
+    // lives (ship icons, top-left) — filled for remaining, faded outline for lost
+    for (let i = 0; i < 3; i++) {
       const x = 26 + i * 26, y = 30;
-      ctx.fillStyle = '#E8F3FF';
-      ctx.strokeStyle = '#5CF0FF';
+      const alive = i < _lives;
+      ctx.fillStyle = alive ? '#E8F3FF' : 'rgba(232,243,255,0.18)';
+      ctx.strokeStyle = alive ? '#5CF0FF' : 'rgba(92,240,255,0.3)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(x, y - 9);
