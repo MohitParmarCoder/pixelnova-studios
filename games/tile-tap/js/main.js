@@ -158,9 +158,57 @@
     var elI = document.getElementById('btnInfo');
     var elIO = document.getElementById('infoOverlay');
     var elIC = document.getElementById('btnInfoClose');
-    if (elI) elI.addEventListener('click', function () { if (elIO) elIO.classList.remove('hidden'); });
-    if (elIC) elIC.addEventListener('click', function () { if (elIO) elIO.classList.add('hidden'); });
-    if (elIO) elIO.addEventListener('click', function (e) { if (e.target === this) elIO.classList.add('hidden'); });
+    if (elI) elI.addEventListener('click', function () { _paused = true; if (elIO) elIO.classList.remove('hidden'); });
+    if (elIC) elIC.addEventListener('click', function () { _paused = false; prev = performance.now(); if (elIO) elIO.classList.add('hidden'); });
+    if (elIO) elIO.addEventListener('click', function (e) { if (e.target === this) { _paused = false; prev = performance.now(); elIO.classList.add('hidden'); } });
   })();
 
+
+  // ── Info canvas preview animation ──────────────────────────────────────────
+  (function() {
+    var ic = document.getElementById('infoCanvas'); if (!ic) return;
+    var ix = ic.getContext('2d'), IW = 280, IH = 140;
+    var _dots = [];
+    for (var i = 0; i < 14; i++) {
+      _dots.push({ x: Math.random()*IW, y: Math.random()*IH,
+        vx: (Math.random()-0.5)*1.5, vy: (Math.random()-0.5)*1.5,
+        r: 3+Math.random()*5, c: ['#a8edea','#6C8EEF','#f0abfc','#34d399','#fbbf24'][i%5],
+        ph: Math.random()*6.28 });
+    }
+    var _iT = 0, _iRunning = false;
+    function _iLoop() {
+      var ov = document.getElementById('infoOverlay');
+      if (!ov || ov.classList.contains('hidden')) { _iRunning = false; return; }
+      _iT += 0.016;
+      var g = ix.createLinearGradient(0,0,0,IH);
+      g.addColorStop(0,'#050a1a'); g.addColorStop(1,'#0c0828');
+      ix.fillStyle = g; ix.fillRect(0,0,IW,IH);
+      ix.strokeStyle = 'rgba(168,237,234,0.07)'; ix.lineWidth = 1;
+      for (var gx=0; gx<IW; gx+=28) { ix.beginPath(); ix.moveTo(gx,0); ix.lineTo(gx,IH); ix.stroke(); }
+      for (var gy=0; gy<IH; gy+=28) { ix.beginPath(); ix.moveTo(0,gy); ix.lineTo(IW,gy); ix.stroke(); }
+      for (var i=0; i<_dots.length; i++) {
+        var d=_dots[i];
+        d.x+=d.vx; d.y+=d.vy;
+        if(d.x<0||d.x>IW) d.vx*=-1; if(d.y<0||d.y>IH) d.vy*=-1;
+        var p=0.55+0.45*Math.sin(_iT*2+d.ph);
+        ix.shadowBlur=14*p; ix.shadowColor=d.c;
+        ix.fillStyle=d.c; ix.globalAlpha=0.65*p;
+        ix.beginPath(); ix.arc(d.x,d.y,d.r*p,0,Math.PI*2); ix.fill();
+      }
+      ix.globalAlpha=1; ix.shadowBlur=0;
+      var rp=(_iT%2.4)/2.4;
+      ix.strokeStyle='rgba(168,237,234,'+(0.7*(1-rp))+')'; ix.lineWidth=2;
+      ix.beginPath(); ix.arc(IW/2,IH/2,8+36*rp,0,Math.PI*2); ix.stroke();
+      ix.strokeStyle='rgba(255,255,255,'+(0.4*(1-rp))+')'; ix.lineWidth=1.5;
+      ix.beginPath(); ix.arc(IW/2,IH/2,4+18*rp,0,Math.PI*2); ix.stroke();
+      ix.save(); ix.globalAlpha=0.45+0.45*Math.sin(_iT*1.8);
+      ix.fillStyle='#a8edea'; ix.font='bold 10px system-ui';
+      ix.textAlign='center'; ix.textBaseline='bottom';
+      ix.fillText('\u2736 PIXELNOVA STUDIOS \u2736', IW/2, IH-3);
+      ix.restore();
+      requestAnimationFrame(_iLoop);
+    }
+    var _elI = document.getElementById('btnInfo');
+    if (_elI) _elI.addEventListener('click', function() { if (!_iRunning) { _iRunning=true; requestAnimationFrame(_iLoop); } });
+  })();
 })();

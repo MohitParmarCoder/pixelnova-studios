@@ -679,7 +679,7 @@ const ColorSwitch = (() => {
     ctx.restore();
 
     // New best / best
-    if (score > 0 && score >= bestScore) {
+    if (score > 0 && score > bestScore) {
       drawText('NEW BEST!', VW / 2, 505, 24, '#FFCC00');
     } else if (bestScore > 0) {
       drawText(`Best: ${bestScore}`, VW / 2, 505, 24, '#888');
