@@ -26,3 +26,7 @@ orbit-hopper-crazygames.zip
 
 # Claude Code internal
 .claude/
+
+# Playwright test artifacts
+.playwright-mcp/
+*.png
