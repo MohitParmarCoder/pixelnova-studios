@@ -233,6 +233,8 @@ var BilliardAim = (function () {
         if (score > best) best = score;
         state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'billiardaim_best'); } catch(e) {}
       }
     }
 

@@ -160,6 +160,8 @@ var PixelTrace = (function () {
   function _endGame() {
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd();     } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'pixeltrace_best'); } catch(e) {}
     _state = 'DEAD';
   }
 

@@ -159,6 +159,7 @@ var LavaSurf = (function () {
     if (state === 'MENU') { startGame(); snd('tap'); return; }
     if (state === 'DEAD') {
       try { AdManager.showInterstitial(function () { startGame(); }); } catch (e) { startGame(); }
+      try { AdManager.offerDoubleScore(score, 'lavasurf_best'); } catch(e) {}
       snd('tap'); return;
     }
     if (state !== 'PLAYING') return;

@@ -91,6 +91,8 @@ var PotionGrab = (function () {
     if (roundsLeft <= 0) {
       state = 'DEAD';
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(score, 'potiongrab_best'); } catch(e) {}
       return;
     }
     newTarget();

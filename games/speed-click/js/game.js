@@ -63,6 +63,8 @@ var SpeedClick = (function () {
   function endGame() {
     if (score > best) best = score;
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'speedclick_best'); } catch(e) {}
     state = 'DEAD';
   }
 

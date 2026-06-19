@@ -48,6 +48,8 @@ var TargetBlitz = (function () {
   function endGame() {
     if (score > best) best = score;
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'targetblitz_best'); } catch(e) {}
     state = 'DEAD';
   }
 

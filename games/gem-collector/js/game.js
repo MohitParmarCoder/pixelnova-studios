@@ -59,6 +59,8 @@ var GemCollector = (function () {
         else { score += g.pts; if (score > best) best = score; addParticles(g.x, g.y, g.color); try { Audio.play('gem'); } catch(e) {} }
         gems.splice(i, 1);
         if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'gemcollector_best'); } catch(e) {}
         continue;
       }
       if (g.life <= 0 || g.x < -50 || g.x > VW + 50 || g.y < -50 || g.y > VH + 50) gems.splice(i, 1);

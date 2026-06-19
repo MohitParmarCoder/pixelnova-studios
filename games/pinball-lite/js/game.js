@@ -304,6 +304,8 @@ var PinballLite = (function () {
             state = STATE_DEAD;
             try { AdManager.gameplayStop(); } catch (e) {}
             try { AdManager.onRunEnd(); } catch (e) {}
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'pinballlite_best'); } catch(e) {}
         } else {
             launchBall();
             try { Audio.play('tap'); } catch (e) {}

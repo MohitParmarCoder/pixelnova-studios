@@ -131,6 +131,8 @@ var PatternRepeat = (function () {
       if (lives <= 0) {
         state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'patternrepeat_best'); } catch(e) {}
       } else {
         playerSeq = []; showIdx = 0; showTimer = 0.5; showing = true; inputReady = false;
       }

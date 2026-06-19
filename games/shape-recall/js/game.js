@@ -189,6 +189,7 @@ var ShapeRecall = (function () {
     if (state === 'DEAD') {
       try {
         AdManager.showInterstitial(function () { startGame(); });
+        try { AdManager.offerDoubleScore(score, 'shaperecall_best'); } catch(e) {}
       } catch (e) {
         startGame();
       }

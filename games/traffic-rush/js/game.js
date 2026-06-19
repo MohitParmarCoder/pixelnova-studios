@@ -176,6 +176,8 @@ var TrafficRush = (function () {
     try { Audio.play('crash'); } catch (e) {}
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'trafficrush_best'); } catch(e) {}
   }
 
   function update(dt) {

@@ -152,6 +152,8 @@ var SpikeField = (function () {
             if (deathFlash <= 0 && lives <= 0) {
                 state = 'DEAD';
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                AdManager.showInterstitial(() => {});
+                try { AdManager.offerDoubleScore(score, 'spikefield_best'); } catch(e) {}
             }
             return;
         }

@@ -94,6 +94,8 @@ var RooftopRun = (function () {
     if (score > bestScore) { bestScore = score; }
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'rooftoprun_best'); } catch(e) {}
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────

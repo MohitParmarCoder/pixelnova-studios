@@ -133,6 +133,8 @@ var MagmaHop = (function () {
                 state = 'DEAD';
                 if (score > best) best = score;
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                AdManager.showInterstitial(() => {});
+                try { AdManager.offerDoubleScore(score, 'magmahop_best'); } catch(e) {}
             }
         }
         if (winFlash > 0) { winFlash -= dt; }

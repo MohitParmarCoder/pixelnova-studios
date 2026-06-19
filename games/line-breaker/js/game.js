@@ -203,6 +203,8 @@ var LineBreaker = (function () {
                     if (score > best) best = score;
                     state = 'DEAD';
                     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                    AdManager.showInterstitial(() => {});
+                    try { AdManager.offerDoubleScore(score, 'linebreaker_best'); } catch(e) {}
                     return true;
                 }
                 // Push bricks back up one row

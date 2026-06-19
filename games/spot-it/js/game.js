@@ -333,6 +333,8 @@ var SpotIt = (function () {
             state = 'DEAD';
             try { Audio.play('lose'); } catch(e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'spotit_best'); } catch(e) {}
             return;
           }
           newPuzzle();

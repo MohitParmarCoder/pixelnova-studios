@@ -177,6 +177,8 @@ var HexFlip = (function () {
     state = 'DEAD';
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'hexflip_best'); } catch(e) {}
   }
 
   function tap(x, y) {

@@ -173,6 +173,7 @@ var BalanceBeam = (function () {
     if (state === 'MENU') { _startGame(); return; }
     if (state === 'DEAD') {
       try { AdManager.showInterstitial(function () { _startGame(); }); } catch (e) { _startGame(); }
+      try { AdManager.offerDoubleScore(score, 'balancebeam_best'); } catch(e) {}
       return;
     }
     if (state !== 'PLAYING' || !fallingItem) return;

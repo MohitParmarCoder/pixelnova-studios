@@ -111,6 +111,8 @@ var NumberOrder = (function () {
         state = 'DEAD';
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'numberorder_best'); } catch(e) {}
     }
 
     function update(dt) {

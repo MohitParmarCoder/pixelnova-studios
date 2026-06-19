@@ -172,6 +172,8 @@ var TetroDrop = (function () {
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); } catch (e) {}
         try { AdManager.onRunEnd(); } catch (e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(_score, 'tetrodrop_best'); } catch(e) {}
         return;
       }
     }

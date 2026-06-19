@@ -430,6 +430,8 @@ var LaserMaze = (function () {
                     state = 'DEAD';
                     if (score > best) best = score;
                     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                    AdManager.showInterstitial(() => {});
+                    try { AdManager.offerDoubleScore(score, 'lasermaze_best'); } catch(e) {}
                 } else {
                     loadPuzzle();
                 }

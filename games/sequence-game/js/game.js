@@ -102,6 +102,8 @@ var SequenceGame = (function () {
                 if (score > best) best = score;
                 try { Audio.play('lose'); } catch (e) {}
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                AdManager.showInterstitial(() => {});
+                try { AdManager.offerDoubleScore(score, 'sequencegame_best'); } catch(e) {}
             }
         }
 

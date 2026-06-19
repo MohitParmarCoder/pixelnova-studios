@@ -122,6 +122,8 @@ var BowlingStrike = (function () {
         if (score > best) best = score;
         state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'bowlingstrike_best'); } catch(e) {}
         return;
       }
       setupPins();

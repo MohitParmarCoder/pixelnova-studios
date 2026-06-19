@@ -263,6 +263,8 @@ var WaterFlow = (function () {
     _state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'waterflow_best'); } catch(e) {}
   }
 
   function init(canvas, bestScore) {

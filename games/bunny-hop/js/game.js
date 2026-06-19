@@ -170,6 +170,8 @@ var BunnyHop = (function () {
     if (score > best) best = score;
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'bunnyhop_best'); } catch(e) {}
   }
 
   function tap(x, y) {

@@ -241,6 +241,7 @@ var FireballRun = (function () {
     if (state === 'MENU') { startGame(); snd('tap'); return; }
     if (state === 'DEAD') {
       try { AdManager.showInterstitial(function () { startGame(); }); } catch (e) { startGame(); }
+      try { AdManager.offerDoubleScore(score, 'fireballrun_best'); } catch(e) {}
       snd('tap'); return;
     }
     if (state !== 'PLAYING') return;

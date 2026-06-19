@@ -61,6 +61,8 @@ var OrbCollector = (function () {
           addParticles(o.x, o.y, '#f87171');
           try { Audio.play('crash'); } catch(e) {}
           if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'orbcollector_best'); } catch(e) {}
         } else {
           score++; if (score > best) best = score;
           addParticles(o.x, o.y, o.color);

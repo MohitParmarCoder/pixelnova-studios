@@ -258,6 +258,8 @@ var DotLink = (function () {
     _selected   = null;
     _errorFlash = 0;
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'dotlink_best'); } catch(e) {}
   }
 
   // ── Tap logic ──────────────────────────────────────────────────────────────

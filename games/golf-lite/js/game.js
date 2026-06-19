@@ -115,6 +115,8 @@ var GolfLite = (function () {
       if (score > best) best = score;
       state = 'DEAD';
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+      AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(score, 'golflite_best'); } catch(e) {}
       return;
     }
     shotsLeft = 5;

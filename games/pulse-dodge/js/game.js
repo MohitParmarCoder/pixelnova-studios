@@ -46,6 +46,8 @@ var PulseDodge = (function () {
         try { Audio.play('crash'); } catch(e) {}
         waves.splice(i, 1);
         if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'pulsedodge_best'); } catch(e) {}
       }
     }
   }

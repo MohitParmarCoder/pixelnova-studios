@@ -71,6 +71,8 @@ var ColorBurst = (function () {
         try { Audio.play('crash'); } catch(e) {}
         addParticles(CX, CY, '#f87171');
         if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'colorburst_best'); } catch(e) {}
         if (rings.length === 0) spawnRing();
       }
     }

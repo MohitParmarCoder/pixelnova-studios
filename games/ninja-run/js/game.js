@@ -60,6 +60,8 @@ var NinjaRun = (function () {
       state = 'DEAD';
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(score, 'ninjarun_best'); } catch(e) {}
       return;
     }
     flying = false;
