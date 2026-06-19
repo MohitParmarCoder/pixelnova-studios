@@ -87,6 +87,7 @@ const ColorSwitch = (() => {
   // Scores
   let score     = 0;
   let bestScore = 0;
+  let _isNewBest = false;
 
   // UI timers
   let blinkTimer = 0;
@@ -305,7 +306,7 @@ const ColorSwitch = (() => {
       p.x    += p.vx * dt;
       p.y    += p.vy * dt;
       p.vy   += 160 * dt; // gravity pull
-      p.vx   *= 0.98;
+      p.vx   *= Math.pow(0.98, dt * 60);
       p.life -= p.decay * dt;
     }
     particles = particles.filter(p => p.life > 0);
@@ -349,6 +350,7 @@ const ColorSwitch = (() => {
   }
 
   function die() {
+    _isNewBest = score > bestScore;
     saveBest();
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
@@ -679,7 +681,7 @@ const ColorSwitch = (() => {
     ctx.restore();
 
     // New best / best
-    if (score > 0 && score >= bestScore) {
+    if (score > 0 && _isNewBest) {
       drawText('NEW BEST!', VW / 2, 505, 24, '#FFCC00');
     } else if (bestScore > 0) {
       drawText(`Best: ${bestScore}`, VW / 2, 505, 24, '#888');

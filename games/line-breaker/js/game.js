@@ -410,7 +410,7 @@ var LineBreaker = (function () {
             ctx.shadowColor = '#2196F3';
             ctx.shadowBlur = 30;
             ctx.font = 'bold 52px monospace';
-            ctx.fillText('RICOCHET', VW / 2, VH / 2 - 80);
+            ctx.fillText('LINE BREAKER', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#aaddff';
             ctx.font = '18px monospace';

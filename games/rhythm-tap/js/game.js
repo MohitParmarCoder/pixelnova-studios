@@ -70,7 +70,7 @@ var RhythmTap = (function () {
       beatTimer -= 0.5;
       beatPulse = 1.0;
     }
-    beatPulse *= 0.88;
+    beatPulse *= Math.pow(0.88, dt * 60);
 
     // Update feedback items
     for (var k = feedbackItems.length - 1; k >= 0; k--) {

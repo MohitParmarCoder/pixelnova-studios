@@ -349,7 +349,7 @@ var FireballRun = (function () {
   function drawHUD() {
     ctx.fillStyle = '#ff8833'; ctx.font = 'bold 22px Arial';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('CASTLE DEFENSE', VW / 2, 14);
+    ctx.fillText('FIREBALL RUN', VW / 2, 14);
     ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Arial';
     ctx.fillText(String(score), VW / 2, 40);
     ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.68)';

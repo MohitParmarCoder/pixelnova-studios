@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Basket Shot</span>
+    <span id="gameTitle">BASKET SHOT</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,13 +43,17 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Basket Shot</div>
+    <div class="info-game">BASKET SHOT</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
-      <li>A basketball swings on a rope</li>
-      <li>Tap to release and shoot</li>
-      <li>Aim for the basket</li>
-      <li>Better timing = higher score!</li>
+      <li>A hoop moves back and forth at the top of the screen</li>
+      <li>Tap anywhere to shoot the ball toward that spot</li>
+      <li>Aim carefully to score a basket!</li>
+      <li>3 lives — miss too many and it's game over!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

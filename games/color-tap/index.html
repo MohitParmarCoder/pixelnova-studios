@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Color Tap</span>
+    <span id="gameTitle">COLOR TAP</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,13 +43,17 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Color Tap</div>
+    <div class="info-game">COLOR TAP</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
-      <li>A color NAME is shown in a different ink color</li>
-      <li>Tap YES if name matches the ink color</li>
-      <li>Tap NO if they don't match</li>
-      <li>Answer before time runs out!</li>
+      <li>A color name appears written in a misleading ink color</li>
+      <li>Four colored buttons are shown — each labeled with a color name</li>
+      <li>Tap the button whose label matches the word shown (ignore the ink!)</li>
+      <li>Wrong tap or timeout = lose a life!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

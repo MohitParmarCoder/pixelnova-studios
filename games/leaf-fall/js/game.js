@@ -132,7 +132,7 @@ var LeafFall = (function () {
     if (state === 'MENU') {
       ctx.fillStyle = '#6bcb77'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
       ctx.shadowBlur = 20; ctx.shadowColor = '#6bcb77';
-      ctx.fillText('BUG CATCHER', VW / 2, 300);
+      ctx.fillText('LEAF FALL', VW / 2, 300);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
       ctx.fillText('Tap bugs to catch them!', VW / 2, 370);
       ctx.fillStyle = '#ffd700'; ctx.font = '20px system-ui';

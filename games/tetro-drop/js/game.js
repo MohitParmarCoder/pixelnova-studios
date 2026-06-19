@@ -279,8 +279,8 @@ var TetroDrop = (function () {
       var p = _particles[pi];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vx *= 0.92;
-      p.vy *= 0.92;
+      p.vx *= Math.pow(0.92, dt * 60);
+      p.vy *= Math.pow(0.92, dt * 60);
       p.life -= dt;
       if (p.life <= 0) { _particles.splice(pi, 1); }
     }

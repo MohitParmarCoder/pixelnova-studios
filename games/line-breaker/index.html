@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Ricochet</title>
+<title>Line Breaker</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Ricochet</span>
+    <span id="gameTitle">LINE BREAKER</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,13 +43,17 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Ricochet</div>
+    <div class="info-game">LINE BREAKER</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
-      <li>Tap anywhere on screen to fire the ball toward that direction</li>
-      <li>The ball bounces off all 4 walls</li>
-      <li>Hit all 8 colored target circles to win the round</li>
-      <li>You have 3 shots per round — use them wisely!</li>
+      <li>Tap to aim, then tap again to launch the bouncing ball</li>
+      <li>Ball bounces off left, right, and top walls — don't miss the bottom!</li>
+      <li>Each miss adds a new brick row that pushes bricks down</li>
+      <li>Bricks reaching the danger zone = lose a life!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

@@ -123,7 +123,7 @@ var CloudHop = (function () {
     kiteVy  = clamp(kiteVy, VY_MIN, VY_MAX);
     kiteY  += kiteVy * dt;
 
-    worldX += DRIFT_VX * dt;
+    worldX += (DRIFT_VX + score * 2) * dt;
 
     scoreTimer += dt;
     if (scoreTimer >= 1) {

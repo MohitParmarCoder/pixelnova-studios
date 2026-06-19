@@ -111,6 +111,7 @@ var BowlingStrike = (function () {
   }
 
   function nextShot() {
+    if (state !== 'PLAYING') return;
     var wasStanding = countStanding();
     shot++;
     if (shot >= 2) {

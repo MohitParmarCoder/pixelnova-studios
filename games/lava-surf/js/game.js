@@ -276,7 +276,7 @@ var LavaSurf = (function () {
   function drawHUD() {
     ctx.fillStyle = '#7df'; ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('ICE CURLING', VW / 2, 16);
+    ctx.fillText('LAVA SURF', VW / 2, 16);
     ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Arial';
     ctx.fillText(String(score), VW / 2, 40);
     ctx.font = 'bold 14px Arial'; ctx.fillStyle = 'rgba(255,255,255,0.68)';

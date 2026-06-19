@@ -141,7 +141,7 @@ var LightningGrab = (function () {
       ctx.fillStyle = '#fde68a';
       ctx.shadowBlur = 30;
       ctx.shadowColor = '#fde68a';
-      ctx.fillText('Quick Draw', VW / 2, 300);
+      ctx.fillText('LIGHTNING GRAB', VW / 2, 300);
       ctx.shadowBlur = 0;
 
       ctx.font = '22px system-ui';

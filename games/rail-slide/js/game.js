@@ -49,6 +49,7 @@ var RailSlide = (function () {
   var state;       // 'MENU' | 'PLAYING' | 'DEAD'
   var score;
   var best;
+  var _isNewBest = false;
   var distScore;   // fractional distance accumulator
   var speed;
   var lane;        // 0=left 1=center 2=right
@@ -267,6 +268,7 @@ var RailSlide = (function () {
     spawnCrashParticles(fx, PLAYER_Y);
     try { Audio.play('crash'); } catch (e) {}
     try { Audio.play('lose'); }  catch (e) {}
+    _isNewBest = score > best;
     if (score > best) { best = score; }
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd();     } catch (e) {}
@@ -809,7 +811,7 @@ var RailSlide = (function () {
     ctx.font        = '20px monospace';
     ctx.fillStyle   = COL_COIN;
     ctx.shadowBlur  = 8;
-    var bestLabel = (score >= best) ? 'NEW BEST!' : ('BEST  ' + String(best));
+    var bestLabel = _isNewBest ? 'NEW BEST!' : ('BEST  ' + String(best));
     ctx.fillText(bestLabel, VW / 2, panY + 163);
 
     // TAP TO RETRY

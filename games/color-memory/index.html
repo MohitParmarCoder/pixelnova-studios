@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Piano Keys</span>
+    <span id="gameTitle">PIANO KEYS</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,8 +43,12 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Piano Keys</div>
+    <div class="info-game">PIANO KEYS</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
       <li>A melody plays: watch which keys light up in sequence</li>
       <li>Then replay the exact same sequence by tapping the keys</li>

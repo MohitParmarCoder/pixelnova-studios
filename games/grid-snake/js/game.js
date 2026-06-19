@@ -204,9 +204,10 @@ var GridSnake = (function () {
             return; // pause movement during flash
         }
 
+        var curInterval = Math.max(0.15, MOVE_INTERVAL - score * 0.003);
         moveTimer -= dt;
         if (moveTimer <= 0) {
-            moveTimer += MOVE_INTERVAL;
+            moveTimer += curInterval;
             stepSnake();
         }
     }

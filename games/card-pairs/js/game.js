@@ -419,7 +419,7 @@ var CardPairs = (function () {
     ctx.textBaseline = 'middle';
     ctx.shadowColor = '#ffd700';
     ctx.shadowBlur = 20;
-    ctx.fillText('BLACKJACK', VW / 2, 280 + float);
+    ctx.fillText('CARD PAIRS', VW / 2, 280 + float);
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#aaffcc';
     ctx.font = 'bold 32px Arial';

@@ -25,16 +25,18 @@ var OrbCollector = (function () {
 
   function update(dt) {
     if (state !== 'PLAYING') return;
+    var damp = Math.pow(0.85, dt * 60);
     player.vx += (player.targetX - player.x) * 6 * dt;
     player.vy += (player.targetY - player.y) * 6 * dt;
-    player.vx *= 0.85; player.vy *= 0.85;
-    player.x += player.vx; player.y += player.vy;
+    player.vx *= damp; player.vy *= damp;
+    player.x += player.vx * dt * 60; player.y += player.vy * dt * 60;
     player.x = Math.max(player.r, Math.min(VW - player.r, player.x));
     player.y = Math.max(player.r, Math.min(VH - player.r, player.y));
 
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnTimer = 0.4 + Math.random() * 0.4;
+      var baseInterval = Math.max(0.2, 0.4 - score * 0.004);
+      spawnTimer = baseInterval + Math.random() * 0.3;
       var bad = Math.random() < 0.3;
       var side = Math.floor(Math.random() * 4);
       var ox, oy;
@@ -42,7 +44,7 @@ var OrbCollector = (function () {
       else if (side === 1) { ox = VW+20; oy = Math.random()*VH; }
       else if (side === 2) { ox = Math.random()*VW; oy = VH+20; }
       else { ox = -20; oy = Math.random()*VH; }
-      var spd = 80 + Math.random() * 60;
+      var spd = (80 + Math.random() * 60) * (1 + score * 0.02);
       var dx = player.x - ox, dy = player.y - oy, dist = Math.sqrt(dx*dx+dy*dy);
       orbs.push({ x:ox, y:oy, vx:(dx/dist)*spd, vy:(dy/dist)*spd, r:16, bad:bad,
         color: bad ? '#f87171' : ['#a8edea','#FFD700','#6BCB77','#CC5DE8'][Math.floor(Math.random()*4)] });

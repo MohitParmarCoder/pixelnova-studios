@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Dot to Dot</title>
+<title>Dot To Dot</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Dot to Dot</span>
+    <span id="gameTitle">DOT TO DOT</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,8 +43,12 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Dot to Dot</div>
+    <div class="info-game">DOT TO DOT</div>
+    <div class="info-control-badge"><span class="ctl-icon">🤏</span>DRAG TO PLAY</div>
+    </div>
     <ul class="info-list">
       <li>Numbered dots are scattered across the canvas (1-15)</li>
       <li>Tap dot 1, then 2, then 3... in order</li>

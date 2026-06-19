@@ -46,6 +46,7 @@ const StackTower = (() => {
 
   // Dead-screen display
   let deadScore;
+  let _isNewBest = false;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function colorAt(index) {
@@ -73,6 +74,7 @@ const StackTower = (() => {
     level  = 0;
     camY   = 0;
     flashTimer = 0;
+    _isNewBest = false;
 
     // Build base block centered on canvas
     const baseX = (VW - BASE_W) / 2;
@@ -182,7 +184,8 @@ const StackTower = (() => {
 
   function _triggerDead() {
     deadScore = score;
-    if (score > best) best = score;
+    _isNewBest = score > best;
+    if (_isNewBest) best = score;
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
     AdManager.onRunEnd();
@@ -393,6 +396,13 @@ const StackTower = (() => {
     ctx.fillText(deadScore, VW / 2, VH / 2 + 30);
 
     ctx.shadowBlur = 0;
+
+    // Best score
+    if (best > 0) {
+      ctx.font      = '16px Arial, sans-serif';
+      ctx.fillStyle = _isNewBest ? '#ffd700' : '#888899';
+      ctx.fillText((_isNewBest ? '★ NEW BEST: ' : 'BEST: ') + best, VW / 2, VH / 2 + 78);
+    }
 
     // Tap to restart — pulsing
     const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 500);

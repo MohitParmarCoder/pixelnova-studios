@@ -1,9 +1,16 @@
 'use strict';
+
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r) {
+      r=Math.min(r,w/2,h/2); this.moveTo(x+r,y); this.lineTo(x+w-r,y); this.quadraticCurveTo(x+w,y,x+w,y+r); this.lineTo(x+w,y+h-r); this.quadraticCurveTo(x+w,y+h,x+w-r,y+h); this.lineTo(x+r,y+h); this.quadraticCurveTo(x,y+h,x,y+h-r); this.lineTo(x,y+r); this.quadraticCurveTo(x,y,x+r,y);
+    };
+  }
 var CannonLaunch = (function () {
     var VW = 390, VH = 844;
     var canvas, ctx;
     var state = 'MENU';
     var best = 0;
+    var isNewBest = false;
 
     // Game state
     var score = 0;
@@ -330,6 +337,7 @@ var CannonLaunch = (function () {
 
     function endGame() {
         state = 'DEAD';
+        isNewBest = score > best;
         if (score > best) best = score;
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
@@ -999,7 +1007,7 @@ var CannonLaunch = (function () {
         ctx.shadowBlur = 0;
 
         // Best
-        if (score >= best && score > 0) {
+        if (isNewBest && score > 0) {
             ctx.font = 'bold 18px monospace';
             ctx.fillStyle = '#FFD700';
             ctx.fillText('NEW BEST!', VW / 2, panelY + 228);

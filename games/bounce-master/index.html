@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Air Hockey</title>
+<title>Bounce Master</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Air Hockey</span>
+    <span id="gameTitle">BOUNCE MASTER</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,8 +43,12 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Air Hockey</div>
+    <div class="info-game">BOUNCE MASTER</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
       <li>Tap and drag your paddle (bottom half) to move it</li>
       <li>The AI controls the top paddle</li>

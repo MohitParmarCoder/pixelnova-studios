@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Rope Swing</title>
+<title>Ninja Run</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Rope Swing</span>
+    <span id="gameTitle">NINJA RUN</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,13 +43,17 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Rope Swing</div>
+    <div class="info-game">NINJA RUN</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
-      <li>Your ninja hangs from a rope like a pendulum</li>
-      <li>Tap to release and grab the nearest anchor rope</li>
-      <li>Collect stars near each rope for points</li>
-      <li>Falling to the ground loses a life!</li>
+      <li>Your ninja swings from a rope like a pendulum</li>
+      <li>Tap to release and grab the next anchor rope above</li>
+      <li>Each time you reach a higher rope you score a point</li>
+      <li>Falling below the screen loses a life!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

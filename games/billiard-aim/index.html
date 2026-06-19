@@ -14,7 +14,7 @@
 <div id="gameChrome">
   <div id="topBar">
     <button id="btnSettings" aria-label="Settings / Pause">&#9776;</button>
-    <span id="gameTitle">Billiard Aim</span>
+    <span id="gameTitle">BILLIARD AIM</span>
     <button id="btnInfo" aria-label="How to play">&#9432;</button>
     <button id="btnMute" aria-label="Toggle sound">&#128266;</button>
   </div>
@@ -43,13 +43,17 @@
 </div>
 <div id="infoOverlay" class="hidden">
   <div id="infoPanel">
+    <div class="info-preview"><canvas id="infoCanvas" width="280" height="140"></canvas></div>
+    <div class="info-header-block">
     <div class="info-title">HOW TO PLAY</div>
-    <div class="info-game">Billiard Aim</div>
+    <div class="info-game">BILLIARD AIM</div>
+    <div class="info-control-badge"><span class="ctl-icon">👆</span>TAP TO PLAY</div>
+    </div>
     <ul class="info-list">
-      <li>Tap and drag to aim your cue shot</li>
-      <li>Release to hit the cue ball</li>
-      <li>Pocket colored balls to score</li>
-      <li>Don't scratch the cue ball!</li>
+      <li>First tap sets the aim direction for your cue</li>
+      <li>Second tap fires the cue ball!</li>
+      <li>Pocket the colored balls to score</li>
+      <li>Pocketing the cue ball (scratch) costs a life!</li>
     </ul>
     <button id="btnInfoClose" class="settings-btn settings-resume-btn">&#9654;&nbsp; PLAY</button>
   </div>

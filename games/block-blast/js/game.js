@@ -162,8 +162,8 @@ var BlockBlast = (function () {
 
     for (var i = blastParticles.length - 1; i >= 0; i--) {
       var p = blastParticles[i];
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
       p.vy += 6 * dt;
       p.life -= dt;
       if (p.life <= 0) blastParticles.splice(i, 1);

@@ -286,7 +286,7 @@ var SpaceRunner = (function () {
       ctx.fillStyle = '#60a5fa';
       ctx.shadowBlur = 28;
       ctx.shadowColor = '#60a5fa';
-      ctx.fillText('SPACE INVADERS', VW / 2, 290);
+      ctx.fillText('SPACE RUNNER', VW / 2, 290);
       ctx.shadowBlur = 0;
       ctx.font = '20px system-ui';
       ctx.fillStyle = '#ffffff';

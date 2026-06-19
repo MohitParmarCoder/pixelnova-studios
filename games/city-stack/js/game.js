@@ -410,10 +410,10 @@ var CityStack = (function () {
     ctx.font        = 'bold 54px monospace';
     ctx.shadowColor = '#00e5ff';
     ctx.shadowBlur  = 24;
-    ctx.fillText('JENGA', VW / 2, VH / 2 - 60);
+    ctx.fillText('CITY', VW / 2, VH / 2 - 60);
     ctx.fillStyle   = '#ffeb3b';
     ctx.shadowColor = '#ffeb3b';
-    ctx.fillText('PULL', VW / 2, VH / 2);
+    ctx.fillText('STACK', VW / 2, VH / 2);
     ctx.shadowBlur  = 0;
     ctx.fillStyle   = '#ffffff';
     ctx.font        = '20px monospace';

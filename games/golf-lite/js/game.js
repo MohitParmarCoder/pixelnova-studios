@@ -109,6 +109,7 @@ var GolfLite = (function () {
   }
 
   function nextHole() {
+    if (state !== 'PLAYING') return;
     hole++;
     if (hole >= totalHoles) {
       if (score > best) best = score;

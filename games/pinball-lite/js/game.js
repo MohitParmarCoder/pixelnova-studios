@@ -340,9 +340,8 @@ var PinballLite = (function () {
     // ═════════════════════════════════════════════════════════════════════════
 
     function update(dt) {
-        if (state !== STATE_PLAYING) { return; }
-
         totalTime += dt;
+        if (state !== STATE_PLAYING) { return; }
         if (drainFlash > 0) { drainFlash -= dt; }
 
         // ── Flipper spring ──────────────────────────────────────────────────
@@ -736,12 +735,10 @@ var PinballLite = (function () {
     function draw() {
         if (!ctx) { return; }
         if (state === STATE_MENU) {
-            totalTime += 0.016;  // approximate dt for menu animations
             drawMenu();
         } else if (state === STATE_PLAYING) {
             drawPlaying();
         } else if (state === STATE_DEAD) {
-            totalTime += 0.016;
             drawDead();
         }
     }

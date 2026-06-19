@@ -109,9 +109,10 @@ var OrbitTap = (function () {
     if (shakeTime > 0) shakeTime -= dt;
     if (flashTime > 0) flashTime -= dt;
 
+    var speedMult = 1 + score * 0.015;
     for (var i = 0; i < planets.length; i++) {
       var p = planets[i];
-      p.angle += p.speed * dt;
+      p.angle += p.speed * speedMult * dt;
       if (p.tapFlash > 0) p.tapFlash -= dt;
     }
 

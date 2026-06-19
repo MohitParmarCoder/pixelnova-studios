@@ -244,10 +244,10 @@ var CrystalStack = (function () {
             ctx.shadowBlur = 20;
             ctx.fillStyle = '#f87171';
             ctx.font = 'bold 52px sans-serif';
-            ctx.fillText('COLOR', VW / 2, VH / 2 - 80);
+            ctx.fillText('CRYSTAL', VW / 2, VH / 2 - 80);
             ctx.fillStyle = '#60a5fa';
             ctx.shadowColor = '#60a5fa';
-            ctx.fillText('SORT', VW / 2, VH / 2 - 18);
+            ctx.fillText('STACK', VW / 2, VH / 2 - 18);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';
