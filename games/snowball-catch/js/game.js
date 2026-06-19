@@ -26,7 +26,8 @@ var SnowballCatch = (function () {
     var big = Math.random() < 0.3;
     var r = big ? 26 : 16;
     var pts = big ? 3 : 1;
-    var speed = big ? (40 + Math.random() * 30) : (70 + Math.random() * 60);
+    var diff = 1 + score * 0.04;
+    var speed = big ? (40 + Math.random() * 30) * diff : (70 + Math.random() * 60) * diff;
     var depth = WATER_TOP + 60 + Math.random() * (VH - WATER_TOP - 120);
     var startLeft = Math.random() < 0.5;
     return {
