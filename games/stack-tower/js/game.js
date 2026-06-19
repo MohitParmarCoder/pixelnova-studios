@@ -394,6 +394,13 @@ const StackTower = (() => {
 
     ctx.shadowBlur = 0;
 
+    // Best score
+    if (best > 0) {
+      ctx.font      = '16px Arial, sans-serif';
+      ctx.fillStyle = deadScore >= best ? '#ffd700' : '#888899';
+      ctx.fillText((deadScore >= best ? '★ NEW BEST: ' : 'BEST: ') + best, VW / 2, VH / 2 + 78);
+    }
+
     // Tap to restart — pulsing
     const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 500);
     ctx.globalAlpha = pulse;
