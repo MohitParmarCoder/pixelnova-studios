@@ -214,7 +214,7 @@ const TapBlast = (() => {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.vy += 180 * dt; // gravity pull
-      p.vx *= 0.97;
+      p.vx *= Math.pow(0.97, dt * 60);
     }
 
     // ── Miss flash countdown ─────────────────────────────────────────────────
@@ -312,8 +312,8 @@ const TapBlast = (() => {
     }
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
-    AdManager.onRunEnd();
     AdManager.gameplayStop();
+    AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
     try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'tapblast_best'); } catch(e) {}
   }

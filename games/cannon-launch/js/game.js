@@ -10,6 +10,7 @@ var CannonLaunch = (function () {
     var canvas, ctx;
     var state = 'MENU';
     var best = 0;
+    var isNewBest = false;
 
     // Game state
     var score = 0;
@@ -336,6 +337,7 @@ var CannonLaunch = (function () {
 
     function endGame() {
         state = 'DEAD';
+        isNewBest = score > best;
         if (score > best) best = score;
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
@@ -1005,7 +1007,7 @@ var CannonLaunch = (function () {
         ctx.shadowBlur = 0;
 
         // Best
-        if (score > best && score > 0) {
+        if (isNewBest && score > 0) {
             ctx.font = 'bold 18px monospace';
             ctx.fillStyle = '#FFD700';
             ctx.fillText('NEW BEST!', VW / 2, panelY + 228);

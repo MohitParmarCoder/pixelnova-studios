@@ -75,8 +75,8 @@ var SpeedClick = (function () {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
-      p.vx *= 0.92;
-      p.vy *= 0.92;
+      p.vx *= Math.pow(0.92, dt * 60);
+      p.vy *= Math.pow(0.92, dt * 60);
       if (p.life <= 0) {
         particles.splice(i, 1);
       }

@@ -204,7 +204,7 @@ const StarBlaster = (() => {
     for (let i = _particles.length - 1; i >= 0; i--) {
       const p = _particles[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
-      p.vx *= 0.92; p.vy *= 0.92;
+      p.vx *= Math.pow(0.92, dt * 60); p.vy *= Math.pow(0.92, dt * 60);
       p.life -= dt;
       if (p.life <= 0) _particles.splice(i, 1);
     }
