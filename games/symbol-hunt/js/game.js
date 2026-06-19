@@ -3,7 +3,7 @@ var SymbolHunt = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, lives, grid, target, timer, found;
+  var score, lives, grid, target, timer, timerMax, found;
   var SYMBOLS = ['♦','♠','♥','♣','★','◆','●','▲'];
   var COLS = 5, ROWS = 7;
   var CELL = 62;
@@ -31,7 +31,8 @@ var SymbolHunt = (function () {
       grid[idx].sym = target;
     }
     found = 0;
-    timer = 6;
+    timerMax = Math.max(3, 6 - score * 0.1);
+    timer = timerMax;
   }
 
   function startGame() {
@@ -84,7 +85,7 @@ var SymbolHunt = (function () {
     ctx.fillText(target, VW/2, 165);
     ctx.shadowBlur = 0;
 
-    var timerFrac = Math.max(0, timer / 6);
+    var timerFrac = Math.max(0, timer / timerMax);
     ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(20, 174, VW-40, 8);
     ctx.fillStyle = timerFrac > 0.5 ? '#6BCB77' : timerFrac > 0.25 ? '#FFD700' : '#f87171';
     ctx.fillRect(20, 174, (VW-40) * timerFrac, 8);

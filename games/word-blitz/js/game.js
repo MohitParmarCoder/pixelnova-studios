@@ -3,7 +3,7 @@ var WordBlitz = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
   var state = 'MENU';
-  var score, lives, bubbles, targetWord, progress, timer;
+  var score, lives, bubbles, targetWord, progress, timer, timerMax;
   var WORDS = ['CAT','DOG','SUN','MAP','JAM','FLY','BOX','HOP','ZAP','GEM','ICE','OAK','PIE','QUE','SKY'];
 
   function init(canvas, bestScore) {
@@ -12,7 +12,7 @@ var WordBlitz = (function () {
 
   function newRound() {
     targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-    progress = 0; timer = 15;
+    progress = 0; timerMax = Math.max(8, 15 - score * 0.3); timer = timerMax;
     bubbles = [];
     var letters = targetWord.split('').concat('ABCDEFGHIJKLMNOPRSTUVWXYZ'.split('').slice(0,9));
     letters.sort(function() { return Math.random() - 0.5; });
@@ -74,7 +74,7 @@ var WordBlitz = (function () {
     ctx.fillStyle = '#a8edea'; ctx.font = '24px system-ui';
     ctx.fillText(targetWord.substring(0, progress) + '_', VW/2, 165);
 
-    var timerFrac = Math.max(0, timer / 15);
+    var timerFrac = Math.max(0, timer / timerMax);
     ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(20, 180, VW-40, 6);
     ctx.fillStyle = timerFrac > 0.5 ? '#6BCB77' : timerFrac > 0.25 ? '#FFD700' : '#f87171';
     ctx.fillRect(20, 180, (VW-40)*timerFrac, 6);
