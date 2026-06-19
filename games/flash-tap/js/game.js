@@ -95,7 +95,7 @@ var FlashTap = (function () {
 
     if (roundPhase === 'flashing') {
       flashTimer += dt;
-      if (flashTimer >= FLASH_DUR) {
+      if (flashTimer >= Math.max(0.15, FLASH_DUR / Math.sqrt(difficultyFactor))) {
         circles[flashIndex].lit = false;
         roundPhase = 'waiting';
         tapTimer = 0;

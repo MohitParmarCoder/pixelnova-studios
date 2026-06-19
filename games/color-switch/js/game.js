@@ -357,7 +357,7 @@ const ColorSwitch = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
-    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'colorswitch_best'); } catch(e) {}
+    try { AdManager.offerDoubleScore(getScore(), 'colorswitch_best'); } catch(e) {}
   }
 
   // ── Public: tap ──────────────────────────────────────────────────────────────

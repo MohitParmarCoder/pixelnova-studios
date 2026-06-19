@@ -315,7 +315,7 @@ const TapBlast = (() => {
     AdManager.gameplayStop();
     AdManager.onRunEnd();
     AdManager.showInterstitial(() => {});
-    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'tapblast_best'); } catch(e) {}
+    try { AdManager.offerDoubleScore(getScore(), 'tapblast_best'); } catch(e) {}
   }
 
   // ── Draw: MENU ─────────────────────────────────────────────────────────────

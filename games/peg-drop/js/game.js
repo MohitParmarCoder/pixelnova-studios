@@ -88,7 +88,7 @@ var PegDrop = (function () {
           state = 'DEAD';
           try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
         } else if (balls.length === 0 && ballsLeft > 0) {
-          setTimeout(function() { dropBall(dropX); }, 300);
+          setTimeout(function() { if (state === 'PLAYING') dropBall(dropX); }, 300);
         }
       }
     }

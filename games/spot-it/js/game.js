@@ -61,8 +61,9 @@ var SpotIt = (function () {
       }
     }
 
-    timer = TIMER_DUR;
-    timerMax = TIMER_DUR;
+    var dur = Math.max(1.0, TIMER_DUR - score * 0.04);
+    timer = dur;
+    timerMax = dur;
   }
 
   function startGame() {
