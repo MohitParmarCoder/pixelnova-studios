@@ -256,7 +256,7 @@ var MissileEvade = (function () {
             ctx.shadowBlur = 28;
             ctx.font = 'bold 48px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('AIR DEFENSE', VW / 2, VH / 2 - 80);
+            ctx.fillText('MISSILE EVADE', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';

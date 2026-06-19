@@ -340,7 +340,7 @@ var SequenceGame = (function () {
             ctx.shadowBlur = 30;
             ctx.font = 'bold 44px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('CODE BREAKER', VW / 2, VH / 2 - 80);
+            ctx.fillText('SEQUENCE GAME', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#aaa';
             ctx.font = '20px sans-serif';

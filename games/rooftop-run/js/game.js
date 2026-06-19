@@ -333,10 +333,10 @@ var RooftopRun = (function () {
     ctx.font        = 'bold 54px monospace';
     ctx.shadowColor = '#00e5ff';
     ctx.shadowBlur  = 24;
-    ctx.fillText('GRIND', VW / 2, VH / 2 - 60);
+    ctx.fillText('ROOFTOP', VW / 2, VH / 2 - 60);
     ctx.fillStyle   = '#ff4081';
     ctx.shadowColor = '#ff4081';
-    ctx.fillText('RAILS', VW / 2, VH / 2);
+    ctx.fillText('RUN', VW / 2, VH / 2);
     ctx.shadowBlur  = 0;
     ctx.fillStyle   = '#ffffff';
     ctx.font        = '20px monospace';

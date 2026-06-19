@@ -189,7 +189,7 @@ var SpotIt = (function () {
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 24;
       ctx.shadowColor = '#ffe600';
-      ctx.fillText('ODD ONE OUT', VW / 2, 260);
+      ctx.fillText('SPOT IT', VW / 2, 260);
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.font = '20px system-ui';

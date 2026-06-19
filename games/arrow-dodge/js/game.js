@@ -292,10 +292,10 @@ var ArrowDodge = (function () {
             ctx.shadowBlur = 24;
             ctx.fillStyle = '#ff8800';
             ctx.font = 'bold 50px sans-serif';
-            ctx.fillText('ARCHERY', VW / 2, VH / 2 - 80);
+            ctx.fillText('ARROW', VW / 2, VH / 2 - 80);
             ctx.fillStyle = '#ffcc00';
             ctx.shadowColor = '#ffcc00';
-            ctx.fillText('RANGE', VW / 2, VH / 2 - 18);
+            ctx.fillText('DODGE', VW / 2, VH / 2 - 18);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';

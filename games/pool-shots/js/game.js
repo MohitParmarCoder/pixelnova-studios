@@ -213,7 +213,7 @@ var PoolShots = (function () {
       ctx.fillStyle = '#fde68a';
       ctx.shadowBlur = 28;
       ctx.shadowColor = '#fde68a';
-      ctx.fillText('Shuffleboard', VW / 2, 300);
+      ctx.fillText('POOL SHOTS', VW / 2, 300);
       ctx.shadowBlur = 0;
       ctx.font = '20px system-ui';
       ctx.fillStyle = '#ffffff';

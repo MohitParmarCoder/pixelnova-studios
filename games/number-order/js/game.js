@@ -201,10 +201,10 @@ var NumberOrder = (function () {
             ctx.shadowBlur = 22;
             ctx.fillStyle = '#44aaff';
             ctx.font = 'bold 52px sans-serif';
-            ctx.fillText('MATH', VW / 2, VH / 2 - 80);
+            ctx.fillText('NUMBER', VW / 2, VH / 2 - 80);
             ctx.fillStyle = '#ff9900';
             ctx.shadowColor = '#ff9900';
-            ctx.fillText('BLITZ', VW / 2, VH / 2 - 18);
+            ctx.fillText('ORDER', VW / 2, VH / 2 - 18);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';
