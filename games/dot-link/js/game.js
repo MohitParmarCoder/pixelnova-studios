@@ -246,6 +246,7 @@ var DotLink = (function () {
   }
 
   function _nextPuzzle() {
+    if (_state !== 'PLAYING') return;
     _score += 1;
     if (_score > _best) { _best = _score; }
     _puzzleIdx = (_puzzleIdx + 1) % PUZZLES.length;
@@ -256,6 +257,7 @@ var DotLink = (function () {
     _state      = 'DEAD';
     _selected   = null;
     _errorFlash = 0;
+    try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
   }
 
   // ── Tap logic ──────────────────────────────────────────────────────────────

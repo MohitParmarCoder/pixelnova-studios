@@ -227,7 +227,7 @@ const NumberMerge = (() => {
       outer:
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (_grid[r][c] >= 2048) { _state = 'WIN'; _winShown = true; try { AdManager.gameplayStop(); } catch(e) {} break outer; }
+          if (_grid[r][c] >= 2048) { _state = 'WIN'; _winShown = true; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} break outer; }
         }
       }
     }
