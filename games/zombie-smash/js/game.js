@@ -38,7 +38,7 @@ var ZombieSmash = (function () {
     var fromLeft = Math.random() < 0.5;
     var x = fromLeft ? -ZOMBIE_R : VW + ZOMBIE_R;
     var y = 120 + Math.random() * (VH - 300);
-    var speed = 40 + Math.random() * 30;
+    var speed = 40 + Math.random() * 30 + Math.min(score * 1.5, 90);
     var dir = fromLeft ? 1 : -1;
     zombies.push({
       x: x,
