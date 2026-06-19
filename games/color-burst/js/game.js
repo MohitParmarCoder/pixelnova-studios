@@ -54,7 +54,10 @@ var ColorBurst = (function () {
             lives--;
             addParticles(ball.x, ball.y, '#f87171');
             try { Audio.play('crash'); } catch(e) {}
-            if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
+            if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+              AdManager.showInterstitial(() => {});
+              try { AdManager.offerDoubleScore(score, 'colorburst_best'); } catch(e) {}
+              return; }
           }
           ball.moving = false; ball.x = CX; ball.y = CY;
           return;
@@ -70,9 +73,10 @@ var ColorBurst = (function () {
         lives--;
         try { Audio.play('crash'); } catch(e) {}
         addParticles(CX, CY, '#f87171');
-        if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
-        AdManager.showInterstitial(() => {});
-        try { AdManager.offerDoubleScore(score, 'colorburst_best'); } catch(e) {}
+        if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'colorburst_best'); } catch(e) {}
+          return; }
         if (rings.length === 0) spawnRing();
       }
     }

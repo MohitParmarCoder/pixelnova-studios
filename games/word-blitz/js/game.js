@@ -39,8 +39,10 @@ var WordBlitz = (function () {
     if (timer <= 0) {
       lives--;
       try { Audio.play('lose'); } catch(e) {}
-      if (lives <= 0) { if (score > best) best = score; state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-      else newRound();
+      if (lives <= 0) { if (score > best) best = score; state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
+      } else newRound();
     }
     bubbles.forEach(function(b) {
       b.y += Math.sin(Date.now()/1000 + b.x) * 0.3;
@@ -126,9 +128,10 @@ var WordBlitz = (function () {
         } else {
           lives--;
           try { Audio.play('crash'); } catch(e) {}
-          if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-          AdManager.showInterstitial(() => {});
-          try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
+          if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
+          }
         }
         return;
       }

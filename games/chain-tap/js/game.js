@@ -36,8 +36,10 @@ var ChainTap = (function () {
     if (timer <= 0) {
       lives--;
       try { Audio.play('lose'); } catch(e) {}
-      if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-      else newRound();
+      if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'chaintap_best'); } catch(e) {}
+      } else newRound();
     }
   }
 
@@ -123,9 +125,10 @@ var ChainTap = (function () {
         } else {
           lives--;
           try { Audio.play('crash'); } catch(e) {}
-          if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-          AdManager.showInterstitial(() => {});
-          try { AdManager.offerDoubleScore(score, 'chaintap_best'); } catch(e) {}
+          if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'chaintap_best'); } catch(e) {}
+          }
         }
         return;
       }

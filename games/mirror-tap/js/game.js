@@ -127,9 +127,10 @@ var MirrorTap = (function () {
         } else {
           lives--;
           try { Audio.play('crash'); } catch(e) {}
-          if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
-          AdManager.showInterstitial(() => {});
-          try { AdManager.offerDoubleScore(score, 'mirrortap_best'); } catch(e) {}
+          if (lives <= 0) { state='DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'mirrortap_best'); } catch(e) {}
+          }
         }
         return;
       }
