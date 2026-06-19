@@ -313,7 +313,7 @@ var LaserMaze = (function () {
             ctx.shadowColor = '#00aaff';
             ctx.shadowBlur = 32;
             ctx.font = 'bold 52px monospace';
-            ctx.fillText('MIRROR', VW / 2, VH / 2 - 80);
+            ctx.fillText('LASER', VW / 2, VH / 2 - 80);
             ctx.fillText('MAZE', VW / 2, VH / 2 - 16);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';

@@ -214,7 +214,7 @@ var BounceMaster = (function () {
             ctx.shadowBlur = 28;
             ctx.font = 'bold 52px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('AIR HOCKEY', VW / 2, VH / 2 - 80);
+            ctx.fillText('BOUNCE MASTER', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';

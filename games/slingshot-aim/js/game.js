@@ -42,7 +42,7 @@ var SlingshotAim = (function () {
   function update(dt) {
     if (state !== 'PLAYING') return;
     if (ball) {
-      ball.vx *= 0.99;
+      ball.vx *= Math.pow(0.99, dt * 60);
       ball.vy += 400 * dt;
       ball.x += ball.vx * dt;
       ball.y += ball.vy * dt;

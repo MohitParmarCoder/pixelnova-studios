@@ -310,7 +310,7 @@ var ElectricDash = (function () {
             ctx.shadowBlur = 28;
             ctx.font = 'bold 44px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('CIRCUIT BUILDER', VW / 2, VH / 2 - 80);
+            ctx.fillText('ELECTRIC DASH', VW / 2, VH / 2 - 80);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 26px sans-serif';

@@ -101,7 +101,7 @@ var CandyRain = (function () {
     if (state === 'MENU') {
       ctx.fillStyle = '#ffd700'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
       ctx.shadowBlur = 20; ctx.shadowColor = '#ffd700';
-      ctx.fillText('NUMBER PAIRS', VW / 2, 290);
+      ctx.fillText('CANDY RAIN', VW / 2, 290);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
       ctx.fillText('Tap two numbers that', VW / 2, 360);
       ctx.fillText('add up to the target!', VW / 2, 392);

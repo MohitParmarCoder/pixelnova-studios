@@ -178,7 +178,7 @@ var EggDrop = (function () {
     if (state === 'MENU') {
       ctx.fillStyle = '#ffd700'; ctx.font = 'bold 48px system-ui'; ctx.textAlign = 'center';
       ctx.shadowBlur = 20; ctx.shadowColor = '#ffd700';
-      ctx.fillText('CHEF CATCH', VW / 2, 280);
+      ctx.fillText('EGG DROP', VW / 2, 280);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '22px system-ui';
       ctx.fillText('Catch good ingredients!', VW / 2, 350);
       ctx.fillText('Avoid the rotten (black X) ones!', VW / 2, 382);

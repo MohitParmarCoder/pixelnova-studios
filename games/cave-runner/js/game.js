@@ -193,7 +193,7 @@ var CaveRunner = (function () {
       ctx.textBaseline = 'middle';
       ctx.shadowBlur = 22;
       ctx.shadowColor = '#ffd700';
-      ctx.fillText('MINE DIGGER', VW / 2, 280);
+      ctx.fillText('CAVE RUNNER', VW / 2, 280);
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.font = '20px system-ui';

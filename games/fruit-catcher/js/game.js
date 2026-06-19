@@ -170,7 +170,7 @@ var FruitCatcher = (function () {
     if (state === 'MENU') {
       ctx.fillStyle = '#ffd700'; ctx.font = 'bold 52px system-ui'; ctx.textAlign = 'center';
       ctx.shadowBlur = 24; ctx.shadowColor = '#ffd700';
-      ctx.fillText('FRUIT NINJA', VW / 2, 300);
+      ctx.fillText('FRUIT CATCHER', VW / 2, 300);
       ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.font = '24px system-ui';
       ctx.fillText('SWIPE ACROSS FRUITS!', VW / 2, 370);
       ctx.fillStyle = '#ff6b6b'; ctx.font = '20px system-ui';
