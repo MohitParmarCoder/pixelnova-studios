@@ -809,7 +809,7 @@ var RailSlide = (function () {
     ctx.font        = '20px monospace';
     ctx.fillStyle   = COL_COIN;
     ctx.shadowBlur  = 8;
-    var bestLabel = (score >= best) ? 'NEW BEST!' : ('BEST  ' + String(best));
+    var bestLabel = (score > best) ? 'NEW BEST!' : ('BEST  ' + String(best));
     ctx.fillText(bestLabel, VW / 2, panY + 163);
 
     // TAP TO RETRY
