@@ -60,7 +60,10 @@ var CoinCatch = (function () {
         lives--;
         try { Audio.play('crash'); } catch(e) {}
         coins.splice(i, 1);
-        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'coincatch_best'); } catch(e) {}
+        }
       }
     }
     for (var j = particles.length - 1; j >= 0; j--) {

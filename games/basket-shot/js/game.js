@@ -158,6 +158,8 @@ var BasketShot = (function () {
         if (lives <= 0) {
           state = 'DEAD';
           try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'basketshot_best'); } catch(e) {}
         } else {
           setTimeout(function () { resetBall(); }, 500);
         }

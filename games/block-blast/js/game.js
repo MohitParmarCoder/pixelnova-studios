@@ -124,6 +124,8 @@ var BlockBlast = (function () {
     shakeAmt = 12;
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'blockblast_best'); } catch(e) {}
   }
 
   function init(c, bestScore) {

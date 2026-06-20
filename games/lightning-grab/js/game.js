@@ -76,6 +76,8 @@ var LightningGrab = (function () {
       state = 'DEAD';
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(score, 'lightninggrab_best'); } catch(e) {}
     } else {
       startRound();
     }

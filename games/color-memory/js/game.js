@@ -168,6 +168,7 @@ var ColorMemory = (function () {
     if (state === 'DEAD') {
       try {
         AdManager.showInterstitial(function () { startGame(); });
+        try { AdManager.offerDoubleScore(score, 'colormemory_best'); } catch(e) {}
       } catch (e) {
         startGame();
       }

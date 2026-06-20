@@ -77,6 +77,8 @@ var FlashTap = (function () {
   function endGame() {
     if (score > best) best = score;
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'flashtap_best'); } catch(e) {}
     state = 'DEAD';
   }
 
@@ -95,7 +97,7 @@ var FlashTap = (function () {
 
     if (roundPhase === 'flashing') {
       flashTimer += dt;
-      if (flashTimer >= FLASH_DUR) {
+      if (flashTimer >= Math.max(0.15, FLASH_DUR / Math.sqrt(difficultyFactor))) {
         circles[flashIndex].lit = false;
         roundPhase = 'waiting';
         tapTimer = 0;

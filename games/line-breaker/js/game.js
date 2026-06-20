@@ -144,8 +144,9 @@ var LineBreaker = (function () {
         if (len < 1) { dy = -1; len = 1; }
         // Ensure ball goes upward
         if (dy > -10) { dy = -80; len = Math.sqrt(dx * dx + dy * dy); }
-        ballVX = (dx / len) * BALL_SPEED;
-        ballVY = (dy / len) * BALL_SPEED;
+        var currentSpeed = Math.min(800, BALL_SPEED + Math.floor(score / 30) * 25);
+        ballVX = (dx / len) * currentSpeed;
+        ballVY = (dy / len) * currentSpeed;
         ballLaunched = true;
         ballInFlight = true;
         powerActive = powerBall;
@@ -202,6 +203,8 @@ var LineBreaker = (function () {
                     if (score > best) best = score;
                     state = 'DEAD';
                     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                    AdManager.showInterstitial(() => {});
+                    try { AdManager.offerDoubleScore(score, 'linebreaker_best'); } catch(e) {}
                     return true;
                 }
                 // Push bricks back up one row

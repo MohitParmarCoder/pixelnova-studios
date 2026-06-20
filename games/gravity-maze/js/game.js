@@ -171,6 +171,8 @@ var GravityMaze = (function () {
     state = 'DEAD';
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'gravitymaze_best'); } catch(e) {}
   }
 
   function tap(x, y) {

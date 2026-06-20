@@ -194,6 +194,7 @@ var CardPairs = (function () {
     if (state === 'DEAD') {
       try {
         AdManager.showInterstitial(function () { startGame(); });
+        try { AdManager.offerDoubleScore(chips, 'cardpairs_best'); } catch(e) {}
       } catch (e) {
         startGame();
       }

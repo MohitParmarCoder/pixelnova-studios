@@ -392,6 +392,8 @@ var PlankBridge = (function () {
     if (score > _best) { _best = score; }
     sfx('lose');
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'plankbridge_best'); } catch(e) {}
   }
 
   // ── Draw ──────────────────────────────────────────────────────────────────

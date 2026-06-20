@@ -76,6 +76,8 @@ var LeafFall = (function () {
           if (lives <= 0) {
             lives = 0; state = 'DEAD';
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'leaffall_best'); } catch(e) {}
             return;
           }
         }

@@ -70,7 +70,7 @@ var TileTap = (function () {
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
     try { AdManager.showInterstitial(function () {}); } catch (e) {}
-    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'tiletap_best'); } catch(e) {}
+    try { AdManager.offerDoubleScore(getScore(), 'tiletap_best'); } catch(e) {}
   }
 
   // ---- Public API ----

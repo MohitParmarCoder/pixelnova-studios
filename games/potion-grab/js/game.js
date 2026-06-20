@@ -68,6 +68,8 @@ var PotionGrab = (function () {
       if (lives <= 0) {
         lives = 0; state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'potiongrab_best'); } catch(e) {}
         return;
       }
     } else if (!timedOut && acc < 0.7) {
@@ -76,6 +78,8 @@ var PotionGrab = (function () {
       if (lives <= 0) {
         lives = 0; state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'potiongrab_best'); } catch(e) {}
         return;
       }
     } else if (acc >= 0.9) {
@@ -91,6 +95,8 @@ var PotionGrab = (function () {
     if (roundsLeft <= 0) {
       state = 'DEAD';
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      AdManager.showInterstitial(() => {});
+      try { AdManager.offerDoubleScore(score, 'potiongrab_best'); } catch(e) {}
       return;
     }
     newTarget();

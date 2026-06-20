@@ -184,6 +184,8 @@ var NeonPath = (function () {
     if (_score > _best) { _best = _score; }
     try { Audio.play('crash'); } catch(e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'neonpath_best'); } catch(e) {}
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────

@@ -198,6 +198,8 @@ var ColorFlood = (function () {
   function _endGame() {
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd();     } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'colorflood_best'); } catch(e) {}
     _state = 'DEAD';
   }
 

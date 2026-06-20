@@ -61,8 +61,9 @@ var SpotIt = (function () {
       }
     }
 
-    timer = TIMER_DUR;
-    timerMax = TIMER_DUR;
+    var dur = Math.max(1.0, TIMER_DUR - score * 0.04);
+    timer = dur;
+    timerMax = dur;
   }
 
   function startGame() {
@@ -119,6 +120,8 @@ var SpotIt = (function () {
         state = 'DEAD';
         try { Audio.play('lose'); } catch(e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'spotit_best'); } catch(e) {}
         return;
       }
       newPuzzle();
@@ -332,6 +335,8 @@ var SpotIt = (function () {
             state = 'DEAD';
             try { Audio.play('lose'); } catch(e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+            AdManager.showInterstitial(() => {});
+            try { AdManager.offerDoubleScore(score, 'spotit_best'); } catch(e) {}
             return;
           }
           newPuzzle();

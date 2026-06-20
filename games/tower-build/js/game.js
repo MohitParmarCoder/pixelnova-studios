@@ -234,6 +234,7 @@ var TowerBuild = (function () {
     if (state === 'DEAD') {
       try {
         AdManager.showInterstitial(function () { _startGame(); });
+        try { AdManager.offerDoubleScore(score, 'towerbuild_best'); } catch(e) {}
       } catch (e) {
         _startGame();
       }

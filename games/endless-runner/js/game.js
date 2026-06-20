@@ -170,6 +170,8 @@ var EndlessRunner = (function () {
     if (score > best) best = score;
     try { Audio.play('crash'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'endlessrunner_best'); } catch(e) {}
   }
 
   function tap(x, y) {

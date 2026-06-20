@@ -146,6 +146,8 @@ var ShadowSlide = (function () {
     _state = 'DEAD';
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(_score, 'shadowslide_best'); } catch(e) {}
     if (_score > _best) {
       _best = _score;
       try { localStorage.setItem(BEST_KEY, String(_best)); } catch (e) {}

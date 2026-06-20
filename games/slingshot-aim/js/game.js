@@ -65,6 +65,8 @@ var SlingshotAim = (function () {
         if (shotsLeft <= 0 || alive.length === 0) {
           state = 'DEAD';
           try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'slingshotaim_best'); } catch(e) {}
         }
       }
     }

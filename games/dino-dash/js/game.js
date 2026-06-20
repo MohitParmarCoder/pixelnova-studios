@@ -168,6 +168,8 @@ var DinoDash = (function () {
     state = 'DEAD';
     if (score > best) best = score;
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'dinodash_best'); } catch(e) {}
   }
 
   function tap(x, y) {

@@ -55,7 +55,10 @@ var SymbolHunt = (function () {
       if (countTarget() > 0) {
         lives--;
         try { Audio.play('lose'); } catch(e) {}
-        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} return; }
+        if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+          AdManager.showInterstitial(() => {});
+          try { AdManager.offerDoubleScore(score, 'symbolhunt_best'); } catch(e) {}
+          return; }
       }
       newRound();
     }
@@ -145,7 +148,10 @@ var SymbolHunt = (function () {
     } else {
       lives--;
       try { Audio.play('crash'); } catch(e) {}
-      if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} }
+      if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'symbolhunt_best'); } catch(e) {}
+      }
     }
   }
 

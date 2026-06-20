@@ -72,6 +72,8 @@ var EggDrop = (function () {
   function die() {
     state = 'DEAD';
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'eggdrop_best'); } catch(e) {}
   }
 
   function update(dt) {

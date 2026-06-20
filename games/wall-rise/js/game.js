@@ -134,6 +134,7 @@ var WallRise = (function () {
     if (state === 'MENU') { _startGame(); return; }
     if (state === 'DEAD') {
       try { AdManager.showInterstitial(function () { _startGame(); }); } catch (e) { _startGame(); }
+      try { AdManager.offerDoubleScore(score, 'wallrise_best'); } catch(e) {}
       return;
     }
     if (state !== 'PLAYING') return;

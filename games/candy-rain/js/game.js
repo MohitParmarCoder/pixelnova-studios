@@ -195,6 +195,8 @@ var CandyRain = (function () {
             if (lives <= 0) {
               lives = 0; state = 'DEAD';
               try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+              AdManager.showInterstitial(() => {});
+              try { AdManager.offerDoubleScore(score, 'candyrain_best'); } catch(e) {}
             }
           }
           selected = -1;

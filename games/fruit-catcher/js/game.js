@@ -91,6 +91,8 @@ var FruitCatcher = (function () {
   function die() {
     state = 'DEAD';
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'fruitcatcher_best'); } catch(e) {}
   }
 
   function update(dt) {

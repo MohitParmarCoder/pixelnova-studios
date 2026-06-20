@@ -188,12 +188,12 @@ const StackTower = (() => {
     if (_isNewBest) best = score;
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
-    AdManager.onRunEnd();
-    AdManager.gameplayStop();
+    AdManager.gameplayStop()
+    AdManager.onRunEnd();;
     // show interstitial automatically with callback that just leaves us on DEAD
     // (tap to restart will be the user's next action)
     AdManager.showInterstitial(() => {});
-    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'stacktower_best'); } catch(e) {}
+    try { AdManager.offerDoubleScore(getScore(), 'stacktower_best'); } catch(e) {}
   }
 
   function _updateCamera() {

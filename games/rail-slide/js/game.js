@@ -272,6 +272,8 @@ var RailSlide = (function () {
     if (score > best) { best = score; }
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd();     } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'railslide_best'); } catch(e) {}
   }
 
   function moveLeft() {

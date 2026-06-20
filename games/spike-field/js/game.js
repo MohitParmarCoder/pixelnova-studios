@@ -72,7 +72,8 @@ var SpikeField = (function () {
             for (var n = 0; n < numPlats; n++) {
                 var w = 80 + Math.floor(Math.random() * 70);
                 var px = Math.floor(Math.random() * (VW - w - 20)) + 10;
-                var hasSpike = Math.random() < 0.3;
+                var spikeChance = Math.min(0.55, 0.3 + score * 0.0015);
+                var hasSpike = Math.random() < spikeChance;
                 var hasGem = (!hasSpike) && Math.random() < 0.25;
                 platforms.push({
                     x: px, y: genY, w: w, h: PLAT_H,
@@ -151,6 +152,8 @@ var SpikeField = (function () {
             if (deathFlash <= 0 && lives <= 0) {
                 state = 'DEAD';
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
+                AdManager.showInterstitial(() => {});
+                try { AdManager.offerDoubleScore(score, 'spikefield_best'); } catch(e) {}
             }
             return;
         }

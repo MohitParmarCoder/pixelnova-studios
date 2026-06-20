@@ -380,7 +380,7 @@ const StarBlaster = (() => {
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
     try { AdManager.showInterstitial(() => {}); } catch (e) {}
-    try { AdManager.offerDoubleScore(getScore ? getScore() : (_score || score || 0), 'starblaster_best'); } catch(e) {}
+    try { AdManager.offerDoubleScore(getScore(), 'starblaster_best'); } catch(e) {}
   }
 
   // ── Draw ───────────────────────────────────────────────────────────────────

@@ -239,6 +239,8 @@ var BlockDrop = (function () {
         playSound('lose');
         try { AdManager.gameplayStop(); } catch (e) {}
         try { AdManager.onRunEnd(); } catch (e) {}
+        AdManager.showInterstitial(() => {});
+        try { AdManager.offerDoubleScore(score, 'blockdrop_best'); } catch(e) {}
     }
 
     // ── Public: update ─────────────────────────────────────────────────────

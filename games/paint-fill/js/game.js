@@ -141,6 +141,8 @@ var PaintFill = (function () {
     snd('lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
+    AdManager.showInterstitial(() => {});
+    try { AdManager.offerDoubleScore(score, 'paintfill_best'); } catch(e) {}
   }
 
   // ---- Public API ----
