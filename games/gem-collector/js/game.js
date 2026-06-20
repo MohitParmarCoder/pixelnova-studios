@@ -25,7 +25,7 @@ var GemCollector = (function () {
   function spawnGem() {
     var side = Math.floor(Math.random() * 4);
     var x, y, vx, vy;
-    var spd = 120 + score * 3;
+    var spd = Math.min(400, 120 + score * 3);
     if (side === 0) { x = Math.random() * VW; y = -20; vx = 0; vy = spd; }
     else if (side === 1) { x = VW + 20; y = Math.random() * VH; vx = -spd; vy = 0; }
     else if (side === 2) { x = Math.random() * VW; y = VH + 20; vx = 0; vy = -spd; }

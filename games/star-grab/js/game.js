@@ -59,15 +59,19 @@ var StarGrab = (function () {
     maxStars = Math.min(8, 3 + Math.floor(score / 10));
     if (spawnTimer >= spawnInterval && stars.length < maxStars) { spawnTimer = 0; spawnStar(); }
 
+    var livesLostThisFrame = 0;
     for (var i = stars.length - 1; i >= 0; i--) {
       var s = stars[i];
       s.life -= dt;
       if (s.growing) { s.scale = Math.min(1, s.scale + dt * 3); if (s.scale >= 1) s.growing = false; }
       if (s.life <= 0) {
         stars.splice(i, 1);
-        lives--;
-        try { Audio.play('crash'); } catch(e) {}
-        if (lives <= 0) { endGame(); return; }
+        if (livesLostThisFrame === 0) {
+          lives--;
+          livesLostThisFrame++;
+          try { Audio.play('crash'); } catch(e) {}
+          if (lives <= 0) { endGame(); return; }
+        }
       }
     }
     for (var j = particles.length - 1; j >= 0; j--) {

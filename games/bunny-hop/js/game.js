@@ -98,7 +98,7 @@ var BunnyHop = (function () {
   if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
-    platformSpeed = 60 + scrollY * 0.015;
+    platformSpeed = Math.min(280, 60 + scrollY * 0.015);
     // move camera up: scrollY increases as bunny goes higher
     // camera tries to keep bunny at ~VH/3 from top
     var targetScroll = scrollY;

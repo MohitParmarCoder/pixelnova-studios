@@ -88,6 +88,7 @@ var ZombieSmash = (function () {
     }
 
     var toRemove = [];
+    var livesLostThisFrame = 0;
     for (var i = 0; i < zombies.length; i++) {
       var z = zombies[i];
       z.eyeAnim += dt * 3;
@@ -107,12 +108,15 @@ var ZombieSmash = (function () {
                           (z.dir === -1 && z.x <= CENTER_LINE);
 
       if (reachedCenter) {
-        lives--;
-        try { Audio.play('crash'); } catch (e) {}
         toRemove.push(i);
-        if (lives <= 0) {
-          endGame();
-          return;
+        if (livesLostThisFrame === 0) {
+          lives--;
+          livesLostThisFrame++;
+          try { Audio.play('crash'); } catch (e) {}
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
         }
       }
     }

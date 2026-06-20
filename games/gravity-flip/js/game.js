@@ -161,7 +161,7 @@ const GravityFlip = (() => {
   function _updatePlaying(dt) {
     // Speed scaling
     const speedSteps = Math.floor(_score / SPEED_STEP);
-    _speed = BASE_SPEED + speedSteps * SPEED_INC;
+    _speed = Math.min(600, BASE_SPEED + speedSteps * SPEED_INC);
 
     // Scroll walls
     const dx = _speed * dt;

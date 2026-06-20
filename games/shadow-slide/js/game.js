@@ -135,6 +135,7 @@ var ShadowSlide = (function () {
     try { Audio.play('crash'); } catch (e) {}
     if (_lives > 0) {
       // Respawn on a new platform
+      _scrollX = 0;
       _seedPlatforms();
       var fp = _platforms[0];
       _py = fp.y - PLAYER_R;

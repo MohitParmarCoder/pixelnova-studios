@@ -23,7 +23,7 @@ var ColorBurst = (function () {
 
   function spawnRing() {
     var ci = Math.floor(Math.random() * COLORS.length);
-    rings.push({ r: 30, maxR: 250, speed: 120 + score * 3, color: COLORS[ci], colorIdx: ci });
+    rings.push({ r: 30, maxR: 250, speed: Math.min(420, 120 + score * 3), color: COLORS[ci], colorIdx: ci });
   }
 
   function addParticles(x, y, color) {
