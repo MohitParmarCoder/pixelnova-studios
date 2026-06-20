@@ -35,7 +35,7 @@ const Game = (() => {
 
   // State
   let canvas, ctx;
-  let state = 'SPLASH';  // SPLASH MENU INFO SETTINGS PLAYING DYING RESULTS
+  let state = 'MENU';    // MENU INFO SETTINGS PLAYING DYING RESULTS
   let score, gems, highScore, runsPlayed;
   let diffLv, gameTime, deathTimer;
   let rewardedUsed, gemsDoubled, streakCount;
@@ -54,10 +54,15 @@ const Game = (() => {
   let newBestFlash, levelUpTimer;
   let lastOrbitPlanet;
   let infoPage = 0;
-  let splashTimer;    // SPLASH state countdown
+  let splashTimer;    // kept for compat (unused)
   let maxLevel;       // highest diffLv ever reached (persisted)
   let settingsOpen;   // settings overlay on top of MENU
   let tierUpFlash;    // true when this level-up also crossed a tier boundary
+  let _milestoneTimer, _milestoneText, _milestonesHit; // score milestone flash
+  let _shipShielded, _shieldTimer, _shieldTokens;      // shield power-up
+  let _slowMo, _slowMoTimer, _slowMoTokens;            // slow-mo power-up
+
+  function vib(pattern) { try { navigator.vibrate && navigator.vibrate(pattern); } catch(e) {} }
 
   // ── Colour helpers ─────────────────────────────────────────────────────
   function bgColors() {
@@ -114,6 +119,24 @@ const Game = (() => {
     }
   }
 
+  function spawnSlowMoToken(p) {
+    const ang = Math.random() * Math.PI * 2;
+    _slowMoTokens.push({
+      x: p.x + Math.cos(ang) * p.orbitR,
+      y: p.y + Math.sin(ang) * p.orbitR,
+      planet: p, collected: false, alpha: 1, pulse: Math.random() * Math.PI * 2,
+    });
+  }
+
+  function spawnShieldToken(p) {
+    const ang = Math.random() * Math.PI * 2;
+    _shieldTokens.push({
+      x: p.x + Math.cos(ang) * p.orbitR,
+      y: p.y + Math.sin(ang) * p.orbitR,
+      planet: p, collected: false, alpha: 1, pulse: Math.random() * Math.PI * 2,
+    });
+  }
+
   // ── Ship creation ──────────────────────────────────────────────────────
   function makeShip(planet) {
     return {
@@ -153,6 +176,9 @@ const Game = (() => {
       const np  = makePlanet(nx, ny, false);
       planets.push(np);
       spawnGems(np);
+      const pwRoll = Math.random();
+      if (pwRoll < 0.20) spawnShieldToken(np);
+      else if (pwRoll < 0.35) spawnSlowMoToken(np);
     }
 
     if (diffLv >= 2) {
@@ -233,6 +259,7 @@ const Game = (() => {
     ship.prevPlanet = ship.orbitPlanet;
     ship.orbitPlanet = null;
     Audio.play('hop');
+    vib(8);
     if (showTut) showTut = false;
   }
 
@@ -264,6 +291,7 @@ const Game = (() => {
     burst(ship.x, ship.y, planet.c1, 10);
     popup(ship.x, ship.y - 42, '+1');
     Audio.play('land');
+    vib(15);
 
     fillPlanets();
     prunePlanets();
@@ -275,7 +303,9 @@ const Game = (() => {
     burst(x, y, '#FF8C7A', 22, true);
     burst(x, y, '#ffffff', 8, true);
     cam.shake = 0.6;
+    Audio.stopGameMusic();
     Audio.play('death');
+    vib([30, 60, 80]);
     AdManager.gameplayStop();
     AdManager.onRunEnd();
 
@@ -301,6 +331,9 @@ const Game = (() => {
     gameTime = deathTimer = 0;
     rewardedUsed = gemsDoubled = false;
     streakCount = 0; tierUpFlash = false;
+    _milestoneTimer = 0; _milestoneText = ''; _milestonesHit = new Set();
+    _shipShielded = false; _shieldTimer = 0; _shieldTokens = [];
+    _slowMo = false; _slowMoTimer = 0; _slowMoTokens = [];
     bgPhase = 0;
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     planets=[]; gemsList=[]; hazards=[]; particles=[]; popups=[];
@@ -329,6 +362,7 @@ const Game = (() => {
     showTut = runsPlayed === 0;
     tutPhase = 0;
     state = 'PLAYING';
+    Audio.startGameMusic();
     AdManager.gameplayStart();
   }
 
@@ -338,6 +372,7 @@ const Game = (() => {
       resetGame();
       showTut = false;
       state = 'PLAYING';
+      Audio.startGameMusic();
       AdManager.gameplayStart();
     });
   }
@@ -363,16 +398,6 @@ const Game = (() => {
     if (pos.x > W-55 && pos.y < 58) {
       Audio.setMuted(!Audio.getMuted());
       Audio.resume();
-      return;
-    }
-
-    // Skip splash
-    if (state === 'SPLASH') {
-      if (splashTimer > 0.25) {
-        splashTimer = 999;
-        Audio.resume();
-        Audio.startAmbient();
-      }
       return;
     }
 
@@ -462,7 +487,6 @@ const Game = (() => {
 
     if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt*2.5);
 
-    if (state === 'SPLASH') { updateSplash(dt); return; }
     if (state === 'MENU' || state === 'INFO' || settingsOpen) { updateMenu(dt); return; }
     if (state === 'DYING')   { updateDying(dt); return; }
     if (state === 'RESULTS') { updateResults(dt); return; }
@@ -476,17 +500,18 @@ const Game = (() => {
       p.alpha = Math.min(1, p.alpha + dt*2.5);
       p.scale = Math.min(1, p.scale + (1-p.scale)*dt*5);
     }
+    const hdt = _slowMo ? dt * 0.35 : dt; // hazard time scale (slow-mo)
     for (const h of hazards) {
       if (h._orbiting && h.orbitPlanet) {
-        h.orbitAngle += h.orbitSpd * dt;
+        h.orbitAngle += h.orbitSpd * hdt;
         h.x = h.orbitPlanet.x + Math.cos(h.orbitAngle) * h.orbitR;
         h.y = h.orbitPlanet.y + Math.sin(h.orbitAngle) * h.orbitR;
       } else {
-        h.x += h.vx*dt; h.y += h.vy*dt;
+        h.x += h.vx*hdt; h.y += h.vy*hdt;
         if (h.x < -25) h.x = W+25;
         if (h.x > W+25) h.x = -25;
       }
-      h.angle += h.spin*dt;
+      h.angle += h.spin*hdt;
       h.alpha = Math.min(1, h.alpha + dt*2);
     }
 
@@ -495,6 +520,7 @@ const Game = (() => {
     updateParticles(dt);
     updatePopups(dt);
     updateGems(dt);
+    updateShieldTokens(dt);
 
     if (ship && ship.alive) {
       cam.tx = ship.x - W/2;
@@ -505,6 +531,25 @@ const Game = (() => {
 
     if (newBestFlash > 0) newBestFlash = Math.max(0, newBestFlash - dt*1.5);
     if (levelUpTimer > 0) levelUpTimer = Math.max(0, levelUpTimer - dt);
+    if (_milestoneTimer > 0) _milestoneTimer = Math.max(0, _milestoneTimer - dt);
+
+    checkMilestone();
+  }
+
+  const _MILESTONES = [10, 25, 50, 100, 250, 500];
+  function checkMilestone() {
+    for (const m of _MILESTONES) {
+      if (score >= m && !_milestonesHit.has(m)) {
+        _milestonesHit.add(m);
+        _milestoneTimer = 2.0;
+        _milestoneText = m >= 100 ? `${m}!!!` : m >= 50 ? `${m}!!` : `${m}!`;
+        burst(ship ? ship.x : W/2, ship ? ship.y : H/2, '#ffffff', 18, true);
+        burst(ship ? ship.x : W/2, ship ? ship.y : H/2, '#FFD700', 12, true);
+        Audio.play('highscore');
+        vib([15, 40, 15]);
+        break;
+      }
+    }
   }
 
   function updateMenu(dt) {
@@ -557,7 +602,15 @@ const Game = (() => {
       // Hazard collision & near-miss
       for (const h of hazards) {
         const d2 = dist2(ship.x,ship.y,h.x,h.y);
-        if (d2 < (h.r+5)*(h.r+5)) { die(ship.x,ship.y); return; }
+        if (d2 < (h.r+5)*(h.r+5)) {
+          if (_shipShielded) {
+            _shipShielded = false; _shieldTimer = 0;
+            burst(ship.x, ship.y, '#00e5ff', 18, true);
+            vib([20, 40, 20]);
+            return;
+          }
+          die(ship.x,ship.y); return;
+        }
         if (!h._nm && d2 < (h.r*2.8)*(h.r*2.8)) {
           h._nm = true; setTimeout(()=>{ if(h) h._nm=false; }, 2000);
           const bonus = 10 + Math.min(streakCount,5)*5;
@@ -565,6 +618,7 @@ const Game = (() => {
           popup(ship.x, ship.y-35, `+${bonus}`, '#FFD700');
           burst(ship.x, ship.y, '#FFD700', 5);
           Audio.play('nearmiss');
+          vib([8, 20, 8]);
           newBestFlash = 0;
         }
       }
@@ -595,6 +649,31 @@ const Game = (() => {
           burst(g.x, g.y, '#a8edea', 7);
           popup(g.x, g.y-22, `+${val}`, '#a8edea');
           Audio.play('gem');
+          vib(10);
+        }
+      }
+      // Shield token collect
+      for (const t of _shieldTokens) {
+        if (t.collected) continue;
+        if (dist2(ship.x,ship.y,t.x,t.y) < 18*18) {
+          t.collected = true;
+          _shipShielded = true; _shieldTimer = 8.0;
+          burst(t.x, t.y, '#00e5ff', 14);
+          popup(t.x, t.y - 28, 'SHIELD', '#00e5ff');
+          Audio.play('highscore');
+          vib([15, 30, 15]);
+        }
+      }
+      // Slow-mo token collect
+      for (const t of _slowMoTokens) {
+        if (t.collected) continue;
+        if (dist2(ship.x,ship.y,t.x,t.y) < 18*18) {
+          t.collected = true;
+          _slowMo = true; _slowMoTimer = 4.0;
+          burst(t.x, t.y, '#b39dff', 14);
+          popup(t.x, t.y - 28, 'SLOW', '#b39dff');
+          Audio.play('highscore');
+          vib([10, 30, 10]);
         }
       }
     }
@@ -625,10 +704,29 @@ const Game = (() => {
     gemsList = gemsList.filter(g=>!g.collected||g.alpha>0);
   }
 
+  function updateShieldTokens(dt) {
+    for (const t of _shieldTokens) {
+      t.pulse += dt * 1.8;
+      if (t.collected) t.alpha -= dt * 4;
+    }
+    _shieldTokens = _shieldTokens.filter(t => !t.collected || t.alpha > 0);
+    if (_shipShielded) {
+      _shieldTimer -= dt;
+      if (_shieldTimer <= 0) _shipShielded = false;
+    }
+    for (const t of _slowMoTokens) {
+      t.pulse += dt * 2.0;
+      if (t.collected) t.alpha -= dt * 4;
+    }
+    _slowMoTokens = _slowMoTokens.filter(t => !t.collected || t.alpha > 0);
+    if (_slowMo) {
+      _slowMoTimer -= dt;
+      if (_slowMoTimer <= 0) _slowMo = false;
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────
   function render() {
-    if (state === 'SPLASH') { drawSplash(); return; }
-
     const sx = cam.shake>0 ? (Math.random()-.5)*cam.shake*18 : 0;
     const sy = cam.shake>0 ? (Math.random()-.5)*cam.shake*18 : 0;
 
@@ -643,12 +741,16 @@ const Game = (() => {
     ctx.translate(-cam.x, -cam.y);
     drawPlanets();
     drawGems();
+    drawShieldTokens();
+    drawSlowMoTokens();
     drawHazards();
     if (ship) drawShip();
+    drawShieldBubble();
     drawParticles();
     drawPopups();
     ctx.restore();
 
+    drawSlowMoOverlay();
     drawHUD();
     if (state==='MENU')    drawMenu();
     if (state==='INFO')    drawInfo();
@@ -656,6 +758,7 @@ const Game = (() => {
     if (state==='DYING')   drawDying();
     if (state==='RESULTS') drawResults();
     if (levelUpTimer > 0)  drawLevelUpFlash();
+    if (_milestoneTimer > 0) drawMilestoneFlash();
     if (settingsOpen)      drawSettings();
 
     ctx.restore();
@@ -759,6 +862,96 @@ const Game = (() => {
       ctx.closePath(); ctx.fill();
       ctx.restore();
     }
+  }
+
+  function drawShieldTokens() {
+    for (const t of _shieldTokens) {
+      if (t.alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = t.alpha;
+      ctx.translate(t.x, t.y);
+      const pulse = 0.88 + Math.sin(t.pulse) * 0.12;
+      ctx.scale(pulse, pulse);
+      ctx.shadowBlur = 16; ctx.shadowColor = '#00e5ff';
+      // Hexagon shield shape
+      ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2.5;
+      ctx.fillStyle = 'rgba(0,229,255,0.15)';
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 3 * i - Math.PI / 6;
+        const r = 8;
+        i === 0 ? ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r)
+                : ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Cross inside
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0,-5); ctx.lineTo(0,5); ctx.moveTo(-5,0); ctx.lineTo(5,0);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawShieldBubble() {
+    if (!_shipShielded || !ship) return;
+    const t = _shieldTimer;
+    const urgency = t < 2.0 ? (1 - t / 2.0) : 0;
+    const pulse = 0.85 + Math.sin(gameTime * 6) * 0.15;
+    ctx.save();
+    ctx.translate(ship.x - cam.x, ship.y - cam.y);
+    ctx.scale(pulse, pulse);
+    for (let i = 0; i < 3; i++) {
+      const r = 14 + i * 5;
+      const a = (0.5 - i * 0.12) * (1 - urgency * 0.4);
+      ctx.strokeStyle = urgency > 0.5 ? `rgba(255,200,0,${a})` : `rgba(0,229,255,${a})`;
+      ctx.lineWidth = 1.8 - i * 0.4;
+      ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle;
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawSlowMoTokens() {
+    for (const t of _slowMoTokens) {
+      if (t.alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = t.alpha;
+      ctx.translate(t.x, t.y);
+      const pulse = 0.90 + Math.sin(t.pulse) * 0.10;
+      ctx.scale(pulse, pulse);
+      ctx.shadowBlur = 14; ctx.shadowColor = '#b39dff';
+      // Hourglass shape (two triangles)
+      ctx.fillStyle = 'rgba(179,157,255,0.15)';
+      ctx.strokeStyle = '#b39dff'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-6,-8); ctx.lineTo(6,-8); ctx.lineTo(0,0);
+      ctx.lineTo(6,8); ctx.lineTo(-6,8); ctx.lineTo(0,0);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // Center dot
+      ctx.fillStyle = '#b39dff'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawSlowMoOverlay() {
+    if (!_slowMo) return;
+    const urgency = _slowMoTimer < 1.5;
+    const a = urgency ? 0.06 + Math.sin(gameTime * 8) * 0.03 : 0.07;
+    ctx.fillStyle = `rgba(80,60,180,${a})`;
+    ctx.fillRect(0, 0, W, H);
+    // Timer bar at bottom-right
+    const barW = 60, barH = 5, bx = W - 80, by = H - 56;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(bx-2, by-2, barW+4, barH+4);
+    ctx.fillStyle = urgency ? '#FFD700' : '#b39dff';
+    ctx.shadowBlur = 4; ctx.shadowColor = ctx.fillStyle;
+    ctx.fillRect(bx, by, barW * Math.max(0, _slowMoTimer / 4.0), barH);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = urgency ? '#FFD700' : '#b39dff';
+    ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+    ctx.globalAlpha = 0.9;
+    ctx.fillText('SLOW', bx - 6, by + barH);
+    ctx.globalAlpha = 1;
   }
 
   function drawHazards() {
@@ -936,8 +1129,46 @@ const Game = (() => {
       ctx.globalAlpha = 1;
     }
 
+    // Shield HUD (bottom-right when shielded)
+    if (_shipShielded) {
+      const urgency = _shieldTimer < 2.0;
+      const col = urgency ? '#FFD700' : '#00e5ff';
+      const barW = 60, barH = 5, bx = W - 80, by = H - 36;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(bx-2, by-2, barW+4, barH+4);
+      ctx.fillStyle = col;
+      ctx.shadowBlur = urgency ? 8 : 4; ctx.shadowColor = col;
+      ctx.fillRect(bx, by, barW * Math.max(0, _shieldTimer / 8.0), barH);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = col; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+      ctx.globalAlpha = 0.9;
+      ctx.fillText('SHIELD', bx - 6, by + barH);
+      ctx.globalAlpha = 1;
+    }
+
     // Mute button
     UI.muteIcon(ctx, W-26, 26, 11, Audio.getMuted(), .55);
+  }
+
+  function drawMilestoneFlash() {
+    const p = _milestoneTimer / 2.0;
+    const flashA = p > .6 ? (p-.6)/.4*.22 : p/.6*.22;
+    ctx.fillStyle = `rgba(255,255,255,${flashA})`;
+    ctx.fillRect(0,0,W,H);
+    const ta = p > .2 ? Math.min(1,(p-.2)/.3) * Math.min(1,p*4) : 0;
+    if (ta > 0) {
+      ctx.save();
+      ctx.globalAlpha = ta;
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 32; ctx.shadowColor = '#FFD700';
+      ctx.fillStyle = '#FFD700';
+      ctx.font = `bold ${_milestoneText.length > 4 ? 52 : 64}px system-ui`;
+      ctx.fillText(_milestoneText, W/2, H/2 - 8);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.font = '16px system-ui';
+      ctx.fillText('MILESTONE', W/2, H/2 + 26);
+      ctx.restore();
+    }
   }
 
   function drawLevelUpFlash() {
@@ -1281,55 +1512,10 @@ const Game = (() => {
     ctx.restore();
   }
 
-  // ── Splash screen (company branding) ──────────────────────────────────
-  function updateSplash(dt) {
-    splashTimer += dt;
-    if (splashTimer > 2.6) {
-      state = 'MENU';
-      // startAmbient: only works after user gesture (auto fails silently before that)
-      Audio.startAmbient();
-    }
-  }
+  // ── Splash screen removed for portal compliance ────────────────────────
+  function updateSplash() { return; }
 
-  function drawSplash() {
-    ctx.fillStyle='#04050e';
-    ctx.fillRect(0,0,W,H);
-    drawStarsLayer();
-
-    const t=splashTimer;
-    const fadeIn  = Math.min(1, t/0.65);
-    const fadeOut = t>2.0 ? 1-Math.min(1,(t-2.0)/0.5) : 1;
-    const alpha   = eOut(fadeIn)*fadeOut;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-
-    const rot = t*0.38;
-    drawNovaLogo(W/2, H*.40, 54, rot);
-
-    ctx.textAlign='center';
-    ctx.shadowBlur=22; ctx.shadowColor='#a8edea';
-    ctx.fillStyle='#ffffff';
-    ctx.font='bold 40px system-ui,sans-serif';
-    ctx.fillText(COMPANY, W/2, H*.605);
-    ctx.shadowBlur=0;
-    ctx.fillStyle='rgba(168,237,234,.65)';
-    ctx.font='12px system-ui,sans-serif';
-    ctx.fillText('S T U D I O S', W/2, H*.645);
-    ctx.fillStyle='rgba(255,255,255,.28)';
-    ctx.font='11px system-ui,sans-serif';
-    ctx.fillText(TAGLINE, W/2, H*.685);
-
-    // Tap-to-skip hint (only after 0.5s)
-    if (t>0.5) {
-      const hintA = Math.min(1, (t-0.5)/0.4) * 0.35;
-      ctx.globalAlpha = alpha * hintA;
-      ctx.fillStyle='#ffffff'; ctx.font='11px system-ui';
-      ctx.fillText('▶', W/2, H*.95);
-    }
-
-    ctx.restore();
-  }
+  function drawSplash() { return; }
 
   // ── Settings overlay ───────────────────────────────────────────────────
   function drawSettings() {
@@ -1593,8 +1779,11 @@ const Game = (() => {
     newBestFlash = 0; deathTimer = 0; continueTimer = 0; continueAlpha = 0;
     score = 0; gems = 0; diffLv = 0; streakCount = 0; levelUpTimer = 0;
     rewardedUsed = false; gemsDoubled = false; tierUpFlash = false;
+    _milestoneTimer = 0; _milestoneText = ''; _milestonesHit = new Set();
+    _shipShielded = false; _shieldTimer = 0; _shieldTokens = [];
+    _slowMo = false; _slowMoTimer = 0; _slowMoTokens = [];
     splashTimer = 0; settingsOpen = false;
-    state = (typeof window !== 'undefined' && window.ORBIT_PORTAL) ? 'MENU' : 'SPLASH';
+    state = 'MENU';
     cam = { x:0, y:0, tx:0, ty:0, shake:0 };
     particles=[]; popups=[]; hazards=[]; gemsList=[];
 
