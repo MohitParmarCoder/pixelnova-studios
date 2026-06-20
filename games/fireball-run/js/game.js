@@ -65,7 +65,7 @@ var FireballRun = (function () {
     enemies.push({
       x: VW + 10,
       y: GROUND_Y - td.h,
-      vx: -(td.spd + wave * 4),
+      vx: -(td.spd + Math.min(wave * 4, 120)),
       type: tn,
       hp: td.hp, maxHp: td.hp,
       w: td.w, h: td.h,
@@ -171,6 +171,7 @@ var FireballRun = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     t += dt;
     if (state !== 'PLAYING') return;
 

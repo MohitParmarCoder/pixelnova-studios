@@ -280,6 +280,7 @@ var WaterFlow = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_state === 'PLAYING') {
       if (_solved) {
         _solvedTimer -= dt;

@@ -103,6 +103,7 @@ var PotionGrab = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     roundTimer -= dt;
     if (roundTimer <= 0) {

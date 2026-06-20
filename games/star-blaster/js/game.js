@@ -192,6 +192,7 @@ const StarBlaster = (() => {
 
   // ── Update ─────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _pulseT += dt;
 
     // stars always scroll

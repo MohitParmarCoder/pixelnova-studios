@@ -83,6 +83,7 @@ var WhackMole = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     glowPulse += dt * 2;
 
     // Update hit flashes
@@ -153,8 +154,8 @@ var WhackMole = (function () {
       if (h.moleState !== 'showing' && h.moleState !== 'rising') continue;
       if (h.hit) continue;
 
-      // Mole visible area: center is h.x, h.y - moleY * HOLE_R
-      var moleDrawY = h.y - h.moleY * HOLE_R * 0.8;
+      // Mole visual body center: bodyTop + bodyR*0.8 = h.y - moleY*HOLE_R*1.4 + (HOLE_R-4)*0.8
+      var moleDrawY = h.y - h.moleY * HOLE_R * 1.4 + (HOLE_R - 4) * 0.8;
       var dx = x - h.x;
       var dy = y - moleDrawY;
       if (dx * dx + dy * dy <= (HOLE_R + 8) * (HOLE_R + 8)) {

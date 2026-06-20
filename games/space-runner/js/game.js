@@ -103,7 +103,7 @@ var SpaceRunner = (function () {
 
   function nextWave() {
     wave++;
-    alienSpeed = 80 * Math.pow(1.1, wave - 1);
+    alienSpeed = Math.min(400, 80 * Math.pow(1.1, wave - 1));
     alienShootInterval = Math.max(0.6, 1.8 - wave * 0.1);
     shootInterval = Math.max(0.3, 0.8 - wave * 0.04);
     playerBullets = [];
@@ -112,6 +112,7 @@ var SpaceRunner = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     // Update particles

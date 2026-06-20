@@ -18,6 +18,7 @@ var PulseDodge = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     t += dt;
     score = Math.floor(t * 10);
@@ -28,7 +29,7 @@ var PulseDodge = (function () {
       spawnTimer = Math.max(0.5, 1.2 - t * 0.02);
       var spx = CX + Math.cos(player.angle) * player.dist;
       var wSrc = Math.random() < 0.5 ? { x: CX, y: CY } : { x: spx > CX ? -30 : VW+30, y: CY };
-      waves.push({ r: 20, speed: 200 + t * 2, src: wSrc });
+      waves.push({ r: 20, speed: Math.min(500, 200 + t * 2), src: wSrc });
     }
 
     for (var i = waves.length - 1; i >= 0; i--) {

@@ -209,6 +209,7 @@ const StackTower = (() => {
 
   // ── Update ─────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING' || !slider) return;
 
     if (flashTimer > 0) flashTimer -= dt;

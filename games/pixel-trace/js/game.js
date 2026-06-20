@@ -167,6 +167,7 @@ var PixelTrace = (function () {
 
   /* ── Public: update ──────────────────────────────────────────── */
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _pulseT += dt;
     if (_wrongFlash > 0) _wrongFlash -= dt;
 

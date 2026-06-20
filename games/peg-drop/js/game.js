@@ -47,12 +47,13 @@ var PegDrop = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var gravity = 600;
 
     for (var i = balls.length - 1; i >= 0; i--) {
       var b = balls[i];
-      if (b.settled) continue;
+      if (b.settled) { balls.splice(i, 1); continue; } // clean up settled balls
       b.vy += gravity * dt;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
@@ -74,6 +75,8 @@ var PegDrop = (function () {
         }
       }
 
+      // Safety: remove balls that escape below canvas
+      if (b.y > VH + 40) { balls.splice(i, 1); continue; }
       var slotBottom = 840;
       if (b.y > slotBottom - b.r) {
         var slotW = VW / SLOTS.length;

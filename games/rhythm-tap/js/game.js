@@ -66,6 +66,7 @@ var RhythmTap = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     glowPulse += dt * 2.5;
     beatTimer += dt;
     if (beatTimer > 0.5) {

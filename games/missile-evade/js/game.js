@@ -39,7 +39,7 @@ var MissileEvade = (function () {
         var pick = Math.random();
         var type = (pick < 0.45) ? 'fast' : (pick < 0.8) ? 'slow' : 'bomber';
         var baseSpd = (type === 'fast') ? 200 : (type === 'slow') ? 100 : 80;
-        var waveBonus = (wave - 1) * 25;
+        var waveBonus = Math.min(175, (wave - 1) * 25);
         var spd = baseSpd + waveBonus;
         var x = 20 + Math.random() * (VW - 40);
         var vx = (Math.random() - 0.5) * spd * 0.7;
@@ -76,6 +76,7 @@ var MissileEvade = (function () {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== 'PLAYING') return;
 
         waveTimer += dt;

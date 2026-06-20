@@ -96,6 +96,7 @@ var FruitCatcher = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var i, f, p, offscreen;
     spawnTimer += dt;
@@ -119,7 +120,7 @@ var FruitCatcher = (function () {
       }
     }
     if (offscreen > 0) {
-      lives -= offscreen;
+      lives -= Math.min(offscreen, 1); // cap to 1 life lost per frame
       try { Audio.play('lose'); } catch(e) {}
       if (lives <= 0) { lives = 0; die(); return; }
     }

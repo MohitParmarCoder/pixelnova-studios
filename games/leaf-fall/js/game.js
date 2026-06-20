@@ -52,11 +52,12 @@ var LeafFall = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var i, b, p;
     spawnTimer += dt;
     spawnInterval = Math.max(0.5, 1.2 - score * 0.01);
-    baseSpeed = 80 + score * 2;
+    baseSpeed = Math.min(300, 80 + score * 2);
     if (spawnTimer >= spawnInterval && bugs.length < MAX_BUGS) {
       spawnTimer = 0;
       var nb = makeBug();

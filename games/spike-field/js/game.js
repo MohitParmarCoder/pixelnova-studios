@@ -139,6 +139,7 @@ var SpikeField = (function () {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state === 'MENU') {
             demoVY += GRAVITY * dt;
             demoY += demoVY * dt;

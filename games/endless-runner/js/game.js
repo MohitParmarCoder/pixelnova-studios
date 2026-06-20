@@ -107,10 +107,11 @@ var EndlessRunner = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     // speed increases with score
-    speed = SPEED_BASE + score * SPEED_INC * 0.05;
+    speed = Math.min(800, SPEED_BASE + score * SPEED_INC * 0.05);
 
     scrollX += speed * dt;
     scoreFrac += speed * dt / 100;

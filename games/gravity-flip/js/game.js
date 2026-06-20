@@ -131,6 +131,7 @@ const GravityFlip = (() => {
 
   // ── Update ────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_state === 'MENU')    { _updateMenu(dt);    return; }
     if (_state === 'PLAYING') { _updatePlaying(dt); return; }
     if (_state === 'DEAD')    { _deadTimer += dt;   return; }
@@ -160,7 +161,7 @@ const GravityFlip = (() => {
   function _updatePlaying(dt) {
     // Speed scaling
     const speedSteps = Math.floor(_score / SPEED_STEP);
-    _speed = BASE_SPEED + speedSteps * SPEED_INC;
+    _speed = Math.min(600, BASE_SPEED + speedSteps * SPEED_INC);
 
     // Scroll walls
     const dx = _speed * dt;

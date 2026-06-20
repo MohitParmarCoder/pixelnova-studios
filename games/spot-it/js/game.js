@@ -93,6 +93,7 @@ var SpotIt = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     var i, p;
 
     for (i = particles.length - 1; i >= 0; i--) {

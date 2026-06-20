@@ -95,6 +95,7 @@ var WallRise = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     time += dt;
     score = Math.floor(time * 8) + bonusScore;

@@ -43,9 +43,10 @@ var SpiralDraw = (function() {
 
     function generateSpiral(n) {
         var result = [];
+        var maxR = Math.min(CX - 30, CY - 80, VH - CY - 80);
         for (var i = 0; i < n; i++) {
             var theta = i * 0.8;
-            var r = SPIRAL_A + SPIRAL_B * theta;
+            var r = Math.min(maxR, SPIRAL_A + SPIRAL_B * theta);
             var x = CX + r * Math.cos(theta);
             var y = CY + r * Math.sin(theta);
             result.push({ x: x, y: y });
@@ -98,6 +99,7 @@ var SpiralDraw = (function() {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         menuTime += dt;
 
         if (state === 'PLAYING') {

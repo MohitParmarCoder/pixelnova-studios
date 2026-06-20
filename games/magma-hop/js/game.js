@@ -124,6 +124,7 @@ var MagmaHop = (function () {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== 'PLAYING') return;
         tick += dt;
 
@@ -148,7 +149,7 @@ var MagmaHop = (function () {
         var i, j, obj, lane;
         for (i = 0; i < lanes.length; i++) {
             lane = lanes[i];
-            var speedScale = 1 + score * 0.04;
+            var speedScale = Math.min(2.5, 1 + score * 0.04);
             for (j = 0; j < lane.objs.length; j++) {
                 obj = lane.objs[j];
                 obj.x += lane.dir * lane.spd * speedScale * dt;

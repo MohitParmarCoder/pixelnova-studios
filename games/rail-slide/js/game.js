@@ -85,7 +85,7 @@ var RailSlide = (function () {
   }
 
   function update(dt) {
-    if (dt > 0.1) { dt = 0.1; } // clamp spike frames
+    if (dt > 0.05) dt = 0.05;
 
     if (state === 'MENU') {
       menuT += dt;
@@ -801,6 +801,7 @@ var RailSlide = (function () {
     ctx.shadowColor = COL_OBS;
     ctx.shadowBlur  = 18;
     ctx.fillText('WIPEOUT!', VW / 2, panY + 58);
+    ctx.shadowBlur  = 0;
 
     // Score
     ctx.font        = 'bold 52px monospace';
@@ -808,6 +809,7 @@ var RailSlide = (function () {
     ctx.shadowColor = COL_RAIL_L;
     ctx.shadowBlur  = 14;
     ctx.fillText(String(score), VW / 2, panY + 128);
+    ctx.shadowBlur  = 0;
 
     // Best
     ctx.font        = '20px monospace';
@@ -815,6 +817,7 @@ var RailSlide = (function () {
     ctx.shadowBlur  = 8;
     var bestLabel = _isNewBest ? 'NEW BEST!' : ('BEST  ' + String(best));
     ctx.fillText(bestLabel, VW / 2, panY + 163);
+    ctx.shadowBlur  = 0;
 
     // TAP TO RETRY
     var rpulse = 0.55 + 0.45 * Math.abs(Math.sin(Date.now() / 500));
@@ -824,6 +827,7 @@ var RailSlide = (function () {
     ctx.shadowColor = COL_TITLE;
     ctx.shadowBlur  = 16;
     ctx.fillText('TAP TO RETRY', VW / 2, panY + 222);
+    ctx.shadowBlur  = 0;
 
     ctx.restore();
   }

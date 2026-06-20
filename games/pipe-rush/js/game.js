@@ -79,6 +79,7 @@ const PipeRush = (() => {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _pulseT += dt;
     for (const s of _stars) s.tw += dt * 1.5;
     _advanceParticles(dt);

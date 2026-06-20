@@ -442,6 +442,7 @@ var BubblePop = (function () {
 
   // ── Update ───────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     t += dt;
 
     // particles always

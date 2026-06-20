@@ -24,6 +24,7 @@ var OrbCollector = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var damp = Math.pow(0.85, dt * 60);
     player.vx += (player.targetX - player.x) * 6 * dt;
@@ -44,7 +45,7 @@ var OrbCollector = (function () {
       else if (side === 1) { ox = VW+20; oy = Math.random()*VH; }
       else if (side === 2) { ox = Math.random()*VW; oy = VH+20; }
       else { ox = -20; oy = Math.random()*VH; }
-      var spd = (80 + Math.random() * 60) * (1 + score * 0.02);
+      var spd = Math.min(500, (80 + Math.random() * 60) * (1 + score * 0.02));
       var dx = player.x - ox, dy = player.y - oy, dist = Math.sqrt(dx*dx+dy*dy);
       orbs.push({ x:ox, y:oy, vx:(dx/dist)*spd, vy:(dy/dist)*spd, r:16, bad:bad,
         color: bad ? '#f87171' : ['#a8edea','#FFD700','#6BCB77','#CC5DE8'][Math.floor(Math.random()*4)] });

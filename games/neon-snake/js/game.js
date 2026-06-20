@@ -111,6 +111,7 @@ const NeonSnake = (() => {
 
   // ── Update ─────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     // Power food timer

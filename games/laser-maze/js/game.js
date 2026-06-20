@@ -415,6 +415,7 @@ var LaserMaze = (function () {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== 'PLAYING') return;
         if (winFlash > 0) {
             winFlash -= dt;

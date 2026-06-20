@@ -205,6 +205,7 @@ var ColorFlood = (function () {
 
   /* ── Public: update ──────────────────────────────────────────── */
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _pulseT += dt;
 
     if (_state === 'PLAYING' && _winTimer >= 0) {

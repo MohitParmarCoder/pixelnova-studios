@@ -77,10 +77,11 @@ var EggDrop = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var i, it;
     spawnTimer += dt;
-    speed = 180 + score * 3;
+    speed = Math.min(480, 180 + score * 3);
     spawnInterval = Math.max(0.45, 1.0 - score * 0.008);
     if (spawnTimer >= spawnInterval) { spawnTimer = 0; spawnItem(); }
 

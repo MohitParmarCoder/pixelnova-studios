@@ -378,6 +378,7 @@ const ColorSwitch = (() => {
 
   // ── Public: update ───────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     // Blink timer (shared across states)
     blinkTimer += dt;
     if (blinkTimer > 0.55) { blinkTimer = 0; blinkOn = !blinkOn; }
