@@ -49,6 +49,7 @@ var SymbolHunt = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     timer -= dt;
     if (timer <= 0) {

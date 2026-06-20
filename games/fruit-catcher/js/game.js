@@ -96,6 +96,7 @@ var FruitCatcher = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var i, f, p, offscreen;
     spawnTimer += dt;

@@ -191,6 +191,7 @@ var NeonPath = (function () {
   // ── Update ─────────────────────────────────────────────────────────────────
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_state === 'MENU') {
       _menuTime += dt;
       return;

@@ -342,6 +342,7 @@ var PinballLite = (function () {
     // ═════════════════════════════════════════════════════════════════════════
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         totalTime += dt;
         if (state !== STATE_PLAYING) { return; }
         if (drainFlash > 0) { drainFlash -= dt; }

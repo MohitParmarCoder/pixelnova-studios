@@ -81,6 +81,7 @@ var BalanceBeam = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     // Falling item physics

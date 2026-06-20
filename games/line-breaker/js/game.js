@@ -219,6 +219,7 @@ var LineBreaker = (function () {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== 'PLAYING') return;
         if (shakeTime > 0) shakeTime -= dt;
 

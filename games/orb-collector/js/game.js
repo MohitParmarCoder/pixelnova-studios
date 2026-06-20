@@ -24,6 +24,7 @@ var OrbCollector = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     var damp = Math.pow(0.85, dt * 60);
     player.vx += (player.targetX - player.x) * 6 * dt;

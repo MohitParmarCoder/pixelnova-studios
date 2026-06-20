@@ -245,6 +245,7 @@ var BlockDrop = (function () {
 
     // ── Public: update ─────────────────────────────────────────────────────
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== STATE_PLAYING) { return; }
 
         // Flash timer

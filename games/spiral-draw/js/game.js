@@ -98,6 +98,7 @@ var SpiralDraw = (function() {
     }
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         menuTime += dt;
 
         if (state === 'PLAYING') {

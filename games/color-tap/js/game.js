@@ -121,6 +121,7 @@ var ColorTap = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     glowPulse += dt * 2;
 
     if (feedbackTimer > 0) {

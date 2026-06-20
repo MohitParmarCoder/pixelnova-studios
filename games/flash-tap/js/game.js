@@ -83,6 +83,7 @@ var FlashTap = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     glowPulse += dt * 2.5;
 
     if (state === 'MENU' || state === 'DEAD') return;

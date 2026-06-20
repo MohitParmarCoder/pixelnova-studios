@@ -196,6 +196,7 @@ var MemoryFlip = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     t += dt;
 
     // Animate flips toward their targets always (so menus/dead still settle).

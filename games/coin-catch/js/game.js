@@ -39,6 +39,7 @@ var CoinCatch = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     spawnTimer += dt;
     if (spawnTimer >= spawnInterval) { spawnTimer = 0; spawnCoin(); }

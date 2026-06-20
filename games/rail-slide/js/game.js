@@ -85,7 +85,7 @@ var RailSlide = (function () {
   }
 
   function update(dt) {
-    if (dt > 0.1) { dt = 0.1; } // clamp spike frames
+    if (dt > 0.05) dt = 0.05;
 
     if (state === 'MENU') {
       menuT += dt;

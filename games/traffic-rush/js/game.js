@@ -181,6 +181,7 @@ var TrafficRush = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _menuPulse += dt;
 
     if (_state === 'MENU') { return; }
@@ -224,7 +225,7 @@ var TrafficRush = (function () {
     // ── Reached top safe zone ──
     if (_player.laneIdx >= LANE_COUNT) {
       _score += 1;
-      _speedMult += 0.12;
+      _speedMult = Math.min(_speedMult + 0.12, 3.5);
       try { Audio.play('gem'); } catch (e) {}
 
       // Re-apply new speed to all cars

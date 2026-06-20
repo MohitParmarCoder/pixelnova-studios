@@ -156,6 +156,7 @@ var ShadowSlide = (function () {
 
   // ── Update ───────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_state !== 'PLAYING') { return; }
 
     // Scroll world

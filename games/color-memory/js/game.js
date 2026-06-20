@@ -112,6 +112,7 @@ var ColorMemory = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     t += dt;
 
     if (state !== 'PLAYING') return;

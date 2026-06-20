@@ -143,6 +143,7 @@ var BombSquad = (function () {
     // ── Update ─────────────────────────────────────────────────────────────────
 
     function update(dt) {
+  if (dt > 0.05) dt = 0.05;
         if (state !== 'PLAYING') return;
         if (flashTimer > 0) flashTimer -= dt;
         if (winFlash > 0) {

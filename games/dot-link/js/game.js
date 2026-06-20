@@ -405,6 +405,7 @@ var DotLink = (function () {
   // ── Update ─────────────────────────────────────────────────────────────────
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_errorFlash > 0) { _errorFlash -= dt; if (_errorFlash < 0) { _errorFlash = 0; } }
     if (_solveFlash > 0) { _solveFlash -= dt; if (_solveFlash < 0) { _solveFlash = 0; } }
   }

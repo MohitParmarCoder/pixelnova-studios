@@ -52,6 +52,7 @@ var StarGrab = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     spawnTimer += dt;
     spawnInterval = Math.max(0.4, 0.8 - score * 0.005);

@@ -131,6 +131,7 @@ const GravityFlip = (() => {
 
   // ── Update ────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (_state === 'MENU')    { _updateMenu(dt);    return; }
     if (_state === 'PLAYING') { _updatePlaying(dt); return; }
     if (_state === 'DEAD')    { _deadTimer += dt;   return; }

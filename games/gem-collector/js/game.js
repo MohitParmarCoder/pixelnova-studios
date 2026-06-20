@@ -42,6 +42,7 @@ var GemCollector = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     player.x += (player.targetX - player.x) * 8 * dt;
     player.y += (player.targetY - player.y) * 8 * dt;

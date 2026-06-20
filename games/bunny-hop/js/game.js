@@ -95,6 +95,7 @@ var BunnyHop = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     platformSpeed = 60 + scrollY * 0.015;

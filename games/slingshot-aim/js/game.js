@@ -40,6 +40,7 @@ var SlingshotAim = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     if (ball) {
       ball.vx *= Math.pow(0.99, dt * 60);

@@ -116,6 +116,7 @@ const DodgeRush = (() => {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     _pulseT += dt;
     for (const s of _stars) s.tw += dt * 2;
 

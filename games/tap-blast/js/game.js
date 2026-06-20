@@ -162,6 +162,7 @@ const TapBlast = (() => {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state === 'MENU') {
       _updateMenu(dt);
       return;

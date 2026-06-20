@@ -138,6 +138,7 @@ var ChainBlast = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
 
     spawnInterval = Math.max(0.8, 1.8 - score * 0.02);

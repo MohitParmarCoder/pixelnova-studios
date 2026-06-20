@@ -284,6 +284,7 @@ const NumberMerge = (() => {
 
   // ── Update ───────────────────────────────────────────────────────────────────
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     // Advance merge animations
     _anims = _anims.filter(a => {
       a.t += dt;

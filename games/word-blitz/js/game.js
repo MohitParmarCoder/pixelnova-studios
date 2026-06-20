@@ -14,7 +14,9 @@ var WordBlitz = (function () {
     targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
     progress = 0; timerMax = Math.max(8, 15 - score * 0.3); timer = timerMax;
     bubbles = [];
-    var letters = targetWord.split('').concat('ABCDEFGHIJKLMNOPRSTUVWXYZ'.split('').slice(0,9));
+    var pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(function(l){ return targetWord.indexOf(l) === -1; });
+    pool.sort(function() { return Math.random() - 0.5; });
+    var letters = targetWord.split('').concat(pool.slice(0, 9));
     letters.sort(function() { return Math.random() - 0.5; });
     for (var i = 0; i < letters.length; i++) {
       bubbles.push({
@@ -34,6 +36,7 @@ var WordBlitz = (function () {
   }
 
   function update(dt) {
+  if (dt > 0.05) dt = 0.05;
     if (state !== 'PLAYING') return;
     timer -= dt;
     if (timer <= 0) {
