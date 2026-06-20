@@ -1,6 +1,6 @@
 [
   {
-    "name": "gem-collector",
+    "name": "billiard-aim",
     "pass": false,
     "issues": [
       "MISSING_gameplayStop",
