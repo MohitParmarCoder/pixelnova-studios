@@ -22,6 +22,7 @@ var BombSquad = (function () {
     var elapsedTime;
     var flashTimer;
     var winFlash;
+    var lastTapTime = 0;
 
     // ── Cell helpers ───────────────────────────────────────────────────────────
 
@@ -200,6 +201,7 @@ var BombSquad = (function () {
     }
 
     function tap(x, y) {
+        var now = Date.now();
         if (state === 'MENU') {
             startGame();
             try { Audio.play('tap'); } catch (e) {}
@@ -211,6 +213,8 @@ var BombSquad = (function () {
             return;
         }
         if (state !== 'PLAYING') return;
+        if (now - lastTapTime < 150) return; // debounce rapid double-taps
+        lastTapTime = now;
 
         var btnY = VH - 60;
         if (y >= btnY) {

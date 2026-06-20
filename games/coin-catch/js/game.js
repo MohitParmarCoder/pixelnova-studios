@@ -59,6 +59,7 @@ var CoinCatch = (function () {
         coins.splice(i, 1);
       } else if (co.y > VH + 20) {
         lives--;
+        spawnTimer = Math.min(spawnTimer, -0.6); // 600ms grace period before next coin
         try { Audio.play('crash'); } catch(e) {}
         coins.splice(i, 1);
         if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
