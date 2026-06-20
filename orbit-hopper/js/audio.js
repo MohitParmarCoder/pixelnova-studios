@@ -149,7 +149,7 @@ const Audio = (() => {
 
   // ── Gameplay melody sequencer ─────────────────────────────────────────
   let _gameMusic = null; // { gain, timeout } when playing
-  const _MELODY_HZ = [220, 261.63, 329.63, 392, 440, 392, 329.63, 261.63]; // A3 C4 E4 G4 A4…
+  const _MELODY_HZ = [440, 523.25, 659.25, 784, 880, 784, 659.25, 523.25]; // A4 C5 E5 G5 A5…
   const _BEAT_S = 60 / 180; // 180 BPM
 
   function _scheduleNote(c, master, step, t) {
@@ -176,11 +176,16 @@ const Audio = (() => {
     if (_muted || _gameMusic) return;
     const c = _getCtx();
     if (!c) return;
-    const master = c.createGain();
-    master.gain.value = 0.9;
-    master.connect(c.destination);
-    _gameMusic = { gain: master, timeout: null };
-    _scheduleNote(c, master, 0, c.currentTime + 0.08);
+    // Ensure context is running (mobile browsers suspend until user gesture)
+    const go = () => {
+      const master = c.createGain();
+      master.gain.value = 1.0;
+      master.connect(c.destination);
+      _gameMusic = { gain: master, timeout: null };
+      _scheduleNote(c, master, 0, c.currentTime + 0.08);
+    };
+    if (c.state === 'suspended') { c.resume().then(go).catch(() => {}); }
+    else { go(); }
   }
 
   function stopGameMusic() {

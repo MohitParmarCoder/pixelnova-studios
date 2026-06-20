@@ -220,12 +220,16 @@ const Game = (() => {
   }
 
   function prunePlanets() {
-    const cutY = cam.y + H + 250;
-    planets  = planets.filter(p => p.y < cutY);
+    // Use ship y-position (not camera) so old planets are pruned even when
+    // camera hasn't scrolled far enough — fixes the "no new planets spawn" bug.
+    const refY = ship ? ship.y + H * 0.45 : cam.y + H + 250;
+    planets  = planets.filter(p => p.y <= refY);
     gemsList = gemsList.filter(g => planets.includes(g.planet));
+    _shieldTokens = _shieldTokens.filter(t => planets.includes(t.planet));
+    _slowMoTokens = _slowMoTokens.filter(t => planets.includes(t.planet));
     hazards  = hazards.filter(h => {
       if (h._orbiting) return planets.includes(h.orbitPlanet);
-      return h.y < cutY + 200;
+      return h.y <= refY + 200;
     });
   }
 
@@ -293,8 +297,8 @@ const Game = (() => {
     Audio.play('land');
     vib(15);
 
+    prunePlanets(); // prune old (below-ship) planets first so target count is accurate
     fillPlanets();
-    prunePlanets();
   }
 
   function die(x, y) {
