@@ -72,9 +72,15 @@ const TapBlast = (() => {
   function _spawnCircle() {
     const r = _randomR();
     const margin = r + 8;
-    // Keep circles away from the HUD (top 80px)
-    const x = margin + Math.random() * (VW - margin * 2);
-    const y = 90 + margin + Math.random() * (VH - 90 - margin * 2);
+    let x, y, attempts = 0;
+    do {
+      x = margin + Math.random() * (VW - margin * 2);
+      y = 90 + margin + Math.random() * (VH - 90 - margin * 2);
+      attempts++;
+    } while (attempts < 12 && circles.some(function(c) {
+      var dx = c.x - x, dy = c.y - y;
+      return dx * dx + dy * dy < (c.r + r + 24) * (c.r + r + 24);
+    }));
     const ml = _maxLife();
     circles.push({
       x, y, r,

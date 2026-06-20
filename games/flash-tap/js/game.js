@@ -108,7 +108,7 @@ var FlashTap = (function () {
 
     if (roundPhase === 'waiting') {
       tapTimer += dt;
-      var window = tapWindow / difficultyFactor;
+      var window = Math.max(0.25, tapWindow / difficultyFactor);
       if (tapTimer >= window) {
         // Time's up = miss
         lives--;
@@ -269,7 +269,7 @@ var FlashTap = (function () {
 
     // Tap timer bar under waiting circle
     if (roundPhase === 'waiting' && flashIndex >= 0) {
-      var window = tapWindow / difficultyFactor;
+      var window = Math.max(0.25, tapWindow / difficultyFactor);
       var prog = 1.0 - tapTimer / window;
       var fc = circles[flashIndex];
       var barW = RADIUS * 2 * prog;

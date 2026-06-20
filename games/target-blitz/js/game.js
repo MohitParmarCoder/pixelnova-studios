@@ -86,7 +86,7 @@ var TargetBlitz = (function () {
 
     sweepAngle += sweepSpeed * dt;
     // Increase speed over time
-    sweepSpeed = 1.8 + (GAME_DURATION - timeLeft) * 0.06;
+    sweepSpeed = Math.min(2.8, 1.8 + (GAME_DURATION - timeLeft) * 0.06);
 
     timeLeft -= dt;
     if (timeLeft <= 0) {
