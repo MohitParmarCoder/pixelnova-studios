@@ -147,10 +147,61 @@ const Audio = (() => {
 
   function isAmbientPlaying() { return _ambientGain !== null; }
 
+  // ── Gameplay melody sequencer ─────────────────────────────────────────
+  let _gameMusic = null; // { gain, timeout } when playing
+  const _MELODY_HZ = [220, 261.63, 329.63, 392, 440, 392, 329.63, 261.63]; // A3 C4 E4 G4 A4…
+  const _BEAT_S = 60 / 180; // 180 BPM
+
+  function _scheduleNote(c, master, step, t) {
+    if (!_gameMusic) return;
+    const freq = _MELODY_HZ[step % _MELODY_HZ.length];
+    const at = Math.max(t, c.currentTime + 0.005);
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = freq;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(0.10, at + 0.01);
+    g.gain.setValueAtTime(0.10, at + 0.06);
+    g.gain.linearRampToValueAtTime(0, at + 0.14);
+    o.connect(g);
+    g.connect(master);
+    o.start(at);
+    o.stop(at + 0.20);
+    const ms = Math.max(0, (at - c.currentTime) * 1000 - 20);
+    _gameMusic.timeout = setTimeout(() => _scheduleNote(c, master, step + 1, t + _BEAT_S), ms);
+  }
+
+  function startGameMusic() {
+    if (_muted || _gameMusic) return;
+    const c = _getCtx();
+    if (!c) return;
+    const master = c.createGain();
+    master.gain.value = 0.9;
+    master.connect(c.destination);
+    _gameMusic = { gain: master, timeout: null };
+    _scheduleNote(c, master, 0, c.currentTime + 0.08);
+  }
+
+  function stopGameMusic() {
+    if (!_gameMusic) return;
+    const gm = _gameMusic;
+    _gameMusic = null;
+    clearTimeout(gm.timeout);
+    try {
+      const c = _getCtx();
+      if (c) {
+        gm.gain.gain.setValueAtTime(gm.gain.gain.value, c.currentTime);
+        gm.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.4);
+      }
+      setTimeout(() => { try { gm.gain.disconnect(); } catch(e) {} }, 600);
+    } catch(e) {}
+  }
+
   function setMuted(v) {
     _muted = !!v;
     try { localStorage.setItem('orbit_muted', _muted ? '1' : '0'); } catch(e) {}
-    if (_muted) stopAmbient();
+    if (_muted) { stopAmbient(); stopGameMusic(); }
   }
 
   function getMuted() { return _muted; }
@@ -160,5 +211,5 @@ const Audio = (() => {
     _preload();
   }
 
-  return { init, play, setMuted, getMuted, resume, startAmbient, stopAmbient, isAmbientPlaying };
+  return { init, play, setMuted, getMuted, resume, startAmbient, stopAmbient, isAmbientPlaying, startGameMusic, stopGameMusic };
 })();
