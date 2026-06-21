@@ -1,4 +1,33 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 var ZombieSmash = (function () {
 
   var canvas, ctx;
@@ -23,6 +52,7 @@ var ZombieSmash = (function () {
   }
 
   function startGame() {
+    _msDone = {};
     score = 0;
     lives = MAX_LIVES;
     zombies = [];
@@ -112,6 +142,7 @@ var ZombieSmash = (function () {
         if (livesLostThisFrame === 0) {
           lives--;
           livesLostThisFrame++;
+          vib([25,50,25]);
           try { Audio.play('crash'); } catch (e) {}
           if (lives <= 0) {
             endGame();
@@ -137,6 +168,7 @@ var ZombieSmash = (function () {
   function endGame() {
     if (score > best) best = score;
     state = 'DEAD';
+    vib([40,80,80]);
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
     AdManager.showInterstitial(() => {});
@@ -163,6 +195,7 @@ var ZombieSmash = (function () {
           z.smashed = true;
           z.smashTimer = 0;
           score++;
+          vib(8); _milestone(score);
           hit = true;
           addParticles(z.x, z.y);
           try { Audio.play('gem'); } catch (e) {}

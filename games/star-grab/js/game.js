@@ -1,4 +1,33 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 var StarGrab = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
@@ -8,6 +37,7 @@ var StarGrab = (function () {
   function init(canvas, bestScore) { c = canvas; ctx = c.getContext('2d'); best = bestScore || 0; state = 'MENU'; }
 
   function startGame() {
+    _msDone = {};
     score = 0; lives = 3; stars = []; particles = []; spawnTimer = 0; spawnInterval = 0.8; maxStars = 3;
     state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
@@ -15,6 +45,7 @@ var StarGrab = (function () {
 
   function endGame() {
     if (score > best) best = score;
+    vib([40,80,80]);
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
     AdManager.showInterstitial(() => {});
     try { AdManager.offerDoubleScore(score, 'stargrab_best'); } catch(e) {}
@@ -69,6 +100,7 @@ var StarGrab = (function () {
         if (livesLostThisFrame === 0) {
           lives--;
           livesLostThisFrame++;
+          vib([25,50,25]);
           try { Audio.play('crash'); } catch(e) {}
           if (lives <= 0) { endGame(); return; }
         }
@@ -145,7 +177,7 @@ var StarGrab = (function () {
       var s = stars[i];
       var dx = x - s.x, dy = y - s.y;
       if (dx * dx + dy * dy < (s.r + 10) * (s.r + 10)) {
-        score += s.pts; if (score > best) best = score;
+        score += s.pts; vib(8); _milestone(score); if (score > best) best = score;
         addParticles(s.x, s.y, s.color);
         stars.splice(i, 1); hit = true;
         try { Audio.play('gem'); } catch(e) {}
