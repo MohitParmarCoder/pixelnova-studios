@@ -1,4 +1,33 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 
 // TapBlast — virtual canvas 390×844
 // States: MENU → PLAYING → DEAD
@@ -113,6 +142,7 @@ const TapBlast = (() => {
 
   // ── Reset / start ──────────────────────────────────────────────────────────
   function _resetGame() {
+    _msDone = {};
     score      = 0;
     lives      = MAX_LIVES;
     circles    = [];
@@ -203,6 +233,7 @@ const TapBlast = (() => {
     for (const i of expired) {
       circles.splice(i, 1);
       lives--;
+      vib([25,50,25]);
       try { Audio.play('lose'); } catch(e) {}
       if (lives <= 0) {
         _triggerDead();
@@ -285,6 +316,7 @@ const TapBlast = (() => {
       const multiplier = comboCount;
       const gained = multiplier;
       score += gained;
+      vib(8); _milestone(score);
       if (score > best) {
         best = score;
         localStorage.setItem('tapblast_best', String(best));
@@ -297,6 +329,7 @@ const TapBlast = (() => {
     } else {
       // Missed — lose a life
       lives--;
+      vib([25,50,25]);
       comboCount = 0;
       comboTimer = 0;
       try { Audio.play('crash'); } catch(e) {}
@@ -318,6 +351,7 @@ const TapBlast = (() => {
       localStorage.setItem('tapblast_best', String(best));
     }
     state = 'DEAD';
+    vib([40,80,80]);
     try { Audio.play('lose'); } catch(e) {}
     AdManager.gameplayStop();
     AdManager.onRunEnd();
