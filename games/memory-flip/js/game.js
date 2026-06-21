@@ -1,4 +1,33 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 
 /* Memory Flip — card matching game. Flip two cards; match keeps them up.
    Clear all pairs to advance a level. A countdown timer runs you out = DEAD. */
@@ -132,6 +161,7 @@ var MemoryFlip = (function () {
   }
 
   function resetGame() {
+    _msDone = {};
     score = 0;
     level = 1;
     startLevel();
@@ -163,6 +193,7 @@ var MemoryFlip = (function () {
 
   function gameOver() {
     state = 'DEAD';
+    vib([40,80,80]);
     if (score > _best) _best = score;
     snd('lose');
     runEnded();
@@ -294,12 +325,14 @@ var MemoryFlip = (function () {
             cards[second].pulse = 1;
             var timeBonus = Math.floor(timeLeft);
             score += 100 + timeBonus;
+            vib(8); _milestone(score);
             snd('score');
             first = -1;
             second = -1;
             if (allMatched()) {
               // Level clear bonus rewards remaining time.
               score += Math.floor(timeLeft) * 5;
+              vib(8); _milestone(score);
               levelWin();
             }
           } else {
