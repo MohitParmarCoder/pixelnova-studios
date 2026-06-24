@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -44,7 +45,7 @@ var StarGrab = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     vib([40,80,80]);
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
     AdManager.showInterstitial(() => {});
@@ -177,7 +178,7 @@ var StarGrab = (function () {
       var s = stars[i];
       var dx = x - s.x, dy = y - s.y;
       if (dx * dx + dy * dy < (s.r + 10) * (s.r + 10)) {
-        score += s.pts; vib(8); _milestone(score); if (score > best) best = score;
+        score += s.pts; vib(8); _milestone(score); if (score > best) { best = score; AdManager.happyTime(1.0); }
         addParticles(s.x, s.y, s.color);
         stars.splice(i, 1); hit = true;
         try { Audio.play('gem'); } catch(e) {}

@@ -53,7 +53,7 @@ var CoinCatch = (function () {
       if (co.y > basket.y - 10 && co.y < basket.y + basket.h &&
           co.x > basket.x - basket.w / 2 - co.r && co.x < basket.x + basket.w / 2 + co.r) {
         score += co.pts;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         addParticles(co.x, basket.y, co.color);
         try { Audio.play('gem'); } catch(e) {}
         coins.splice(i, 1);

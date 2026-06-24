@@ -20,6 +20,7 @@
   resize();
 
   // ── Init modules ────────────────────────────────────────────────────────────
+  try { AdManager.gameLoadingStart(); } catch(e) {}
   Audio.init();
 
 

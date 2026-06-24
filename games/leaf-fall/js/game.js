@@ -188,7 +188,7 @@ var LeafFall = (function () {
       dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < b.r + 10) {
         score += b.pts;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         addParticles(b.x, b.y, b.color);
         try { Audio.play('gem'); } catch(e) {}
         bugs.splice(i, 1);

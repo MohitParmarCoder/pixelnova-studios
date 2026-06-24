@@ -115,7 +115,7 @@ var ShapeRecall = (function () {
   }
 
   function gameOver() {
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     snd('lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
@@ -221,7 +221,7 @@ var ShapeRecall = (function () {
         selectedPiece = -1;
         if (allPlaced()) {
           score++;
-          if (score > _best) _best = score;
+          if (score > _best) { _best = score; AdManager.happyTime(1.0); }
           puzzleIdx++;
           loadPuzzle();
         }

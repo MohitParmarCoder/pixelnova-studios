@@ -127,7 +127,7 @@ var SpikeField = (function () {
         spawnParticles(ballX, screenY(ballY), '#ff4400', 12);
         if (lives <= 0) {
             try { Audio.play('lose'); } catch (e) {}
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             deathFlash = 0.6;
         } else {
             // Reset ball to last safe platform
@@ -222,7 +222,7 @@ var SpikeField = (function () {
             if (dx * dx + dy * dy < (BALL_R + g.r) * (BALL_R + g.r)) {
                 g.collected = true;
                 gemBonus += 10;
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 gemFlash = 0.3;
                 try { Audio.play('gem'); } catch (e) {}
                 spawnParticles(g.wx, screenY(g.wy), '#ffdd00', 6);
@@ -239,7 +239,7 @@ var SpikeField = (function () {
         // Score based on height climbed since start
         var heightScore = Math.floor((startWorldY - worldY) / 10);
         score = Math.max(score, heightScore + gemBonus);
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
 
         // Generate more platforms
         generatePlatformsAround(worldY - VH);

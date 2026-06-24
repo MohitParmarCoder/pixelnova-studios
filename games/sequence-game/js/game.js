@@ -90,7 +90,7 @@ var SequenceGame = (function () {
             gameResult = 'win';
             var pts = (MAX_ATTEMPTS + 1 - attemptCount) * 100;
             score += pts;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch (e) {}
         } else if (attemptCount >= MAX_ATTEMPTS) {
             // LOSE this round
@@ -99,7 +99,7 @@ var SequenceGame = (function () {
             try { Audio.play('crash'); } catch (e) {}
             if (lives <= 0) {
                 state = 'DEAD';
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 try { Audio.play('lose'); } catch (e) {}
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
                 AdManager.showInterstitial(() => {});

@@ -131,7 +131,7 @@ var ChainBlast = (function () {
     }
     var pts = indices.length;
     score += pts;
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     try { Audio.play('gem'); } catch (e) {}
     // Chain anim
     chainAnim.push({ count: pts, timer: 1.2, x: VW / 2, y: VH / 2 - 50 });
@@ -216,7 +216,7 @@ var ChainBlast = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}

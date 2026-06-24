@@ -138,7 +138,7 @@ var PatternRepeat = (function () {
         playerSeq = []; showIdx = 0; showTimer = 0.5; showing = true; inputReady = false;
       }
     } else if (playerSeq.length === sequence.length) {
-      score++; if (score > best) best = score;
+      score++; if (score > best) { best = score; AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch(e) {}
       inputReady = false;
       var capturedGen = _gen;

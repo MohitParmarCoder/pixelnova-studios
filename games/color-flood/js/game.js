@@ -168,7 +168,7 @@ var ColorFlood = (function () {
         if (_isSolved()) {
           var gained = Math.max(0, MAX_MOVES - _moves);
           _score += gained;
-          if (_score > _best) _best = _score;
+          if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
           _snd('gem');
           _winTimer = 0;
           _winAnim  = 0;

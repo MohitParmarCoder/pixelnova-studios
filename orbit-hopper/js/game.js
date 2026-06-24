@@ -275,6 +275,7 @@ const Game = (() => {
       const newTier = Math.min(Math.floor(diffLv / TIER_SIZE), TIER_NAMES.length-1);
       tierUpFlash = newTier > oldTier;
       levelUpTimer = 1.5;
+      AdManager.happyTime(tierUpFlash ? 0.9 : 0.6);
       const tc = TIER_COLORS[newTier];
       burst(ship.x, ship.y, tc, tierUpFlash ? 22 : 14, true);
       if (tierUpFlash) burst(ship.x, ship.y, '#ffffff', 12, true);
@@ -321,6 +322,7 @@ const Game = (() => {
       try { localStorage.setItem('orbit_best', highScore); } catch(e) {}
       Audio.play('highscore');
       newBestFlash = 1;
+      AdManager.happyTime(1.0);
     }
 
     state = 'DYING';
@@ -441,7 +443,7 @@ const Game = (() => {
 
     if (state === 'DYING') {
       // Tap continue prompt
-      if (!rewardedUsed && continueTimer < 3.2) {
+      if (!rewardedUsed && continueTimer < 3.2 && !AdManager.hasAdblock()) {
         const bx = W/2, by = H*0.72;
         if (dist2(pos.x,pos.y,bx,by) < 55*55) {
           AdManager.showRewarded(continueGame, () => {});
@@ -457,7 +459,7 @@ const Game = (() => {
         restartGame(); return;
       }
       // Double-gems rewarded
-      if (!gemsDoubled) {
+      if (!gemsDoubled && !AdManager.hasAdblock()) {
         const dg = rb.doubleGem;
         if (dist2(pos.x,pos.y,dg.x,dg.y) < 50*50) {
           AdManager.showRewarded(() => {
@@ -551,6 +553,7 @@ const Game = (() => {
         burst(ship ? ship.x : W/2, ship ? ship.y : H/2, '#FFD700', 12, true);
         Audio.play('highscore');
         vib([15, 40, 15]);
+        AdManager.happyTime(m >= 100 ? 1.0 : m >= 50 ? 0.9 : 0.8);
         break;
       }
     }
@@ -1649,7 +1652,7 @@ const Game = (() => {
     ctx.fillRect(0,0,W,H);
 
     // Continue prompt (icon-based)
-    if (!rewardedUsed && continueAlpha>.02) {
+    if (!rewardedUsed && continueAlpha>.02 && !AdManager.hasAdblock()) {
       ctx.save();
       ctx.globalAlpha=continueAlpha;
       ctx.translate(W/2, H*.72);
@@ -1736,7 +1739,7 @@ const Game = (() => {
     const rb = resultsBtnPos();
 
     // Double gem button
-    if (!gemsDoubled) {
+    if (!gemsDoubled && !AdManager.hasAdblock()) {
       ctx.save();
       ctx.translate(rb.doubleGem.x, rb.doubleGem.y);
       const p2=1+Math.sin(gameTime*2.5)*.04;

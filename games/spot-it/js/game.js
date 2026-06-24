@@ -117,7 +117,7 @@ var SpotIt = (function () {
       flashText = 'TIME!';
       flashTimer = 0.7;
       if (lives <= 0) {
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { Audio.play('lose'); } catch(e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -319,7 +319,7 @@ var SpotIt = (function () {
           timeBonus = Math.floor(timer * 3);
           pts = 10 + timeBonus;
           score += pts;
-          if (score > best) best = score;
+          if (score > best) { best = score; AdManager.happyTime(1.0); }
           flashText = '+' + pts;
           flashTimer = 0.6;
           spawnParticles(r.x + r.w / 2, r.y + r.h / 2, puzzle[i].color);
@@ -332,7 +332,7 @@ var SpotIt = (function () {
           spawnParticles(r.x + r.w / 2, r.y + r.h / 2, '#ff4444');
           try { Audio.play('crash'); } catch(e) {}
           if (lives <= 0) {
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             state = 'DEAD';
             try { Audio.play('lose'); } catch(e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}

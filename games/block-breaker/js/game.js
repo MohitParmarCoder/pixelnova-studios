@@ -247,7 +247,7 @@ const BlockBreaker = (() => {
 
   function _die() {
     _state = 'DEAD';
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     _snd('lose');
     AdManager.gameplayStop();
     AdManager.onRunEnd();

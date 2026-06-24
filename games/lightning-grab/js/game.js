@@ -72,7 +72,7 @@ var LightningGrab = (function () {
     try { Audio.play('crash'); } catch(e) {}
     if (lives <= 0) {
       lives = 0;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -260,7 +260,7 @@ var LightningGrab = (function () {
             var bonus = Math.floor(10 - 10 * elapsed / 2.0);
             if (bonus < 1) bonus = 1;
             score += bonus;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             flashDuration -= 0.02;
             if (flashDuration < 0.15) flashDuration = 0.15;

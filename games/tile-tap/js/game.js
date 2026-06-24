@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -202,7 +203,7 @@ var TileTap = (function () {
       score++;
       vib(8); _milestone(score);
       snd('score');
-      if (score > _best) _best = score;
+      if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     } else {
       // Tapped an empty lane -> game over.
       gameOver(lane, null);

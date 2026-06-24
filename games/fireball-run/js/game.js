@@ -93,7 +93,7 @@ var FireballRun = (function () {
   }
 
   function runEnded() {
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
   }

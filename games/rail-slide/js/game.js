@@ -269,7 +269,7 @@ var RailSlide = (function () {
     try { Audio.play('crash'); } catch (e) {}
     try { Audio.play('lose'); }  catch (e) {}
     _isNewBest = score > best;
-    if (score > best) { best = score; }
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd();     } catch (e) {}
     AdManager.showInterstitial(() => {});

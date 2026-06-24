@@ -46,7 +46,7 @@ var TargetBlitz = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
     AdManager.showInterstitial(() => {});
     try { AdManager.offerDoubleScore(score, 'targetblitz_best'); } catch(e) {}

@@ -137,7 +137,7 @@ var BasketShot = (function () {
       // Check score
       if (ballVY > 0 && checkHoop()) {
         score++;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         flashTimer = 0.4;
         flashGood = true;
         hoopSpeed = Math.min(260, 120 + score * 10);

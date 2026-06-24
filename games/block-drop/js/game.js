@@ -234,7 +234,7 @@ var BlockDrop = (function () {
     }
 
     function endGame() {
-        if (score > best) { best = score; }
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = STATE_DEAD;
         playSound('lose');
         try { AdManager.gameplayStop(); } catch (e) {}

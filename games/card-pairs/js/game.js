@@ -144,7 +144,7 @@ var CardPairs = (function () {
   }
 
   function endGame(won) {
-    if (chips > _best) _best = chips;
+    if (chips > _best) { _best = chips; AdManager.happyTime(1.0); }
     score = chips;
     snd(won ? 'gem' : 'lose');
     try { AdManager.gameplayStop(); } catch (e) {}

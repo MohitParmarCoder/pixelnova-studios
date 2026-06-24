@@ -129,7 +129,7 @@ var PixelTrace = (function () {
             _lines.push({ x1: prev.x, y1: prev.y, x2: d.x, y2: d.y });
           }
           _score++;
-          if (_score > _best) _best = _score;
+          if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
           _nextDot++;
           if (_nextDot > NUM_DOTS) {
             _showComplete = 0;

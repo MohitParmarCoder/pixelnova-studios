@@ -143,7 +143,7 @@ var SymbolHunt = (function () {
 
     if (grid[idx].sym === target) {
       grid[idx].found = true; found++;
-      score++; if (score > best) best = score;
+      score++; if (score > best) { best = score; AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch(e) {}
       if (countTarget() === 0) { setTimeout(function() { if (state==='PLAYING') newRound(); }, 400); }
     } else {

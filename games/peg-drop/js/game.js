@@ -83,7 +83,7 @@ var PegDrop = (function () {
         var slotIdx = Math.floor(b.x / slotW);
         slotIdx = Math.max(0, Math.min(SLOTS.length - 1, slotIdx));
         var pts = SLOTS[slotIdx];
-        score += pts; if (score > best) best = score;
+        score += pts; if (score > best) { best = score; AdManager.happyTime(1.0); }
         addParticles(b.x, slotBottom - 20, pts >= 5 ? '#FFD700' : '#a8edea');
         try { Audio.play(pts >= 5 ? 'gem' : 'tap'); } catch(e) {}
         balls.splice(i, 1);

@@ -169,7 +169,7 @@ var TrafficRush = (function () {
 
   function _die() {
     var isNewBest = _score > _best;
-    if (isNewBest) { _best = _score; }
+    if (isNewBest) { _best = _score; AdManager.happyTime(1.0); }
     _isNewBest  = isNewBest;
     _state      = 'DEAD';
     _flashTimer = 0.25;

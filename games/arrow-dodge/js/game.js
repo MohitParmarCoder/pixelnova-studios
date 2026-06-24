@@ -67,7 +67,7 @@ var ArrowDodge = (function () {
         try { Audio.play('crash'); } catch (e) {}
         if (lives <= 0) {
             state = 'DEAD';
-            if (score > best) { best = score; }
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('lose'); } catch (e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
             AdManager.showInterstitial(() => {});
@@ -118,7 +118,7 @@ var ArrowDodge = (function () {
                     var pts = Math.max(5, Math.floor(distToArcher / 30));
                     var prevThreshold = Math.floor(score / 30);
                     score += pts;
-                    if (score > best) { best = score; }
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     try { Audio.play('gem'); } catch (e) {}
                     if (Math.floor(score / 30) > prevThreshold) {
                         wind = (Math.random() - 0.5) * (40 + Math.floor(score / 30) * 15);

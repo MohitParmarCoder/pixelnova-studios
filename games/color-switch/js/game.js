@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -714,7 +715,7 @@ const ColorSwitch = (() => {
     ctx.restore();
 
     // New best / best
-    if (score > 0 && _isNewBest) {
+    if (score > 0 && _isNewBest) { AdManager.happyTime(1.0);
       drawText('NEW BEST!', VW / 2, 505, 24, '#FFCC00');
     } else if (bestScore > 0) {
       drawText(`Best: ${bestScore}`, VW / 2, 505, 24, '#888');

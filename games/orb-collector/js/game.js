@@ -66,7 +66,7 @@ var OrbCollector = (function () {
             try { AdManager.offerDoubleScore(score, 'orbcollector_best'); } catch(e) {}
           }
         } else {
-          score++; if (score > best) best = score;
+          score++; if (score > best) { best = score; AdManager.happyTime(1.0); }
           addParticles(o.x, o.y, o.color);
           try { Audio.play('gem'); } catch(e) {}
         }

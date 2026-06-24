@@ -248,7 +248,7 @@ var DotLink = (function () {
   function _nextPuzzle() {
     if (_state !== 'PLAYING') return;
     _score += 1;
-    if (_score > _best) { _best = _score; }
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     _puzzleIdx = (_puzzleIdx + 1) % PUZZLES.length;
     _loadPuzzle(_puzzleIdx);
   }

@@ -79,7 +79,7 @@ var GravityMaze = (function () {
   function nextLevel() {
     currentLevel++;
     score++;
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     try { Audio.play('gem'); } catch (e) {}
     buildLevel(currentLevel);
   }
@@ -168,7 +168,7 @@ var GravityMaze = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}

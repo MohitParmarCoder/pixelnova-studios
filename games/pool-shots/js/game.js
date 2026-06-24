@@ -53,7 +53,7 @@ var PoolShots = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -75,7 +75,7 @@ var PoolShots = (function () {
       var z = ZONES[i];
       if (disc.y >= z.y && disc.y <= z.y + z.h) {
         score += z.pts;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         try { Audio.play('gem'); } catch(e) {}
         return;
       }

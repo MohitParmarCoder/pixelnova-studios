@@ -315,7 +315,7 @@ const StarBlaster = (() => {
       }
     }
 
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
   }
 
   function _fire() {
@@ -376,7 +376,7 @@ const StarBlaster = (() => {
 
   function _gameOver() {
     _state = 'DEAD';
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     _sfx('lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}

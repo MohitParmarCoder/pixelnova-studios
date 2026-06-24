@@ -91,7 +91,7 @@ var ColorMemory = (function () {
   }
 
   function gameOver() {
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     snd('lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
@@ -199,7 +199,7 @@ var ColorMemory = (function () {
       if (playerIdx >= melody.length) {
         // Completed melody!
         score++;
-        if (score > _best) _best = score;
+        if (score > _best) { _best = score; AdManager.happyTime(1.0); }
         snd('gem');
         melodyLen = melodyLen < 10 ? melodyLen + 1 : 10;
         roundDelay = 0.8;

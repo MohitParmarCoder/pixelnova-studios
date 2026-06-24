@@ -144,7 +144,7 @@ var CaveRunner = (function () {
 
     // Check if any moves remain
     if (!hasAnyReachable()) {
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -403,7 +403,7 @@ var CaveRunner = (function () {
     if (cellType === TYPE_ROCK) {
       grid[row][col] = TYPE_EMPTY;
       score += 1;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       flashText = '+1';
       flashTimer = 0.4;
       spawnParticles(cc.x, cc.y, '#888888');
@@ -411,7 +411,7 @@ var CaveRunner = (function () {
     } else if (cellType === TYPE_GEM) {
       grid[row][col] = TYPE_EMPTY;
       score += 10;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       flashText = '+10';
       flashTimer = 0.5;
       spawnParticles(cc.x, cc.y, '#44ff88');
@@ -419,7 +419,7 @@ var CaveRunner = (function () {
     } else if (cellType === TYPE_GOLD) {
       grid[row][col] = TYPE_EMPTY;
       score += 25;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       flashText = '+25';
       flashTimer = 0.6;
       spawnParticles(cc.x, cc.y, '#ffd700');
@@ -432,7 +432,7 @@ var CaveRunner = (function () {
       spawnParticles(cc.x, cc.y, '#ff4444');
       try { Audio.play('crash'); } catch(e) {}
       if (lives <= 0) {
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { Audio.play('lose'); } catch(e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}

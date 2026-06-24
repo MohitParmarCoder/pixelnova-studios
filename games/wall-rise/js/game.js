@@ -108,7 +108,7 @@ var WallRise = (function () {
 
     if (_checkGameOver()) {
       state = 'DEAD';
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       try { Audio.play('lose'); } catch (e) {}
       try { AdManager.gameplayStop(); } catch (e) {}
       try { AdManager.onRunEnd(); } catch (e) {}

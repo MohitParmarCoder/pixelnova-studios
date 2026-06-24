@@ -119,7 +119,7 @@ var BlockBlast = (function () {
   function killPlayer() {
     if (state === 'DEAD') return;
     state = 'DEAD';
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     shakeTime = 0.4;
     shakeAmt = 12;
     try { Audio.play('lose'); } catch (e) {}

@@ -126,7 +126,7 @@ var GridSnake = (function () {
         try { Audio.play('crash'); } catch (e) {}
         if (lives <= 0) {
             state = 'DEAD';
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('lose'); } catch (e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
             AdManager.showInterstitial(() => {});
@@ -177,7 +177,7 @@ var GridSnake = (function () {
                 // MERGE: double head value, grow, score
                 headVal = headVal * 2;
                 score += headVal;
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 try { Audio.play('gem'); } catch (e) {}
                 // grow: keep tail (don't pop)
             } else {

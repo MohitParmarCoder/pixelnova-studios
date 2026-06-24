@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -328,7 +329,7 @@ var BubblePop = (function () {
         play('gem');
       }
     }
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
 
     // game over check
     if (checkDeadline()) {
@@ -396,7 +397,7 @@ var BubblePop = (function () {
     winTimer = 1.4;
     play('power');
     score += 100; // clear bonus
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
   }
 
   // ── Reset / start ────────────────────────────────────────────────────────────

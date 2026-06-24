@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -186,7 +187,7 @@ const NeonSnake = (() => {
       score += 1;
       vib(8); _milestone(score);
       foodsEaten += 1;
-      if (score > best) { best = score; saveBest(); }
+      if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch(e) {}
 
       // Speed up every SPEED_EVERY foods
@@ -209,7 +210,7 @@ const NeonSnake = (() => {
       // Grow (don't pop tail)
       score += 5;
       vib(8); _milestone(score);
-      if (score > best) { best = score; saveBest(); }
+      if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
       try { Audio.play('power'); } catch(e) {}
       powerFood  = null;
       powerTimer = 0;
@@ -222,7 +223,7 @@ const NeonSnake = (() => {
   function die() {
     state = 'DEAD';
     vib([40,80,80]);
-    if (score > best) { best = score; saveBest(); }
+    if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
     try { Audio.play('lose'); } catch(e) {}
     AdManager.gameplayStop();
     AdManager.onRunEnd();

@@ -404,7 +404,7 @@ var LaserMaze = (function () {
                 if (beamReachesTarget) {
                     var gained = Math.max(10, 100 - mirrorTaps * 5);
                     score += gained;
-                    if (score > best) best = score;
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     puzzlesSolved++;
                     try { Audio.play('gem'); } catch (e) {}
                     winFlash = 0.5;
@@ -429,7 +429,7 @@ var LaserMaze = (function () {
             if (deathFlash <= 0) {
                 if (lives <= 0) {
                     state = 'DEAD';
-                    if (score > best) best = score;
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
                     AdManager.showInterstitial(() => {});
                     try { AdManager.offerDoubleScore(score, 'lasermaze_best'); } catch(e) {}

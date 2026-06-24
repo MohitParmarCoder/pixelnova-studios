@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -194,7 +195,7 @@ var MemoryFlip = (function () {
   function gameOver() {
     state = 'DEAD';
     vib([40,80,80]);
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     snd('lose');
     runEnded();
   }
@@ -202,7 +203,7 @@ var MemoryFlip = (function () {
   function levelWin() {
     state = 'WIN';
     winTimer = 1.4;
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     snd('power');
   }
 

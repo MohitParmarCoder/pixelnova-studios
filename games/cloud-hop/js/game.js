@@ -90,7 +90,7 @@ var CloudHop = (function () {
     flashTimer = 1.2;
     if (lives <= 0) {
       state = 'DEAD';
-      if (score > bestScore) { bestScore = score; }
+      if (score > bestScore) { bestScore = score; AdManager.happyTime(1.0); }
       try { Audio.play('lose'); } catch (e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
       AdManager.showInterstitial(() => {});

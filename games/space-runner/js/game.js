@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -123,7 +124,7 @@ var SpaceRunner = (function () {
     addParticle(ship.x, ship.y, '#f87171');
     if (lives <= 0) {
       lives = 0;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       vib([40,80,80]);
       try { Audio.play('lose'); } catch(e) {}
@@ -177,7 +178,7 @@ var SpaceRunner = (function () {
           al.alive = false;
           score += 10 * wave;
           vib(8); _milestone(score);
-          if (score > best) best = score;
+          if (score > best) { best = score; AdManager.happyTime(1.0); }
           try { Audio.play('gem'); } catch(e) {}
           addParticle(al.x + al.w / 2, al.y + al.h / 2, '#60a5fa');
           playerBullets.splice(bi, 1);
@@ -225,7 +226,7 @@ var SpaceRunner = (function () {
     for (var ri = 0; ri < livingAliens.length; ri++) {
       if (livingAliens[ri].y + livingAliens[ri].h > VH - 100) {
         lives = 0;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         vib([40,80,80]);
         try { Audio.play('lose'); } catch(e) {}

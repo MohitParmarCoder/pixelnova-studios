@@ -178,7 +178,7 @@ var CandyRain = (function () {
           var firstN = numbers[firstIdx];
           if (firstN.val + n.val === target) {
             score++;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             pairsThisTarget++;
             try { Audio.play('gem'); } catch(e) {}
             spawnNumber(firstIdx);

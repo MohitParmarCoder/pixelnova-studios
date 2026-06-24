@@ -81,7 +81,7 @@ var FruitCatcher = (function () {
           if (lives <= 0) { lives = 0; die(); return; }
         } else {
           score += f.pts;
-          if (score > best) best = score;
+          if (score > best) { best = score; AdManager.happyTime(1.0); }
           try { Audio.play('gem'); } catch(e) {}
         }
       }

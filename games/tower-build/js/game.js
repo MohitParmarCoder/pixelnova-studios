@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -150,7 +151,7 @@ var TowerBuild = (function () {
   // ── Death ──────────────────────────────────────────────────────────────────
   function _die() {
     deadScore = score;
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     vib([40,80,80]);
     try { Audio.play('crash'); } catch (e) {}

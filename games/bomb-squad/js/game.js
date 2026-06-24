@@ -116,7 +116,7 @@ var BombSquad = (function () {
     function winBoard() {
         var timeBonus = Math.max(0, 300 - Math.floor(elapsedTime * 2));
         score += numSafe * 3 + timeBonus;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         try { Audio.play('gem'); } catch (e) {}
         winFlash = 0.8;
     }
@@ -133,7 +133,7 @@ var BombSquad = (function () {
                 if (cells[i].mine) cells[i].revealed = true;
             }
             state = 'DEAD';
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('lose'); } catch (e) {}
             try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
             AdManager.showInterstitial(() => {});
@@ -192,7 +192,7 @@ var BombSquad = (function () {
 
         floodReveal(col, row);
         score += 5;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         try { Audio.play('tap'); } catch (e) {}
 
         if (revealedCount >= numSafe) {

@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -318,8 +319,10 @@ const TapBlast = (() => {
       score += gained;
       vib(8); _milestone(score);
       if (score > best) {
+        AdManager.happyTime(1.0);
         best = score;
         localStorage.setItem('tapblast_best', String(best));
+        AdManager.happyTime(1.0);
       }
       _spawnParticles(c.x, c.y, c.color);
       circles.splice(hit, 1);

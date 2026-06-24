@@ -179,7 +179,7 @@ var BilliardAim = (function () {
     timeLeft -= dt;
     if (timeLeft <= 0) {
       timeLeft = 0;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
       AdManager.showInterstitial(() => {});
@@ -216,7 +216,7 @@ var BilliardAim = (function () {
       if (!targetBalls[m].pocketed && checkPocket(targetBalls[m])) {
         targetBalls[m].pocketed = true;
         score++;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         flashGood = true;
         flashTimer = 0.3;
         try { Audio.play('gem'); } catch (e) {}
@@ -233,7 +233,7 @@ var BilliardAim = (function () {
       flashTimer = 0.5;
       try { Audio.play('crash'); } catch (e) {}
       if (lives <= 0) {
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
         AdManager.showInterstitial(() => {});

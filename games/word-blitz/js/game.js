@@ -8,6 +8,7 @@ function _milestone(s) {
       _msDone[ms[i]] = true;
       vib([10,30,10]);
       try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
       _showMsFlash(ms[i]);
       break;
     }
@@ -73,7 +74,7 @@ var WordBlitz = (function () {
       lives--;
       vib([25,50,25]);
       try { Audio.play('lose'); } catch(e) {}
-      if (lives <= 0) { if (score > best) best = score; state = 'DEAD'; vib([40,80,80]); try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      if (lives <= 0) { if (score > best) { best = score; AdManager.happyTime(1.0); } state = 'DEAD'; vib([40,80,80]); try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
         AdManager.showInterstitial(() => {});
         try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
       } else newRound();
@@ -155,7 +156,7 @@ var WordBlitz = (function () {
           b.hit = true; progress++;
           try { Audio.play('tap'); } catch(e) {}
           if (progress >= targetWord.length) {
-            score++; vib(8); _milestone(score); if (score > best) best = score;
+            score++; vib(8); _milestone(score); if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             setTimeout(function() { if (state==='PLAYING') newRound(); }, 400);
           }

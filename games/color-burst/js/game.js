@@ -47,7 +47,7 @@ var ColorBurst = (function () {
         if (Math.abs(dist - rng.r) < ball.r + 6) {
           if (COLORS.indexOf(ballColor) === rng.colorIdx) {
             rings.splice(i, 1);
-            score++; if (score > best) best = score;
+            score++; if (score > best) { best = score; AdManager.happyTime(1.0); }
             addParticles(ball.x, ball.y, ballColor);
             try { Audio.play('gem'); } catch(e) {}
             if (rings.length === 0) spawnRing();

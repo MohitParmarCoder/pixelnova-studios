@@ -166,7 +166,7 @@ var LineBreaker = (function () {
                 if (b.hp <= 0) {
                     b.alive = false;
                     score += 10;
-                    if (score > best) best = score;
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     bricksDestroyed++;
                     spawnParticles(b.x + b.w / 2, b.y + b.h / 2, brickColor(b.maxHp, b.maxHp), 8);
                     try { Audio.play('gem'); } catch (e) {}
@@ -200,7 +200,7 @@ var LineBreaker = (function () {
                 shakeTime = 0.4;
                 if (lives <= 0) {
                     try { Audio.play('lose'); } catch (e) {}
-                    if (score > best) best = score;
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     state = 'DEAD';
                     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
                     AdManager.showInterstitial(() => {});
