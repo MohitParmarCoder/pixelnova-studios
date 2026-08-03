@@ -20,6 +20,7 @@
   window.addEventListener('resize', resize);
   resize();
 
+  try { AdManager.gameLoadingStart(); } catch(e) {}
   Audio.init();
 
 

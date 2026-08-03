@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 var RhythmTap = (function () {
 
   var canvas, ctx;
@@ -34,6 +64,7 @@ var RhythmTap = (function () {
   }
 
   function startGame() {
+    _msDone = {};
     score = 0;
     lives = 5;
     circles = [];
@@ -47,7 +78,8 @@ var RhythmTap = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
+    vib([40,80,80]);
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
     AdManager.showInterstitial(() => {});
     try { AdManager.offerDoubleScore(score, 'rhythmtap_best'); } catch(e) {}
@@ -101,6 +133,7 @@ var RhythmTap = (function () {
       if (!c.judged && c.y > BEAT_LINE_Y + CIRCLE_R * 3) {
         c.judged = true;
         lives--;
+        vib([25,50,25]);
         try { Audio.play('lose'); } catch (e) {}
         feedbackItems.push({
           x: c.x, y: BEAT_LINE_Y - 30,
@@ -163,10 +196,12 @@ var RhythmTap = (function () {
 
       if (timeDiff <= PERFECT_WINDOW) {
         score += 3;
+        vib(8); _milestone(score);
         try { Audio.play('gem'); } catch (e) {}
         feedbackItems.push({ x: closest.x, y: BEAT_LINE_Y - 40, text: 'PERFECT +3', color: '#ffff00', life: 0.8 });
       } else if (timeDiff <= GOOD_WINDOW) {
         score += 1;
+        vib(8); _milestone(score);
         try { Audio.play('tap'); } catch (e) {}
         feedbackItems.push({ x: closest.x, y: BEAT_LINE_Y - 40, text: 'GOOD +1', color: '#00ffcc', life: 0.8 });
       } else {

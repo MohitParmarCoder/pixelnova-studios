@@ -259,7 +259,7 @@ var WaterFlow = (function () {
   }
 
   function _endGame() {
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     _state = 'DEAD';
     try { Audio.play('lose'); } catch(e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -287,7 +287,7 @@ var WaterFlow = (function () {
         _flowAnim = Math.min(1, 1 - _solvedTimer / 1.0);
         if (_solvedTimer <= 0) {
           _score += 1;
-          if (_score > _best) { _best = _score; }
+          if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
           _movesLeft = MOVES_PER_PUZZLE;
           _loadPuzzle(_puzzleIdx + 1);
         }

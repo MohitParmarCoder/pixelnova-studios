@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 
 /* ============================================================
    Pipe Rush — Flappy meets Color Switch
@@ -46,6 +76,7 @@ const PipeRush = (() => {
   }
 
   function _reset() {
+    _msDone = {};
     _score = 0;
     _orbY = VH / 2;
     _orbVY = 0;
@@ -111,6 +142,7 @@ const PipeRush = (() => {
         p.passed = true;
         if (p.color === _orbColor) {
           _score++;
+          vib(8); _milestone(_score);
           _burst(ORB_X, _orbY, COLORS[_orbColor], 10);
           _snd('score');
         } else {
@@ -158,8 +190,9 @@ const PipeRush = (() => {
 
   function _die() {
     _state = 'DEAD';
+    vib([40,80,80]);
     _burst(ORB_X, _orbY, COLORS[_orbColor], 16);
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     _snd('crash');
     AdManager.gameplayStop();
     AdManager.onRunEnd();

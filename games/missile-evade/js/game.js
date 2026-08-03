@@ -360,7 +360,7 @@ var MissileEvade = (function () {
         }
         if (killed > 0) {
             score += killed * 10;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch (e) {}
         }
     }

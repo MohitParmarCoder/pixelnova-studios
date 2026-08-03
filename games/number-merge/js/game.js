@@ -201,7 +201,7 @@ const NumberMerge = (() => {
 
     // Update score
     _score += totalMerged;
-    if (_score > _best) _best = _score;
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
 
     // Sound feedback
     if (maxMerge >= 2048) {

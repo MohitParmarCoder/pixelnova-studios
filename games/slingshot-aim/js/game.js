@@ -54,7 +54,7 @@ var SlingshotAim = (function () {
         if (ball.x > t.x - t.w / 2 - 8 && ball.x < t.x + t.w / 2 + 8 &&
             ball.y > t.y - t.h / 2 - 8 && ball.y < t.y + t.h / 2 + 8) {
           t.alive = false;
-          score += t.pts; if (score > best) best = score;
+          score += t.pts; if (score > best) { best = score; AdManager.happyTime(1.0); }
           addParticles(t.x, t.y, t.color);
           try { Audio.play('gem'); } catch(e) {}
         }

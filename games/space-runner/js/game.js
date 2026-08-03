@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 var SpaceRunner = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
@@ -57,6 +87,7 @@ var SpaceRunner = (function () {
   }
 
   function startGame() {
+    _msDone = {};
     score = 0;
     lives = 3;
     wave = 1;
@@ -88,12 +119,14 @@ var SpaceRunner = (function () {
 
   function loseLife() {
     lives--;
+    vib([25,50,25]);
     try { Audio.play('crash'); } catch(e) {}
     addParticle(ship.x, ship.y, '#f87171');
     if (lives <= 0) {
       lives = 0;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
+      vib([40,80,80]);
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
       AdManager.showInterstitial(() => {});
@@ -144,7 +177,8 @@ var SpaceRunner = (function () {
         if (bul.x >= al.x && bul.x <= al.x + al.w && bul.y >= al.y && bul.y <= al.y + al.h) {
           al.alive = false;
           score += 10 * wave;
-          if (score > best) best = score;
+          vib(8); _milestone(score);
+          if (score > best) { best = score; AdManager.happyTime(1.0); }
           try { Audio.play('gem'); } catch(e) {}
           addParticle(al.x + al.w / 2, al.y + al.h / 2, '#60a5fa');
           playerBullets.splice(bi, 1);
@@ -192,8 +226,9 @@ var SpaceRunner = (function () {
     for (var ri = 0; ri < livingAliens.length; ri++) {
       if (livingAliens[ri].y + livingAliens[ri].h > VH - 100) {
         lives = 0;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
+        vib([40,80,80]);
         try { Audio.play('lose'); } catch(e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
         AdManager.showInterstitial(() => {});

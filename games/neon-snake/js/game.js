@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 
 const NeonSnake = (() => {
   // ── Virtual canvas dimensions ──────────────────────────────────────────────
@@ -92,6 +122,7 @@ const NeonSnake = (() => {
 
   // ── Game reset ─────────────────────────────────────────────────────────────
   function startGame() {
+    _msDone = {};
     // Snake starts at center, length 3, moving right
     const sc = Math.floor(COLS / 2) - 1;
     const sr = Math.floor(ROWS / 2);
@@ -154,8 +185,9 @@ const NeonSnake = (() => {
     if (head[0] === food[0] && head[1] === food[1]) {
       // Grow (don't pop tail)
       score += 1;
+      vib(8); _milestone(score);
       foodsEaten += 1;
-      if (score > best) { best = score; saveBest(); }
+      if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch(e) {}
 
       // Speed up every SPEED_EVERY foods
@@ -177,7 +209,8 @@ const NeonSnake = (() => {
     } else if (powerFood && head[0] === powerFood[0] && head[1] === powerFood[1]) {
       // Grow (don't pop tail)
       score += 5;
-      if (score > best) { best = score; saveBest(); }
+      vib(8); _milestone(score);
+      if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
       try { Audio.play('power'); } catch(e) {}
       powerFood  = null;
       powerTimer = 0;
@@ -189,7 +222,8 @@ const NeonSnake = (() => {
 
   function die() {
     state = 'DEAD';
-    if (score > best) { best = score; saveBest(); }
+    vib([40,80,80]);
+    if (score > best) { best = score; saveBest(); AdManager.happyTime(1.0); }
     try { Audio.play('lose'); } catch(e) {}
     AdManager.gameplayStop();
     AdManager.onRunEnd();

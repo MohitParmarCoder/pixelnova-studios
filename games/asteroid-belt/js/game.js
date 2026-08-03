@@ -120,7 +120,7 @@ var AsteroidBelt = (function () {
             if (dist2(playerX, playerY, crystals[c].x, crystals[c].y) < (14 * 14)) {
                 crystals.splice(c, 1);
                 score++;
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 try { Audio.play('gem'); } catch (e) {}
             }
         }

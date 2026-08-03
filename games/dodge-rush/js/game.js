@@ -214,7 +214,7 @@ const DodgeRush = (() => {
     _state = 'DEAD';
     _burst(_playerX, PLAYER_Y, '#00EEFF', 18);
     const sc = _score();
-    if (sc > _best) _best = sc;
+    if (sc > _best) { _best = sc; AdManager.happyTime(1.0); }
     _snd('crash');
     AdManager.gameplayStop();
     AdManager.onRunEnd();

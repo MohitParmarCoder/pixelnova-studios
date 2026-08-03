@@ -22,6 +22,7 @@
   window.addEventListener('resize', resize);
 
   // ── Init subsystems ────────────────────────────────────────────────────────
+  try { AdManager.gameLoadingStart(); } catch(e) {}
   Audio.init();
 
 

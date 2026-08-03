@@ -222,7 +222,7 @@ var CannonLaunch = (function () {
                     pts = 25;
                 }
                 score += pts;
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 tgt.hit = true;
                 tgt.hitPts = pts;
 
@@ -339,7 +339,7 @@ var CannonLaunch = (function () {
     function endGame() {
         state = 'DEAD';
         isNewBest = score > best;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
         AdManager.showInterstitial(() => {});

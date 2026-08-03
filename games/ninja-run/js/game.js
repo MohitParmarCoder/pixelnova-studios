@@ -56,7 +56,7 @@ var NinjaRun = (function () {
     spawnParticles(player.x, player.y - camY, '#f87171');
     try { Audio.play('crash'); } catch(e) {}
     if (lives <= 0) {
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       try { Audio.play('lose'); } catch(e) {}
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
@@ -144,7 +144,7 @@ var NinjaRun = (function () {
           attachToAnchor(j);
           if (anchors[j].y < anchors[prevIdx].y) {
             score++;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             spawnParticles(player.x, player.y - camY, '#a8edea');
             if (anchors.length - j < 4) addMoreAnchors();
@@ -324,7 +324,7 @@ var NinjaRun = (function () {
           attachToAnchor(bestJ);
           if (anchors[bestJ].y < anchors[prevIdx].y) {
             score++;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             spawnParticles(player.x, player.y - camY, '#a8edea');
             if (anchors.length - bestJ < 4) addMoreAnchors();

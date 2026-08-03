@@ -8,6 +8,8 @@ const AdManager = (() => {
   // ── Null adapter (local dev / no portal) ────────────────────────────────────
   const NullAdapter = {
     init() {}, gameplayStart() {}, gameplayStop() {},
+    happyTime() {}, gameLoadingStart() {}, gameLoadingStop() {},
+    hasAdblock() { return false; },
     showInterstitial(cb) { cb(); },
     showRewarded(ok, skip) { skip(); },
   };
@@ -20,8 +22,12 @@ const AdManager = (() => {
       if (!sdk) return;
       sdk.init().then(() => { this._ready = true; }).catch(() => {});
     },
-    gameplayStart() { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStart(); },
-    gameplayStop()  { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStop(); },
+    gameplayStart()    { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStart(); },
+    gameplayStop()     { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStop(); },
+    happyTime(f)       { if (this._ready) window.CrazyGames?.SDK?.game?.happyTime?.(f ?? 0.8); },
+    gameLoadingStart() { window.CrazyGames?.SDK?.game?.sdkGameLoadingStart?.(); },
+    gameLoadingStop()  { window.CrazyGames?.SDK?.game?.sdkGameLoadingStop?.(); },
+    hasAdblock()       { return window.CrazyGames?.SDK?.ad?.hasAdblock ?? false; },
     showInterstitial(cb) {
       if (!this._ready) { cb(); return; }
       window.CrazyGames.SDK.ad.requestAd('midgame', { adStarted(){}, adFinished: cb, adError: cb });
@@ -40,6 +46,8 @@ const AdManager = (() => {
       this._ready = true;
     },
     gameplayStart() {}, gameplayStop() {},
+    happyTime() {}, gameLoadingStart() {}, gameLoadingStop() {},
+    hasAdblock() { return false; },
     showInterstitial(cb) {
       if (!this._ready) { cb(); return; }
       gdsdk.showAd(gdsdk.AdType.Interstitial).then(cb).catch(cb);
@@ -57,9 +65,13 @@ const AdManager = (() => {
     return NullAdapter;
   }
 
-  function init()          { _adapter().init(); }
-  function gameplayStart() { _adapter().gameplayStart(); }
-  function gameplayStop()  { _adapter().gameplayStop(); }
+  function init()             { _adapter().init(); }
+  function gameplayStart()    { _adapter().gameplayStart(); }
+  function gameplayStop()     { _adapter().gameplayStop(); }
+  function happyTime(f)       { try { _adapter().happyTime(f); } catch(e) {} }
+  function gameLoadingStart() { try { _adapter().gameLoadingStart(); } catch(e) {} }
+  function gameLoadingStop()  { try { _adapter().gameLoadingStop(); } catch(e) {} }
+  function hasAdblock()       { try { return _adapter().hasAdblock(); } catch(e) { return false; } }
 
   // Interstitial: frequency-capped (1 per 3 runs, 60 s minimum gap)
   function showInterstitial(cb) {
@@ -73,12 +85,20 @@ const AdManager = (() => {
 
   function onRunEnd() { _runsSinceLast++; }
 
+  // ── "Watch Ad — Double Score" DOM overlay ───────────────────────────────────
+  // Call AdManager.offerDoubleScore(score, bestKey) from a game's death handler.
+  // Shows a branded "Watch Ad – 2x Score" button over the canvas.
+  // On reward: saves score*2 to localStorage[bestKey] if > current saved value
+  //            and shows a "SCORE DOUBLED! ✕2" flash.
+  // Button auto-hides after 8 s if ignored.
   let _overlay = null;
 
   function offerDoubleScore(score, bestKey) {
     if (typeof document === 'undefined' || !score) return;
+    if (hasAdblock()) return;
     removeDoubleScoreOverlay();
 
+    // Inject keyframes once
     if (!document.getElementById('__pn_kf')) {
       const sty = document.createElement('style');
       sty.id = '__pn_kf';
@@ -115,6 +135,7 @@ const AdManager = (() => {
       removeDoubleScoreOverlay();
       showRewarded(
         () => {
+          // Reward granted — double and save
           const doubled = score * 2;
           if (bestKey) {
             try {
@@ -122,9 +143,10 @@ const AdManager = (() => {
               if (doubled > saved) localStorage.setItem(bestKey, String(doubled));
             } catch (e) {}
           }
+          // Show a brief "DOUBLED!" flash overlay
           _showDoubledFlash(doubled, parent);
         },
-        () => {}
+        () => {} // skipped or error — do nothing
       );
     };
 
@@ -155,5 +177,5 @@ const AdManager = (() => {
     _overlay = null;
   }
 
-  return { init, gameplayStart, gameplayStop, showInterstitial, showRewarded, onRunEnd, offerDoubleScore, removeDoubleScoreOverlay };
+  return { init, gameplayStart, gameplayStop, happyTime, gameLoadingStart, gameLoadingStop, hasAdblock, showInterstitial, showRewarded, onRunEnd, offerDoubleScore, removeDoubleScoreOverlay };
 })();

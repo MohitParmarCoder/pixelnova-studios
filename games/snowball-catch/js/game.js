@@ -113,7 +113,7 @@ var SnowballCatch = (function () {
       dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < f.r + 16) {
         score += f.pts;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         consecutiveMisses = 0;
         _missAlreadyPenalized = false;
         try { Audio.play('gem'); } catch(e) {}

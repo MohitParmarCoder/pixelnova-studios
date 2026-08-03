@@ -129,7 +129,7 @@ var CrystalStack = (function () {
     }
 
     function endGame() {
-        if (score > best) { best = score; }
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
@@ -406,7 +406,7 @@ var CrystalStack = (function () {
         if (checkWin()) {
             var bonus = Math.max(10, 100 - moveCount * 2);
             score += bonus;
-            if (score > best) { best = score; }
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch (e) {}
             winFlash = true;
             flashTimer = 1.2;

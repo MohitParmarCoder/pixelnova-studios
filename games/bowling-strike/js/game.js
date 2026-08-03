@@ -119,7 +119,7 @@ var BowlingStrike = (function () {
       shot = 0;
       frame++;
       if (frame >= totalFrames) {
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
         AdManager.showInterstitial(() => {});
@@ -184,7 +184,7 @@ var BowlingStrike = (function () {
         try { Audio.play('crash'); } catch (e) {}
         var knocked = PIN_COUNT - countStanding();
         score += knocked;
-        if (score > best) best = score;
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         if (knocked === 10) {
           showMessage('STRIKE!', true);
           try { Audio.play('gem'); } catch (e) {}

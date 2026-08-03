@@ -14,6 +14,7 @@
   resize();
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', function () { setTimeout(resize, 100); });
+  try { AdManager.gameLoadingStart(); } catch(e) {}
   try { Audio.init(); } catch(e) {}
   try { AdManager.init(); } catch(e) {}
   var _paused = false, _logoRot = 0, _logoRaf = null;
@@ -82,6 +83,7 @@
   var best = 0;
   try { best = parseInt(localStorage.getItem('paintfill_best'), 10) || 0; } catch(e) {}
   PaintFill.init(canvas, best);
+  try { AdManager.gameLoadingStop(); } catch(e) {}
 
   function toVirtual(e) {
     var rect = canvas.getBoundingClientRect();

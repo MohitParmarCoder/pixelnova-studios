@@ -112,7 +112,7 @@ var GolfLite = (function () {
     if (state !== 'PLAYING') return;
     hole++;
     if (hole >= totalHoles) {
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       state = 'DEAD';
       try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
       AdManager.showInterstitial(() => {});
@@ -161,7 +161,7 @@ var GolfLite = (function () {
     var dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < holeR) {
       score++;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       flashGood = true;
       flashTimer = 0.5;
       try { Audio.play('gem'); } catch (e) {}

@@ -132,7 +132,7 @@ var MagmaHop = (function () {
             deathFlash -= dt;
             if (deathFlash <= 0 && lives <= 0) {
                 state = 'DEAD';
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
                 AdManager.showInterstitial(() => {});
                 try { AdManager.offerDoubleScore(score, 'magmahop_best'); } catch(e) {}
@@ -503,7 +503,7 @@ var MagmaHop = (function () {
         // Reached top safe zone
         if (frogLane >= 7) {
             score += 10;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch (e) {}
             winFlash = 0.4;
             spawnParticles(frogX, frogY, '#33ff33');

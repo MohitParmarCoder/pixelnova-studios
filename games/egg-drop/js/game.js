@@ -99,7 +99,7 @@ var EggDrop = (function () {
           if (lives <= 0) { lives = 0; die(); return; }
         } else {
           score += it.pts;
-          if (score > best) best = score;
+          if (score > best) { best = score; AdManager.happyTime(1.0); }
           addParticles(it.x, it.y, it.color);
           try { Audio.play('gem'); } catch(e) {}
           if (it.type === recipe[recipeIdx]) {

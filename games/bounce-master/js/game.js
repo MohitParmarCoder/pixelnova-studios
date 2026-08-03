@@ -157,12 +157,12 @@ var BounceMaster = (function () {
         if (puck.y < GOAL_TOP) {
             playerGoals++;
             score += 10;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             spawnParticles(puck.x, GOAL_TOP, '#44ff88');
             try { Audio.play('gem'); } catch (e) {}
             if (playerGoals >= PLAYER_GOAL_LIMIT) {
                 score += 50;
-                if (score > best) best = score;
+                if (score > best) { best = score; AdManager.happyTime(1.0); }
                 playerGoals = 0;
                 aiGoals = 0;
             }

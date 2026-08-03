@@ -74,6 +74,7 @@ var SpiralDraw = (function() {
     function endGame() {
         if (score > bestScore) {
             bestScore = score;
+            AdManager.happyTime(1.0);
         }
         state = 'DEAD';
         try { Audio.play('lose'); } catch(e) {}

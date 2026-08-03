@@ -129,14 +129,14 @@ var PaintFill = (function () {
 
   function nextBoard() {
     score += 1;
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     movesLeft = MAX_MOVES;
     buildBoard();
     // Stay in PLAYING state
   }
 
   function gameOver() {
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     snd('lose');
     try { AdManager.gameplayStop(); } catch (e) {}

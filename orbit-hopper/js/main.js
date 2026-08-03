@@ -16,10 +16,12 @@
   window.addEventListener('orientationchange', () => setTimeout(resize, 100));
   resize();
 
+  AdManager.gameLoadingStart();
   Audio.init();
   AdManager.init();
   Input.init(canvas, VW, VH);
   Game.init(canvas);
+  AdManager.gameLoadingStop();
 
   let prev = 0;
   function loop(ts) {

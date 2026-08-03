@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 
 // Bubble Pop — classic bubble shooter. Global: BubblePop
 // Virtual canvas 390 x 844.
@@ -288,16 +318,18 @@ var BubblePop = (function () {
     if (group.length >= 3) {
       popCells(group);
       score += group.length * 10;
+      vib(8); _milestone(score);
       play('score');
       // floating
       var floating = findFloating();
       if (floating.length) {
         dropCells(floating);
         score += floating.length * 20;
+        vib(8); _milestone(score);
         play('gem');
       }
     }
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
 
     // game over check
     if (checkDeadline()) {
@@ -352,6 +384,7 @@ var BubblePop = (function () {
 
   function gameOver() {
     state = 'DEAD';
+    vib([40,80,80]);
     play('lose');
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}
@@ -364,11 +397,12 @@ var BubblePop = (function () {
     winTimer = 1.4;
     play('power');
     score += 100; // clear bonus
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
   }
 
   // ── Reset / start ────────────────────────────────────────────────────────────
   function startGame() {
+    _msDone = {};
     score = 0;
     level = 1;
     shots = 0;

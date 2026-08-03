@@ -153,7 +153,7 @@ const ReflexTap = (() => {
       _zoneStart = _randZoneStart();
 
       // Update best immediately
-      if (_score > _best) _best = _score;
+      if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     } else {
       // Miss
       _combo = 0;

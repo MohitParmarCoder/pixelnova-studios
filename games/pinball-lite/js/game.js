@@ -252,7 +252,7 @@ var PinballLite = (function () {
 
             // Score
             score += 100;
-            if (score > bestScore) { bestScore = score; }
+            if (score > bestScore) { bestScore = score; AdManager.happyTime(1.0); }
 
             // Flash bumper
             bumper.lit = 0.35;

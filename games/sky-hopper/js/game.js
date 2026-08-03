@@ -214,7 +214,7 @@ const SkyHopper = (() => {
     if (state !== 'PLAYING') return;
     state = 'DEAD';
     sfx('lose');
-    if (score > _best) _best = score;
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     try {
       if (typeof AdManager !== 'undefined') {
         AdManager.gameplayStop();

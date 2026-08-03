@@ -121,7 +121,7 @@ var MirrorTap = (function () {
           rightTaps.push(i);
           try { Audio.play('tap'); } catch(e) {}
           if (rightTaps.length === leftPattern.length) {
-            score++; round++; if (score > best) best = score;
+            score++; round++; if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             setTimeout(function() { if (state==='PLAYING') newRound(); }, 500);
           }

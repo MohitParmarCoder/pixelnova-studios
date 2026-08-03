@@ -1,4 +1,34 @@
 'use strict';
+function vib(p) { try { navigator.vibrate && navigator.vibrate(p); } catch(e) {} }
+var _msDone = {};
+function _milestone(s) {
+  var ms = [10,25,50,100,250,500];
+  for (var i=0; i<ms.length; i++) {
+    if (s >= ms[i] && !_msDone[ms[i]]) {
+      _msDone[ms[i]] = true;
+      vib([10,30,10]);
+      try { Audio.play('highscore'); } catch(e) {}
+      AdManager.happyTime(0.8);
+      _showMsFlash(ms[i]);
+      break;
+    }
+  }
+}
+function _showMsFlash(n) {
+  if (typeof document === 'undefined') return;
+  var el = document.createElement('div');
+  el.textContent = n >= 100 ? n+'!!!' : n >= 50 ? n+'!!' : n+'!';
+  Object.assign(el.style, {
+    position:'fixed', top:'30%', left:'50%', transform:'translateX(-50%)',
+    fontSize:'72px', fontWeight:'900', color:'#FFD700',
+    textShadow:'0 0 30px #FFD700, 0 0 60px rgba(255,215,0,0.5)',
+    fontFamily:'system-ui,sans-serif', zIndex:'9999',
+    pointerEvents:'none', opacity:'1', transition:'opacity 1.5s ease 0.8s'
+  });
+  document.body.appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; }, 100);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
 var WordBlitz = (function () {
   var c, ctx, best = 0;
   var VW = 390, VH = 844;
@@ -30,6 +60,7 @@ var WordBlitz = (function () {
   }
 
   function startGame() {
+    _msDone = {};
     score = 0; lives = 3; state = 'PLAYING';
     try { AdManager.gameplayStart(); } catch(e) {}
     newRound();
@@ -41,8 +72,9 @@ var WordBlitz = (function () {
     timer -= dt;
     if (timer <= 0) {
       lives--;
+      vib([25,50,25]);
       try { Audio.play('lose'); } catch(e) {}
-      if (lives <= 0) { if (score > best) best = score; state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
+      if (lives <= 0) { if (score > best) { best = score; AdManager.happyTime(1.0); } state = 'DEAD'; vib([40,80,80]); try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
         AdManager.showInterstitial(() => {});
         try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
       } else newRound();
@@ -124,14 +156,15 @@ var WordBlitz = (function () {
           b.hit = true; progress++;
           try { Audio.play('tap'); } catch(e) {}
           if (progress >= targetWord.length) {
-            score++; if (score > best) best = score;
+            score++; vib(8); _milestone(score); if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch(e) {}
             setTimeout(function() { if (state==='PLAYING') newRound(); }, 400);
           }
         } else {
           lives--;
+          vib([25,50,25]);
           try { Audio.play('crash'); } catch(e) {}
-          if (lives <= 0) { state = 'DEAD'; try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {} 
+          if (lives <= 0) { state = 'DEAD'; vib([40,80,80]); try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
             AdManager.showInterstitial(() => {});
             try { AdManager.offerDoubleScore(score, 'wordblitz_best'); } catch(e) {}
           }

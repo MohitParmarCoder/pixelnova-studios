@@ -86,7 +86,7 @@ var PotionGrab = (function () {
       var pts = Math.round(1000 * acc);
       score += pts;
       roundScore = pts;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch(e) {}
     } else {
       roundScore = 0;

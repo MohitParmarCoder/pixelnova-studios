@@ -271,7 +271,7 @@ var PlankBridge = (function () {
         charWalking = false;
         sfx('gem');
         score++;
-        if (score > _best) { _best = score; }
+        if (score > _best) { _best = score; AdManager.happyTime(1.0); }
         // Start scroll to center the view
         startScroll();
       } else if (dir < 0 && charX <= walkTargetX) {
@@ -389,7 +389,7 @@ var PlankBridge = (function () {
     charFallY  = 0;
     charFallVY = 80;
     deadTimer  = 0;
-    if (score > _best) { _best = score; }
+    if (score > _best) { _best = score; AdManager.happyTime(1.0); }
     sfx('lose');
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
     AdManager.showInterstitial(() => {});

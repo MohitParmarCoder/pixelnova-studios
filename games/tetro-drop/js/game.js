@@ -154,7 +154,7 @@ var TetroDrop = (function () {
 
     if (isGreen) {
       _score += POINTS_PER_HIT;
-      if (_score > _best) { _best = _score; }
+      if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch (e) {}
       _spawnParticles(holeX, holeY, '#00ff88', 18);
       _scoreFlash = { val: '+' + POINTS_PER_HIT, x: holeX, y: holeY - 30, timer: 0.9 };

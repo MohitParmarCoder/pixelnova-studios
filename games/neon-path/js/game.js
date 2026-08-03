@@ -181,7 +181,7 @@ var NeonPath = (function () {
   function _die() {
     _state    = 'DEAD';
     _deadTime = 0;
-    if (_score > _best) { _best = _score; }
+    if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
     try { Audio.play('crash'); } catch(e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch(e) {}
     AdManager.showInterstitial(() => {});

@@ -454,7 +454,7 @@ var ElectricDash = (function () {
         if (isSolved()) {
             var pts = Math.max(10, 100 - rotCount * 3);
             score += pts;
-            if (score > best) best = score;
+            if (score > best) { best = score; AdManager.happyTime(1.0); }
             try { Audio.play('gem'); } catch (e) {}
             buildPuzzle();
         } else if (rotCount >= 20) {

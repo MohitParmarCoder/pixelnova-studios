@@ -18,6 +18,10 @@ const AdManager = (() => {
     init()               { console.log('[Ads] NullAdapter ready'); },
     gameplayStart()      { console.log('[Ads] gameplayStart'); },
     gameplayStop()       { console.log('[Ads] gameplayStop'); },
+    happyTime(f)         { console.log('[Ads] happyTime', f); },
+    gameLoadingStart()   { console.log('[Ads] gameLoadingStart'); },
+    gameLoadingStop()    { console.log('[Ads] gameLoadingStop'); },
+    hasAdblock()         { return false; },
     showInterstitial(cb) { console.log('[Ads] interstitial (null)'); setTimeout(cb, 50); },
     showRewarded(ok, skip) {
       console.log('[Ads] rewarded (null → success)');
@@ -34,12 +38,12 @@ const AdManager = (() => {
       if (!sdk) return;
       sdk.init().then(() => { this._ready = true; }).catch(() => {});
     },
-    gameplayStart() {
-      if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStart();
-    },
-    gameplayStop() {
-      if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStop();
-    },
+    gameplayStart()    { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStart(); },
+    gameplayStop()     { if (this._ready) window.CrazyGames?.SDK?.game?.gameplayStop(); },
+    happyTime(f)       { if (this._ready) window.CrazyGames?.SDK?.game?.happyTime?.(f ?? 0.8); },
+    gameLoadingStart() { window.CrazyGames?.SDK?.game?.sdkGameLoadingStart?.(); },
+    gameLoadingStop()  { window.CrazyGames?.SDK?.game?.sdkGameLoadingStop?.(); },
+    hasAdblock()       { return window.CrazyGames?.SDK?.ad?.hasAdblock ?? false; },
     showInterstitial(cb) {
       const sdk = window.CrazyGames?.SDK;
       if (!sdk || !this._ready) { cb(); return; }
@@ -68,6 +72,8 @@ const AdManager = (() => {
   const GameDistributionAdapter = {
     _interstitialResolve: null,
     _rewardedResolve:     null,
+    happyTime() {}, gameLoadingStart() {}, gameLoadingStop() {},
+    hasAdblock() { return false; },
     init() {
       window['GD_OPTIONS'] = {
         gameId: window.GD_GAME_ID || 'REPLACE_WITH_YOUR_GD_GAME_ID',
@@ -113,6 +119,8 @@ const AdManager = (() => {
   const CapacitorAdMobAdapter = {
     _interstitialId: '',
     _rewardedId:     '',
+    happyTime() {}, gameLoadingStart() {}, gameLoadingStop() {},
+    hasAdblock() { return false; },
     init() {
       const ids = window.ADMOB_IDS || {};
       this._interstitialId = ids.interstitial || 'ca-app-pub-3940256099942544/1033173712'; // test id
@@ -154,9 +162,13 @@ const AdManager = (() => {
     return NullAdapter;
   }
 
-  function init()          { _adapter().init(); }
-  function gameplayStart() { _adapter().gameplayStart(); }
-  function gameplayStop()  { _adapter().gameplayStop(); }
+  function init()             { _adapter().init(); }
+  function gameplayStart()    { _adapter().gameplayStart(); }
+  function gameplayStop()     { _adapter().gameplayStop(); }
+  function happyTime(f)       { try { _adapter().happyTime(f); } catch(e) {} }
+  function gameLoadingStart() { try { _adapter().gameLoadingStart(); } catch(e) {} }
+  function gameLoadingStop()  { try { _adapter().gameLoadingStop(); } catch(e) {} }
+  function hasAdblock()       { try { return _adapter().hasAdblock(); } catch(e) { return false; } }
 
   function showInterstitial(onDone) {
     const now     = Date.now();
@@ -191,5 +203,5 @@ const AdManager = (() => {
 
   function onRunEnd() { _runsSinceLast++; }
 
-  return { init, gameplayStart, gameplayStop, showInterstitial, showRewarded, onRunEnd };
+  return { init, gameplayStart, gameplayStop, happyTime, gameLoadingStart, gameLoadingStop, hasAdblock, showInterstitial, showRewarded, onRunEnd };
 })();

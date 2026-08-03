@@ -214,7 +214,7 @@ const GravityFlip = (() => {
       if (!w.scored && w.x + WALL_W < CHAR_X) {
         w.scored = true;
         _score++;
-        if (_score > _best) _best = _score;
+        if (_score > _best) { _best = _score; AdManager.happyTime(1.0); }
         try { Audio.play('score'); } catch(e) {}
       }
     }

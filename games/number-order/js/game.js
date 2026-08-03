@@ -107,7 +107,7 @@ var NumberOrder = (function () {
     }
 
     function endGame() {
-        if (score > best) { best = score; }
+        if (score > best) { best = score; AdManager.happyTime(1.0); }
         state = 'DEAD';
         try { Audio.play('lose'); } catch (e) {}
         try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
@@ -314,7 +314,7 @@ var NumberOrder = (function () {
                     var pts = Math.max(5, Math.floor(10 * timeLeft / QUESTION_TIME));
                     if (streak > 0 && streak % 3 === 0) { pts += 5; } // streak bonus
                     score += pts;
-                    if (score > best) { best = score; }
+                    if (score > best) { best = score; AdManager.happyTime(1.0); }
                     try { Audio.play('gem'); } catch (e) {}
                     // nextQuestion() will be called by update() when flashTimer expires
                 } else {

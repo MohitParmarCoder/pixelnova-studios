@@ -125,7 +125,7 @@ var HexFlip = (function () {
     if (matchList.length > 0) {
       var pts = matchList.length;
       score += pts;
-      if (score > best) best = score;
+      if (score > best) { best = score; AdManager.happyTime(1.0); }
       try { Audio.play('gem'); } catch (e) {}
       scoreAnim.push({ pts: pts, timer: 1.0, x: VW / 2, y: VH / 2 - 80 });
 
@@ -174,7 +174,7 @@ var HexFlip = (function () {
   }
 
   function endGame() {
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     state = 'DEAD';
     try { AdManager.gameplayStop(); } catch (e) {}
     try { AdManager.onRunEnd(); } catch (e) {}

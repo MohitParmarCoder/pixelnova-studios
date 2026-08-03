@@ -22,7 +22,7 @@ var PulseDodge = (function () {
     if (state !== 'PLAYING') return;
     t += dt;
     score = Math.floor(t * 10);
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
 
     spawnTimer -= dt;
     if (spawnTimer <= 0) {

@@ -25,6 +25,7 @@
   var best = 0;
   try { best = parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) {}
 
+  try { AdManager.gameLoadingStart(); } catch(e) {}
   Audio.init();
 
 

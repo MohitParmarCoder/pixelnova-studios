@@ -97,7 +97,7 @@ var OrbitTap = (function () {
 
   function killPlayer() {
     state = 'DEAD';
-    if (score > best) best = score;
+    if (score > best) { best = score; AdManager.happyTime(1.0); }
     try { Audio.play('lose'); } catch (e) {}
     try { AdManager.gameplayStop(); AdManager.onRunEnd(); } catch (e) {}
     AdManager.showInterstitial(() => {});
