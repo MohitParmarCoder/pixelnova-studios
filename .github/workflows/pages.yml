@@ -29,26 +29,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate app icons
-        run: node scripts/gen-icons.js
-
-      - name: Generate marketing assets
-        run: node scripts/gen-marketing.js
-
-      - name: Build site
+      # ── SITE TAKEN DOWN ────────────────────────────────────────────────────
+      # The public site is intentionally offline. The build publishes ONLY a
+      # 404 page and no index.html, so every URL (company site, games, Orbit
+      # Hopper) returns HTTP 404. To bring the site back, restore the original
+      # "Build site" step from git history (before this commit) and redeploy.
+      - name: Build site (takedown — 404 only)
         run: |
-          mkdir -p _site/game
-          # Company website at root
-          cp -r company-website/. _site/
-          # Orbit Hopper at /game/
-          cp -r orbit-hopper/. _site/game/
-          # Arcade games at /games/
-          mkdir -p _site/games
-          cp -r games/. _site/games/
-          # TWA asset links at root well-known
-          mkdir -p _site/.well-known
-          cp orbit-hopper/.well-known/assetlinks.json _site/.well-known/assetlinks.json 2>/dev/null || true
-          # Disable Jekyll so files starting with _ are served
+          mkdir -p _site
+          cat > _site/404.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="en"><head><meta charset="UTF-8">
+          <meta name="robots" content="noindex,nofollow">
+          <title>Not available</title></head>
+          <body style="background:#04050e;color:#888;font-family:system-ui,sans-serif;
+          display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center">
+          <p>This site is not available.</p></body></html>
+          HTML
+          # No index.html on purpose → root and all paths serve 404.html with a 404 status.
           touch _site/.nojekyll
 
       - name: Setup Pages
