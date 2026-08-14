@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-Three unrelated projects live side by side:
+Unrelated projects live side by side:
 
 1. **DailyNews** (repo root) — a Create React App project from a Udemy fullstack course, in early scaffolding stage.
 2. **Orbit Hopper** (`orbit-hopper/`) — a standalone, complete HTML5 canvas game with no build step.
 3. **PixelNova Studios website** (`company-website/`) — standalone company landing page, no build step.
+4. **base-app** (`base-app/`) — a minimal Vite + React starter, standalone with its own `package.json`.
 
 ## DailyNews (React app)
 
@@ -105,4 +106,17 @@ Standalone single-file HTML page — no build step, no dependencies. Serves via 
 
 ```bash
 python3 -m http.server 9000 --directory company-website   # serve at http://localhost:9000
+```
+
+## base-app (`base-app/`)
+
+Minimal Vite + React starter, scaffolded via `npm create vite@latest -- --template react`. Standalone — own `package.json`/lockfile, no shared build step or dependencies with the rest of the repo. Vercel auto-detects Vite, no `vercel.json` needed.
+
+```bash
+cd base-app
+npm install
+npm run dev       # dev server (Vite, hot reload)
+npm run build     # production build to dist/
+npm run preview   # serve the production build locally
+npx vercel --prod # deploy (or import the repo in the Vercel dashboard, root dir = base-app)
 ```
