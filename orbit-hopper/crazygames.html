@@ -9,8 +9,10 @@
 <title>Orbit Hopper</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/style.css">
-<!-- CrazyGames SDK v3 — injected by portal, listed here for local testing only -->
-<!-- <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script> -->
+<!-- CrazyGames SDK v3 — MUST load before ads.js so AdManager can init the SDK.
+     Without this the SDK is absent, sdk.init() never runs, and no ad or
+     gameplayStart/Stop events reach the portal. -->
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
