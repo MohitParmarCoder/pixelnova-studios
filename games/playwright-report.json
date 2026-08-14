@@ -1,0 +1,17 @@
+[
+  {
+    "name": "billiard-aim",
+    "pass": false,
+    "issues": [
+      "MISSING_gameplayStop",
+      "MISSING_onRunEnd",
+      "MISSING_showInterstitial",
+      "MISSING_offerDoubleScore"
+    ],
+    "adLog": [
+      "init",
+      "gameplayStart"
+    ],
+    "errors": []
+  }
+]

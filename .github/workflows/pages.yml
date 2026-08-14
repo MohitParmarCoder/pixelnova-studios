@@ -1,0 +1,75 @@
+name: Deploy to GitHub Pages
+
+on:
+  # Deploy only from the default branch. The github-pages environment only
+  # permits the default branch, so triggering on feature branches would
+  # always fail the deploy job. Merge to master => automatic free deploy.
+  push:
+    branches:
+      - master
+      - main
+  # Allow manual runs from the Actions tab at any time.
+  workflow_dispatch:
+
+# Permissions required for the official GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate app icons
+        run: node scripts/gen-icons.js
+
+      - name: Generate marketing assets
+        run: node scripts/gen-marketing.js
+
+      - name: Build site
+        run: |
+          mkdir -p _site/game
+          # Company website at root
+          cp -r company-website/. _site/
+          # Orbit Hopper at /game/
+          cp -r orbit-hopper/. _site/game/
+          # Arcade games at /games/
+          mkdir -p _site/games
+          cp -r games/. _site/games/
+          # TWA asset links at root well-known
+          mkdir -p _site/.well-known
+          cp orbit-hopper/.well-known/assetlinks.json _site/.well-known/assetlinks.json 2>/dev/null || true
+          # Disable Jekyll so files starting with _ are served
+          touch _site/.nojekyll
+
+      - name: Setup Pages
+        # enablement:true auto-enables GitHub Pages and sets the source to
+        # "GitHub Actions" — no manual Settings step required.
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

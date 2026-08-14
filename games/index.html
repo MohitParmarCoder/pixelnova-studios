@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PixelNova Arcade</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: radial-gradient(120% 90% at 50% 0%, #1a1140 0%, #0a0818 55%, #05040d 100%);
+    color: #eaeaff; min-height: 100vh; padding: 32px 16px 64px;
+  }
+  header { text-align: center; margin-bottom: 36px; }
+  h1 {
+    font-size: clamp(30px, 7vw, 54px); letter-spacing: 2px; font-weight: 800;
+    background: linear-gradient(90deg, #00eaff, #b06bff, #ff5599);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { margin-top: 8px; color: #9aa0c8; font-size: 15px; }
+  .search-wrap { max-width: 400px; margin: 18px auto 0; position: relative; }
+  .search-wrap input {
+    width: 100%; padding: 10px 16px 10px 40px; border-radius: 12px;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    color: #eaeaff; font-size: 15px; outline: none;
+  }
+  .search-wrap input::placeholder { color: #6b7099; }
+  .search-wrap::before { content: '🔍'; position: absolute; left: 12px; top: 10px; font-size: 15px; }
+  .grid {
+    max-width: 1100px; margin: 28px auto 0; display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  a.card {
+    position: relative; display: block; text-decoration: none; color: inherit;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 20px 18px; overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  a.card:hover { transform: translateY(-4px); border-color: var(--c); box-shadow: 0 10px 30px -10px var(--c); }
+  a.card.hidden { display: none; }
+  .chip { width: 44px; height: 44px; border-radius: 11px; margin-bottom: 12px;
+    background: var(--c); box-shadow: 0 0 20px -2px var(--c); }
+  .name { font-size: 17px; font-weight: 700; }
+  .tag { margin-top: 4px; font-size: 12px; color: #9aa0c8; }
+  footer { text-align: center; margin-top: 48px; color: #6b7099; font-size: 13px; }
+  footer a { color: #8a90c8; }
+  #count { color: #6b7099; font-size: 13px; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>PixelNova Arcade</h1>
+    <div class="sub">101 one-touch games · no download · play instantly</div>
+    <div id="count"></div>
+    <div class="search-wrap"><input type="search" id="search" placeholder="Search games…" autocomplete="off"></div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    Built by PixelNova Studios ·
+    <a href="../">Company site</a> ·
+    <a href="../game/">Orbit Hopper</a>
+  </footer>
+
+  <script>
+    var GAMES = [
+      { dir: 'orbit-hopper-feature', href: '../game/', name: 'Orbit Hopper',    tag: 'Hop between planets',      c: '#a06bff' },
+      { dir: 'stack-tower',     name: 'Stack Tower',     tag: 'Drop & stack blocks',      c: '#ff7755' },
+      { dir: 'color-switch',    name: 'Color Switch',    tag: 'Match the gate color',     c: '#00ccff' },
+      { dir: 'gravity-flip',    name: 'Gravity Flip',    tag: 'Flip through the gaps',    c: '#00ff88' },
+      { dir: 'neon-snake',      name: 'Neon Snake',      tag: 'Classic snake, neon',      c: '#00ff66' },
+      { dir: 'tap-blast',       name: 'Tap Blast',       tag: 'Pop before they vanish',   c: '#ff3388' },
+      { dir: 'dodge-rush',      name: 'Dodge Rush',      tag: 'Survive the shapes',       c: '#00eeff' },
+      { dir: 'block-breaker',   name: 'Block Breaker',   tag: 'Neon breakout',            c: '#ffdd00' },
+      { dir: 'number-merge',    name: 'Number Merge',    tag: 'Reach 2048',               c: '#edc22e' },
+      { dir: 'reflex-tap',      name: 'Reflex Tap',      tag: 'Hit the green zone',       c: '#00ff66' },
+      { dir: 'pipe-rush',       name: 'Pipe Rush',       tag: 'Flap & match colors',      c: '#ff3355' },
+      { dir: 'tile-tap',        name: 'Tile Tap',        tag: 'Tap the falling tiles',    c: '#b06bff' },
+      { dir: 'sky-hopper',      name: 'Sky Hopper',      tag: 'Bounce ever higher',       c: '#00ff88' },
+      { dir: 'bubble-pop',      name: 'Bubble Pop',      tag: 'Match 3+ to pop',          c: '#00ccff' },
+      { dir: 'star-blaster',    name: 'Star Blaster',    tag: 'Dodge & blast',            c: '#ff3388' },
+      { dir: 'memory-flip',     name: 'Memory Flip',     tag: 'Find all the pairs',       c: '#ffdd00' },
+      { dir: 'coin-catch',      name: 'Coin Catch',      tag: 'Catch falling coins',      c: '#FFD700' },
+      { dir: 'fruit-catcher',   name: 'Fruit Ninja',   tag: 'Swipe to slice flying fruit',c: '#6BCB77' },
+      { dir: 'gem-collector',   name: 'Gem Collector',   tag: 'Collect gems, avoid red',  c: '#00FFFF' },
+      { dir: 'star-grab',       name: 'Star Grab',       tag: 'Tap stars before they fade', c: '#FFD700' },
+      { dir: 'candy-rain',      name: 'Number Pairs',      tag: 'Tap pairs that sum to the target',  c: '#FF69B4' },
+      { dir: 'egg-drop',        name: 'Chef Catch',        tag: 'Catch good ingredients, dodge rotten ones',    c: '#FFFACD' },
+      { dir: 'potion-grab',     name: 'Color Lab',     tag: 'Mix RGB sliders to match the target color',       c: '#9B59B6' },
+      { dir: 'snowball-catch',  name: 'Fishing Derby',  tag: 'Cast line and reel in fish',c: '#87CEEB' },
+      { dir: 'leaf-fall',       name: 'Bug Catcher',       tag: 'Tap flying bugs before they escape',    c: '#FF8C00' },
+      { dir: 'lightning-grab',  name: 'Quick Draw',  tag: 'Match the color flash as fast as possible',      c: '#FFFF00' },
+      { dir: 'arrow-dodge',     name: 'Archery Range',     tag: 'Aim and shoot at moving targets',     c: '#FF6347' },
+      { dir: 'asteroid-belt',   name: 'Asteroid Belt',   tag: 'Collect crystals in space',c: '#A8D8EA' },
+      { dir: 'bomb-squad',      name: 'Minesweeper',      tag: 'Reveal all safe cells without hitting mines',    c: '#2ECC71' },
+      { dir: 'electric-dash',   name: 'Circuit Builder',   tag: 'Rotate wire pieces to complete the circuit',    c: '#00FFFF' },
+      { dir: 'fireball-run',    name: 'Castle Defense',    tag: 'Shoot arrows at marching enemies',      c: '#FF4500' },
+      { dir: 'magma-hop',       name: 'Frog Cross',       tag: 'Hop your frog across lanes of traffic',  c: '#FF6B35' },
+      { dir: 'missile-evade',   name: 'Air Defense',   tag: 'Shoot down incoming missiles',    c: '#7F8C8D' },
+      { dir: 'laser-maze',      name: 'Mirror Maze',      tag: 'Rotate mirrors to guide the laser to the gem',     c: '#FF0000' },
+      { dir: 'traffic-rush',    name: 'Traffic Rush',    tag: 'Cross the busy road',      c: '#F39C12' },
+      { dir: 'spike-field',     name: 'Bounce Hero',     tag: 'Bounce between trampolines and collect stars',  c: '#95A5A6' },
+      { dir: 'shadow-slide',    name: 'Shadow Slide',    tag: 'Platform in the dark',     c: '#2C3E50' },
+      { dir: 'flash-tap',       name: 'Flash Tap',       tag: 'Tap the flashing circle',  c: '#F1C40F' },
+      { dir: 'color-tap',       name: 'Color Tap',       tag: 'Match name to color',      c: '#E74C3C' },
+      { dir: 'speed-click',     name: 'Speed Click',     tag: 'Tap the dot fast',         c: '#1ABC9C' },
+      { dir: 'target-blitz',    name: 'Target Blitz',    tag: 'Time the ring tap',        c: '#E91E63' },
+      { dir: 'whack-mole',      name: 'Whack Mole',      tag: 'Whack those moles',        c: '#8D6E63' },
+      { dir: 'rhythm-tap',      name: 'Rhythm Tap',      tag: 'Tap on the beat',          c: '#9C27B0' },
+      { dir: 'pattern-repeat',  name: 'Pattern Repeat',  tag: 'Repeat the sequence',      c: '#3F51B5' },
+      { dir: 'basket-shot',     name: 'Basket Shot',     tag: 'Shoot the basketball',     c: '#FF6D00' },
+      { dir: 'golf-lite',       name: 'Golf Lite',       tag: 'Mini golf fun',            c: '#4CAF50' },
+      { dir: 'bowling-strike',  name: 'Bowling Strike',  tag: 'Strike! Knock em down',    c: '#607D8B' },
+      { dir: 'billiard-aim',    name: 'Billiard Aim',    tag: 'Pocket the balls',         c: '#388E3C' },
+      { dir: 'pool-shots',      name: 'Shuffleboard',      tag: 'Slide your disc to the highest scoring zone',     c: '#1B5E20' },
+      { dir: 'peg-drop',        name: 'Peg Drop',        tag: 'Plinko prize drop',        c: '#FF9800' },
+      { dir: 'slingshot-aim',   name: 'Slingshot Aim',   tag: 'Launch at targets',        c: '#795548' },
+      { dir: 'bounce-master',   name: 'Air Hockey',   tag: 'Score goals against the AI opponent',     c: '#2196F3' },
+      { dir: 'pinball-lite',    name: 'Pinball Lite',    tag: 'Flipper frenzy',           c: '#FF00FF' },
+      { dir: 'cannon-launch',   name: 'Cannon Launch',   tag: 'Fire at the targets',      c: '#455A64' },
+      { dir: 'plank-bridge',    name: 'Plank Bridge',    tag: 'Extend the plank right',   c: '#A1887F' },
+      { dir: 'block-drop',      name: 'Block Drop',      tag: 'Tetris-lite block dropper',c: '#7E57C2' },
+      { dir: 'tower-build',     name: 'Tower Build',     tag: 'Stack shrinking blocks',   c: '#26A69A' },
+      { dir: 'tetro-drop',      name: 'Tetro Drop',      tag: 'Deflect to the right hole',c: '#AB47BC' },
+      { dir: 'endless-runner',  name: 'Endless Runner',  tag: 'Run jump survive',         c: '#FF5722' },
+      { dir: 'bunny-hop',       name: 'Bunny Hop',       tag: 'Hop up on platforms',      c: '#F48FB1' },
+      { dir: 'dino-dash',       name: 'Dino Dash',       tag: 'Jump the cacti',           c: '#8BC34A' },
+      { dir: 'cloud-hop',       name: 'Kite Flyer',       tag: 'Steer your kite through obstacles',        c: '#B3E5FC' },
+      { dir: 'lava-surf',       name: 'Ice Curling',       tag: 'Slide your stone to the bullseye',       c: '#FF3D00' },
+      { dir: 'ninja-run',       name: 'Rope Swing',       tag: 'Swing on ropes and collect stars',      c: '#212121' },
+      { dir: 'space-runner',    name: 'Space Invaders',    tag: 'Shoot aliens before they reach you', c: '#3F51B5' },
+      { dir: 'rooftop-run',     name: 'Grind Rails',     tag: 'Time your jumps over gaps and rails',    c: '#546E7A' },
+      { dir: 'cave-runner',     name: 'Mine Digger',     tag: 'Tap to mine blocks and collect gems',        c: '#4E342E' },
+      { dir: 'rail-slide',      name: 'Rail Slide',      tag: 'Switch lanes, dodge',      c: '#00BCD4' },
+      { dir: 'match-gems',      name: 'Match Gems',      tag: 'Swap & match 3',           c: '#E91E63' },
+      { dir: 'color-memory',    name: 'Piano Keys',    tag: 'Play back the melody on piano keys',    c: '#FF9800' },
+      { dir: 'card-pairs',      name: 'Blackjack 21',      tag: 'Hit or stand to beat the dealer to 21',     c: '#2196F3' },
+      { dir: 'sequence-game',   name: 'Code Breaker',   tag: 'Guess the 4-color secret code (Mastermind)',     c: '#9C27B0' },
+      { dir: 'number-order',    name: 'Math Blitz',    tag: 'Tap the correct arithmetic answer fast',    c: '#00BCD4' },
+      { dir: 'symbol-hunt',     name: 'Symbol Hunt',     tag: 'Find matching symbols',    c: '#FFEB3B' },
+      { dir: 'word-blitz',      name: 'Word Blitz',      tag: 'Spell the target word',    c: '#4CAF50' },
+      { dir: 'spot-it',         name: 'Odd One Out',         tag: 'Find the one item that is different',     c: '#FF5722' },
+      { dir: 'shape-recall',    name: 'Shape Tangram',    tag: 'Fit geometric pieces into the silhouette',      c: '#673AB7' },
+      { dir: 'wall-rise',       name: 'Wall Rise',       tag: 'Walls rise, dodge gaps',   c: '#F44336' },
+      { dir: 'crystal-stack',   name: 'Color Sort',   tag: 'Sort colored balls into matching tubes',   c: '#00BCD4' },
+      { dir: 'city-stack',      name: 'Jenga Pull',      tag: 'Remove blocks without toppling the tower',       c: '#607D8B' },
+      { dir: 'balance-beam',    name: 'Balance Beam',    tag: 'Keep the beam level',      c: '#FF9800' },
+      { dir: 'zombie-smash',    name: 'Zombie Smash',    tag: 'Smash the zombies',        c: '#4CAF50' },
+      { dir: 'gravity-maze',    name: 'Gravity Maze',    tag: 'Flip gravity to navigate', c: '#3F51B5' },
+      { dir: 'chain-blast',     name: 'Chain Reaction',     tag: 'Set off one bomb for the biggest chain',   c: '#E91E63' },
+      { dir: 'hex-flip',        name: 'Hex Flip',        tag: 'Flip hex colors',          c: '#FF9800' },
+      { dir: 'color-burst',     name: 'Color Burst',     tag: 'Match ball to ring color', c: '#9C27B0' },
+      { dir: 'orb-collector',   name: 'Orb Collector',   tag: 'Collect glowing orbs',     c: '#00BCD4' },
+      { dir: 'pulse-dodge',     name: 'Pulse Dodge',     tag: 'Dodge expanding waves',    c: '#F44336' },
+      { dir: 'paint-fill',      name: 'Paint Fill',      tag: 'Flood-fill the grid',      c: '#E91E63' },
+      { dir: 'water-flow',      name: 'Water Flow',      tag: 'Connect pipe flow',        c: '#2196F3' },
+      { dir: 'dot-link',        name: 'Dot Link',        tag: 'Link the color dots',      c: '#FF5722' },
+      { dir: 'pixel-trace',     name: 'Dot to Dot',     tag: 'Connect numbered dots in order to reveal the picture',       c: '#9C27B0' },
+      { dir: 'color-flood',     name: 'Slide Puzzle',     tag: 'Slide tiles to put them in order 1-15',    c: '#00BCD4' },
+      { dir: 'grid-snake',      name: 'Merge Snake',      tag: 'Eat matching numbers to merge and grow',    c: '#4CAF50' },
+      { dir: 'spiral-draw',     name: 'Spiral Draw',     tag: 'Trace the spiral',         c: '#FF9800' },
+      { dir: 'neon-path',       name: 'Neon Path',       tag: 'Roll through the tube',    c: '#00FFFF' },
+      { dir: 'block-blast',     name: 'Block Blast',     tag: 'Blast connected blocks',   c: '#FF5722' },
+      { dir: 'line-breaker',    name: 'Ricochet',    tag: 'Bounce one ball to hit all 8 targets',        c: '#FFEB3B' },
+      { dir: 'orbit-tap',       name: 'Orbit Tap',       tag: 'Tap orbiting planets',     c: '#9C27B0' },
+      { dir: 'mirror-tap',      name: 'Mirror Tap',      tag: 'Mirror the pattern',       c: '#00BCD4' },
+      { dir: 'chain-tap',       name: 'Chain Tap',       tag: 'Tap numbers in order',     c: '#FF9800' },
+    ];
+
+    var unique = [];
+    var seen = {};
+    for (var i = 0; i < GAMES.length; i++) {
+      if (!seen[GAMES[i].dir]) { seen[GAMES[i].dir] = true; unique.push(GAMES[i]); }
+    }
+    GAMES = unique;
+
+    var grid = document.getElementById('grid');
+    for (var j = 0; j < GAMES.length; j++) {
+      var g = GAMES[j];
+      var a = document.createElement('a');
+      a.className = 'card';
+      a.style.setProperty('--c', g.c);
+      a.href = g.href || (g.dir + '/');
+      a.dataset.name = g.name.toLowerCase();
+      a.innerHTML =
+        '<div class="chip"></div>' +
+        '<div class="name">' + g.name + '</div>' +
+        '<div class="tag">' + g.tag + '</div>';
+      grid.appendChild(a);
+    }
+
+    document.getElementById('count').textContent = GAMES.length + ' games';
+
+    document.getElementById('search').addEventListener('input', function() {
+      var q = this.value.toLowerCase();
+      var cards = grid.querySelectorAll('.card');
+      for (var k = 0; k < cards.length; k++) {
+        cards[k].classList.toggle('hidden', q && cards[k].dataset.name.indexOf(q) === -1);
+      }
+    });
+  </script>
+</body>
+</html>

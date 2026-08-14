@@ -1,0 +1,18 @@
+{
+  "name": "orbit-hopper-android",
+  "version": "1.0.0",
+  "description": "Orbit Hopper – Android build via Capacitor",
+  "private": true,
+  "scripts": {
+    "setup":      "npm install && node build.js && npx cap add android && npx cap sync android",
+    "sync":       "node build.js && npx cap sync android",
+    "open":       "npx cap open android",
+    "build":      "node build.js && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core":    "^6.0.0",
+    "@capacitor/cli":     "^6.0.0",
+    "@capacitor-community/admob": "^6.0.0"
+  }
+}
